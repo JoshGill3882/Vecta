@@ -16,10 +16,9 @@
 ## Scope and Requirements
 ### Must-haves (MVP):
 - Enter a task (Name and short description) – Full CRUD
-- Mark tasks as complete
+- Mark tasks as complete (Separate to deletion)
 - Sorting and filtering options
 - Categorisation
-- Complete status (Separate to deletion)
 - Checklists
 
 ### Nice-to-haves:
