@@ -28,16 +28,6 @@ type: Feature
 
 ---
 
-## Dependencies
-
-<!-- List anything that must be completed, merged, deployed, or confirmed before work on this feature can begin. -->
-
-| Dependency | Type | Status | Link |
-|------------|------|--------|------|
-| _e.g. Auth service upgrade_ | _Service / PR / Ticket_ | _Pending / Done_ | _#123_ |
-
----
-
 ## User Story
 
 ```
