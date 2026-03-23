@@ -30,6 +30,7 @@
 - Separate history view
 - Defined acceptance criteria (Subtasks & dependancies)
 - Elevate checkbox to subtask.
+- Create a Programmable Web App (PWA). Possibly use Capacitor.
 
 ### Out of scope:
 - Multi Operating system
@@ -38,8 +39,7 @@
 - Multi-user/team
 
 ## Technical Design:
-- Frontend React native
-- C# .NET backend (if needed)
+- Next .JS
 
 ## Break Work into Tasks:
 - Project Setup (repository)
