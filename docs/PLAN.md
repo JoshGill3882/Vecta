@@ -19,7 +19,7 @@ A self-hosted, open-source task management web application built on Next.js, int
 The following decisions were made up-front and should not be re-litigated mid-build without a deliberate change discussion:
 
 | Concern | Decision | Why |
-|---|---|---|
+| --- | --- | --- |
 | **Framework** | Next.js (App Router) + TypeScript + Tailwind | Already initialised; modern default; good for back-end devs leaning into full-stack |
 | **UI components** | [shadcn/ui](https://ui.shadcn.com/) | Tailwind-native; we own the source; built on Radix for accessibility; avoids the "back-end dev built a UI" look |
 | **ORM** | [Prisma](https://www.prisma.io/) | Mature DX; Prisma Studio for visual debugging; schema-in-one-file; pairs cleanly with both SQLite and Postgres |
@@ -71,7 +71,7 @@ Based on a combined capacity of **~20 developer-hours per week** (2 × 10hrs), t
 - Phases overlap where possible to allow parallel work
 
 | Phase | Description | Est. effort | Calendar weeks |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | Foundations: repo, CI, tooling | ~15 hrs | Week 1 |
 | 1 | Data layer: Prisma, schema, services skeleton | ~15 hrs | Week 2 (parallel with Phase 2) |
 | 2 | Authentication | ~15 hrs | Week 2 (parallel with Phase 1) |
@@ -445,7 +445,7 @@ With only two devs, every PR should still be reviewed. The review is the safety 
 ## 13. Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Frontend work expands beyond estimate** | High | High | Hard-cap shadcn customisation; defer any "make it pretty" work to post-MVP. The default theme is fine for v1 |
 | **One dev gets pulled into day-job crunch for several weeks** | Medium | High | Phases 1 and 2 deliberately parallelisable; later phases need both, so build a buffer week |
 | **Scope creep — "while I'm in here" syndrome** | High | Medium | Anything not on the MVP list goes to a stretch-goals issue, not into the current branch |
