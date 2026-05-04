@@ -1,0 +1,4 @@
+{
+  "language": "en,en-GB",
+  "ignorePaths": ["node_modules", "package-lock.json", ".next"]
+}

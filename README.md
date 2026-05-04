@@ -41,14 +41,14 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 
 ## Tech stack
 
-| Layer | Choice |
-| --- | --- |
-| Framework | Next.js (App Router) + TypeScript |
-| Styling | Tailwind CSS + [shadcn/ui](https://ui.shadcn.com/) |
-| ORM | [Prisma](https://www.prisma.io/) |
-| Database | SQLite (default) / Postgres (opt-in) |
-| Auth | Single admin user via env-var password ([iron-session](https://github.com/vvo/iron-session)) |
-| Distribution | Docker image on GitHub Container Registry |
+| Layer        | Choice                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| Framework    | Next.js (App Router) + TypeScript                                                            |
+| Styling      | Tailwind CSS + [shadcn/ui](https://ui.shadcn.com/)                                           |
+| ORM          | [Prisma](https://www.prisma.io/)                                                             |
+| Database     | SQLite (default) / Postgres (opt-in)                                                         |
+| Auth         | Single admin user via env-var password ([iron-session](https://github.com/vvo/iron-session)) |
+| Distribution | Docker image on GitHub Container Registry                                                    |
 
 For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
@@ -57,9 +57,9 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 ## Documentation
 
 - [`PLAN.md`](./docs/PLAN.md) — full project docs/PLAN, phased delivery, definition of done
-- `ARCHITECTURE.md` — *(coming in Phase 5)* technical architecture, directory layout, key patterns
-- `CONTRIBUTING.md` — *(coming in Phase 0)* how to contribute, branching, commit conventions
-- `CHANGELOG.md` — *(from v0.1.0)* version history
+- `ARCHITECTURE.md` — _(coming in Phase 5)_ technical architecture, directory layout, key patterns
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local setup, branching, commit conventions
+- `CHANGELOG.md` — _(from v0.1.0)_ version history
 
 ---
 
@@ -103,23 +103,23 @@ Configuration reference, backup guidance, and reverse-proxy notes will be added 
 git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
 cd Task-Management-Solution
 
-# Install dependencies (using pnpm — recommended)
-pnpm install
+# Install dependencies
+npm install
 
 # Set up local environment
 cp .env.example .env
 
 # Initialise database
-pnpm prisma migrate dev
-pnpm db:seed
+npm run prisma migrate dev
+npm run db:seed
 
 # Run the dev server
-pnpm dev
+npm run dev
 ```
 
-The app runs at `http://localhost:3000`. Use `Prisma Studio` (`pnpm prisma studio`) to inspect the database during development.
+The app runs at `http://localhost:3000`. Use Prisma Studio (`npm run prisma studio`) to inspect the database during development.
 
-For contribution guidelines, see [`CONTRIBUTING.md`](./docs/CONTRIBUTING.md) *(coming soon)*.
+For local setup details, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
@@ -147,9 +147,9 @@ Major features are tracked as GitHub Issues with the `roadmap` label.
 
 ## Contributing
 
-Contributions are welcome once the MVP lands. Until then, the codebase is in heavy flux and PRs are unlikely to be reviewed promptly.
+Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/J-L-Dev-Studio/Task-Management-Solution/issues/new/choose). This project is maintained by a two-person studio and is not actively seeking external code contributions.
 
-If you'd like to discuss a future contribution, open a Discussion rather than an Issue.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for details.
 
 ---
 

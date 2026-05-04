@@ -18,18 +18,18 @@ A self-hosted, open-source task management web application built on Next.js, int
 
 The following decisions were made up-front and should not be re-litigated mid-build without a deliberate change discussion:
 
-| Concern | Decision | Why |
-| --- | --- | --- |
-| **Framework** | Next.js (App Router) + TypeScript + Tailwind | Already initialised; modern default; good for back-end devs leaning into full-stack |
-| **UI components** | [shadcn/ui](https://ui.shadcn.com/) | Tailwind-native; we own the source; built on Radix for accessibility; avoids the "back-end dev built a UI" look |
-| **ORM** | [Prisma](https://www.prisma.io/) | Mature DX; Prisma Studio for visual debugging; schema-in-one-file; pairs cleanly with both SQLite and Postgres |
-| **Database (default)** | SQLite, file in mounted volume | One container; trivial backup; sufficient for single-user concurrency |
-| **Database (opt-in)** | Postgres via `DATABASE_URL` env var | For users who want it; same Prisma schema works for both |
-| **Auth** | Single admin user; password via `ADMIN_PASSWORD` env var; session cookie via [iron-session](https://github.com/vvo/iron-session) | Minimum viable; defends against accidental open-internet exposure; future-proofs for multi-user without committing to it now |
-| **API style** | Server Actions for mutations + Server Components for reads, **with all DB access behind a service layer** (`src/server/services/`) | Speed of Server Actions for MVP; clean seam for a future REST API; idiomatic Next.js in 2026 |
-| **Validation** | [Zod](https://zod.dev/) at every server-action and service-layer entry point | Run-time validation + TS types from one definition |
-| **Distribution** | GitHub Container Registry; `:stable` from `production`, `:unstable` from `develop` | As specified in the brief |
-| **Licence** | MIT (suggested — finalise before public launch) | Permissive; standard "no warranty" disclaimer covers liability concerns |
+| Concern                | Decision                                                                                                                           | Why                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**          | Next.js (App Router) + TypeScript + Tailwind                                                                                       | Already initialised; modern default; good for back-end devs leaning into full-stack                                          |
+| **UI components**      | [shadcn/ui](https://ui.shadcn.com/)                                                                                                | Tailwind-native; we own the source; built on Radix for accessibility; avoids the "back-end dev built a UI" look              |
+| **ORM**                | [Prisma](https://www.prisma.io/)                                                                                                   | Mature DX; Prisma Studio for visual debugging; schema-in-one-file; pairs cleanly with both SQLite and Postgres               |
+| **Database (default)** | SQLite, file in mounted volume                                                                                                     | One container; trivial backup; sufficient for single-user concurrency                                                        |
+| **Database (opt-in)**  | Postgres via `DATABASE_URL` env var                                                                                                | For users who want it; same Prisma schema works for both                                                                     |
+| **Auth**               | Single admin user; password via `ADMIN_PASSWORD` env var; session cookie via [iron-session](https://github.com/vvo/iron-session)   | Minimum viable; defends against accidental open-internet exposure; future-proofs for multi-user without committing to it now |
+| **API style**          | Server Actions for mutations + Server Components for reads, **with all DB access behind a service layer** (`src/server/services/`) | Speed of Server Actions for MVP; clean seam for a future REST API; idiomatic Next.js in 2026                                 |
+| **Validation**         | [Zod](https://zod.dev/) at every server-action and service-layer entry point                                                       | Run-time validation + TS types from one definition                                                                           |
+| **Distribution**       | GitHub Container Registry; `:stable` from `production`, `:unstable` from `develop`                                                 | As specified in the brief                                                                                                    |
+| **Licence**            | MIT (suggested — finalise before public launch)                                                                                    | Permissive; standard "no warranty" disclaimer covers liability concerns                                                      |
 
 **Important constraint:** because we support both SQLite and Postgres, the Prisma schema must avoid Postgres-specific column types like `Json`/`Jsonb` and native UUID types. Stick to `String`, `Int`, `DateTime`, `Boolean`. Use `cuid()` or `uuid()` from Prisma for IDs (stored as strings).
 
@@ -70,16 +70,16 @@ Based on a combined capacity of **~20 developer-hours per week** (2 × 10hrs), t
 - ~10–15% slack built in for unknowns (always more than you expect)
 - Phases overlap where possible to allow parallel work
 
-| Phase | Description | Est. effort | Calendar weeks |
-| --- | --- | --- | --- |
-| 0 | Foundations: repo, CI, tooling | ~15 hrs | Week 1 |
-| 1 | Data layer: Prisma, schema, services skeleton | ~15 hrs | Week 2 (parallel with Phase 2) |
-| 2 | Authentication | ~15 hrs | Week 2 (parallel with Phase 1) |
-| 3 | Backend: services, server actions, validation | ~25 hrs | Weeks 3–4 |
-| 4 | Frontend: shadcn, list view, forms | ~40 hrs | Weeks 4–6 |
-| 5 | Polish, accessibility, docs | ~15 hrs | Week 7 |
-| 6 | Packaging: Dockerfile, compose, GHCR pipeline | ~20 hrs | Week 8 |
-| **Total** | | **~145 hrs** | **~8 weeks** |
+| Phase     | Description                                   | Est. effort  | Calendar weeks                 |
+| --------- | --------------------------------------------- | ------------ | ------------------------------ |
+| 0         | Foundations: repo, CI, tooling                | ~15 hrs      | Week 1                         |
+| 1         | Data layer: Prisma, schema, services skeleton | ~15 hrs      | Week 2 (parallel with Phase 2) |
+| 2         | Authentication                                | ~15 hrs      | Week 2 (parallel with Phase 1) |
+| 3         | Backend: services, server actions, validation | ~25 hrs      | Weeks 3–4                      |
+| 4         | Frontend: shadcn, list view, forms            | ~40 hrs      | Weeks 4–6                      |
+| 5         | Polish, accessibility, docs                   | ~15 hrs      | Week 7                         |
+| 6         | Packaging: Dockerfile, compose, GHCR pipeline | ~20 hrs      | Week 8                         |
+| **Total** |                                               | **~145 hrs** | **~8 weeks**                   |
 
 A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable last-minute fixes and a final manual QA pass on a freshly deployed instance.
 
@@ -93,20 +93,19 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 
 ### Tasks
 
-- [ ] Repository structure decided and documented in `README.md`
-- [ ] Branching strategy: `production` (stable releases), `develop` (integration), feature branches off `develop`
-- [ ] Branch protection rules on `production` and `develop` (require PR, require passing CI, no direct push)
-- [ ] [Conventional Commits](https://www.conventionalcommits.org/) adopted — useful both for changelog generation and for keeping commit messages disciplined
-- [ ] Issue templates in `.github/ISSUE_TEMPLATE/` (feature, bug — you may already have these from prior work; adapt)
-- [ ] Pull request template in `.github/PULL_REQUEST_TEMPLATE.md`
-- [ ] [`CODEOWNERS`](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) so PRs auto-request the right reviewer (with only 2 devs, this is mostly belt-and-braces)
-- [ ] ESLint + Prettier configured and CI-enforced
-- [ ] [Husky](https://typicode.github.io/husky/) + [lint-staged](https://github.com/lint-staged/lint-staged) for pre-commit linting (catches style issues before they hit CI)
-- [ ] TypeScript strict mode enabled (`"strict": true` in `tsconfig.json`)
-- [ ] CI pipeline: GitHub Actions runs lint + typecheck + tests on every PR
-- [ ] `CONTRIBUTING.md` covering local setup steps, branching, commit conventions
-- [ ] `LICENSE` file (MIT recommended unless one of you has strong opinion)
-- [ ] `.env.example` committed; real `.env` gitignored
+- [x] Repository structure decided and documented in `README.md`
+- [x] Branching strategy: `production` (stable releases), `develop` (integration), feature branches off `develop`
+- [x] Branch protection rules on `production` and `develop` (require PR, require passing CI, no direct push)
+- [x] [Conventional Commits](https://www.conventionalcommits.org/) adopted — useful both for changelog generation and for keeping commit messages disciplined
+- [x] Issue templates in `.github/ISSUE_TEMPLATE/` (feature, bug)
+- [x] Pull request template in `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] ESLint + Prettier configured and CI-enforced
+- [x] [Husky](https://typicode.github.io/husky/) + [lint-staged](https://github.com/lint-staged/lint-staged) for pre-commit linting (catches style issues before they hit CI)
+- [x] TypeScript strict mode enabled (`"strict": true` in `tsconfig.json`)
+- [x] CI pipeline: GitHub Actions runs lint + typecheck + tests on every PR
+- [x] `CONTRIBUTING.md` covering local setup steps, branching, commit conventions
+- [x] `LICENSE` file (MIT)
+- [x] `.env.example` committed; real `.env` gitignored
 
 ### Definition of Done
 
@@ -444,15 +443,15 @@ With only two devs, every PR should still be reviewed. The review is the safety 
 
 ## 13. Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-| --- | --- | --- | --- |
-| **Frontend work expands beyond estimate** | High | High | Hard-cap shadcn customisation; defer any "make it pretty" work to post-MVP. The default theme is fine for v1 |
-| **One dev gets pulled into day-job crunch for several weeks** | Medium | High | Phases 1 and 2 deliberately parallelisable; later phases need both, so build a buffer week |
-| **Scope creep — "while I'm in here" syndrome** | High | Medium | Anything not on the MVP list goes to a stretch-goals issue, not into the current branch |
-| **SQLite/Postgres dual-support breaks one of them silently** | Medium | High | CI matrix runs the test suite against both providers |
-| **Docker image works locally but fails on `arm64`** | Medium | Medium | CI does multi-arch builds from the start, not as a v1.1 task |
-| **Self-hoster exposes the app to the internet without setting `ADMIN_PASSWORD`** | Medium | High | Boot-time check that refuses to start without it; README has a prominent security section |
-| **One of us disappears mid-project** | Low | High | All decisions documented in `ARCHITECTURE.md`; no "tribal knowledge" gating progress |
+| Risk                                                                             | Likelihood | Impact | Mitigation                                                                                                   |
+| -------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------ |
+| **Frontend work expands beyond estimate**                                        | High       | High   | Hard-cap shadcn customisation; defer any "make it pretty" work to post-MVP. The default theme is fine for v1 |
+| **One dev gets pulled into day-job crunch for several weeks**                    | Medium     | High   | Phases 1 and 2 deliberately parallelisable; later phases need both, so build a buffer week                   |
+| **Scope creep — "while I'm in here" syndrome**                                   | High       | Medium | Anything not on the MVP list goes to a stretch-goals issue, not into the current branch                      |
+| **SQLite/Postgres dual-support breaks one of them silently**                     | Medium     | High   | CI matrix runs the test suite against both providers                                                         |
+| **Docker image works locally but fails on `arm64`**                              | Medium     | Medium | CI does multi-arch builds from the start, not as a v1.1 task                                                 |
+| **Self-hoster exposes the app to the internet without setting `ADMIN_PASSWORD`** | Medium     | High   | Boot-time check that refuses to start without it; README has a prominent security section                    |
+| **One of us disappears mid-project**                                             | Low        | High   | All decisions documented in `ARCHITECTURE.md`; no "tribal knowledge" gating progress                         |
 
 ---
 
@@ -502,4 +501,4 @@ Pulling all the documentation links into one place for convenience:
 
 ---
 
-*This plan is a living document. Update it (and this line) when scope shifts — better to update once than to drift silently.*
+_This plan is a living document. Update it (and this line) when scope shifts — better to update once than to drift silently._

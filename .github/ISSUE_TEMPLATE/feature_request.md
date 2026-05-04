@@ -1,11 +1,10 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: ''
+title: ""
 labels: feature
-assignees: ''
+assignees: ""
 type: Feature
-
 ---
 
 ## Overview
@@ -42,9 +41,9 @@ So that [some reason or benefit].
 
 <!-- Each criterion should be independently testable. Use "Given / When / Then" format where helpful. -->
 
-- [ ] **AC1:** 
-- [ ] **AC2:** 
-- [ ] **AC3:** 
+- [ ] **AC1:**
+- [ ] **AC2:**
+- [ ] **AC3:**
 
 > _Tip: If a criterion can't be tested, it's not ready._
 
@@ -59,12 +58,15 @@ So that [some reason or benefit].
 ## Considerations
 
 ### Security
+
 <!-- e.g. Auth required? Data exposure risk? Input validation needed? -->
 
 ### Performance & Scalability
+
 <!-- e.g. Expected load? Expensive queries? Caching requirements? -->
 
 ### Observability
+
 <!-- e.g. What logs, metrics, or alerts should be in place? How will we know if this is working correctly in prod? -->
 
 ---
