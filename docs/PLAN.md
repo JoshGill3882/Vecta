@@ -164,9 +164,9 @@ model Category {
 
 ### Definition of Done
 
-- `pnpm prisma migrate dev` from a clean state succeeds and creates the schema
-- `pnpm prisma studio` opens and shows the empty tables
-- `pnpm db:seed` populates a few example tasks and categories
+- `npm prisma migrate dev` from a clean state succeeds and creates the schema
+- `npm prisma studio` opens and shows the empty tables
+- `npm db:seed` populates a few example tasks and categories
 - Switching `DATABASE_URL` from SQLite to a local Postgres instance and re-running migrations succeeds
 - Service layer functions exist and have correct TypeScript signatures (even if bodies just `throw new Error("not implemented")`)
 
@@ -250,7 +250,7 @@ Sessions are managed by [iron-session](https://github.com/vvo/iron-session) — 
 - A test SQLite database is created and torn down between integration test runs
 - Calling a server action with invalid data returns a structured error (never throws to the client)
 - No Prisma client is imported anywhere outside `src/server/`
-- `pnpm test` runs cleanly in CI
+- `npm test` runs cleanly in CI
 
 ### References
 
