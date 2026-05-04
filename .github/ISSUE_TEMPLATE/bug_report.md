@@ -1,11 +1,10 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: ""
 labels: bug
-assignees: ''
+assignees: ""
 type: Bug
-
 ---
 
 ## Summary
@@ -34,30 +33,30 @@ type: Bug
 
 <!-- Be as specific as possible. Assume the reader has no prior context. -->
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 
 ## Expected vs. Actual Behaviour
 
-| | Behaviour |
-|---|---|
-| **Expected** | _What should happen_ |
-| **Actual** | _What actually happens_ |
+|              | Behaviour               |
+| ------------ | ----------------------- |
+| **Expected** | _What should happen_    |
+| **Actual**   | _What actually happens_ |
 
 ---
 
 ## Environment
 
-| Field | Detail |
-|-------|--------|
-| **Environment** | _Production / Staging / Local_ |
-| **Browser / Client** | _e.g. Chrome 123, iOS 17, Postman_ |
-| **App Version / Commit** | _e.g. v2.4.1 / `abc1234`_ |
-| **OS** | _e.g. Windows 11, macOS Sonoma_ |
-| **Reproducibility** | _Always / Intermittent / Once_ |
+| Field                    | Detail                             |
+| ------------------------ | ---------------------------------- |
+| **Environment**          | _Production / Staging / Local_     |
+| **Browser / Client**     | _e.g. Chrome 123, iOS 17, Postman_ |
+| **App Version / Commit** | _e.g. v2.4.1 / `abc1234`_          |
+| **OS**                   | _e.g. Windows 11, macOS Sonoma_    |
+| **Reproducibility**      | _Always / Intermittent / Once_     |
 
 ---
 
@@ -66,12 +65,14 @@ type: Bug
 <!-- Severity = how bad is the impact. Priority = how urgently should it be fixed. These are not always the same. -->
 
 **Severity:**
+
 - [ ] 🔴 Critical — system down, data loss, security breach, or total blocker
 - [ ] 🟠 High — major feature broken, significant user impact, no workaround
 - [ ] 🟡 Medium — feature partially broken, workaround exists
 - [ ] 🟢 Low — cosmetic, minor inconvenience, edge case
 
 **Priority:**
+
 - [ ] P1 — Fix immediately / hotfix required
 - [ ] P2 — Fix in current sprint
 - [ ] P3 — Fix in next sprint
@@ -83,8 +84,8 @@ type: Bug
 
 <!-- Anything that must be resolved before this fix can be worked on or deployed. -->
 
-| Dependency | Type | Status | Link |
-|------------|------|--------|------|
+| Dependency              | Type                    | Status           | Link   |
+| ----------------------- | ----------------------- | ---------------- | ------ |
 | _e.g. Upstream API bug_ | _Service / PR / Ticket_ | _Pending / Done_ | _#123_ |
 
 ---
@@ -122,12 +123,15 @@ Paste stack trace or log output here
 ## Considerations
 
 ### Security & Data Integrity
+
 <!-- e.g. Is user data exposed or corrupted? Could this be exploited? Does it need immediate mitigation? -->
 
 ### Regression Risk
+
 <!-- e.g. What areas of the codebase could be affected by a fix? What should be regression-tested? -->
 
 ### Workaround
+
 <!-- Is there a temporary workaround users or support can use while the fix is in progress? -->
 
 ---
@@ -137,8 +141,8 @@ Paste stack trace or log output here
 <!-- Define exactly what "fixed" looks like. Each criterion should be independently testable. -->
 
 - [ ] **AC1:** The original steps to reproduce no longer produce the bug
-- [ ] **AC2:** 
-- [ ] **AC3:** 
+- [ ] **AC2:**
+- [ ] **AC3:**
 
 ---
 
