@@ -68,6 +68,52 @@ The app runs at `http://localhost:3000`.
 
 ---
 
+## AI assistant knowledge graph (Graphify)
+
+This project uses [Graphify](https://github.com/safishamsi/graphify) to give AI coding assistants (Claude Code, Cursor, Codex, etc.) a structured knowledge graph of the codebase instead of raw grepping. The graph lives in `graphify-out/` which is gitignored — each developer builds it locally.
+
+### One-time setup
+
+```bash
+# Install graphify (requires Python 3.9+)
+pip install graphifyy
+
+# Build your local graph (AST-only, no API key needed, ~seconds)
+graphify update .
+```
+
+> **Optional — richer semantic graph:** If you have a Gemini API key you can run a deeper extraction once:
+>
+> ```bash
+> GEMINI_API_KEY=<your-key> graphify extract . --backend gemini
+> ```
+>
+> This embeds semantic relationships on top of the AST graph. Subsequent `graphify update .` calls stay free.
+
+### Day-to-day usage
+
+Keep the graph current after any significant code change:
+
+```bash
+graphify update .   # re-indexes changed files, no API cost
+```
+
+Query the graph instead of grepping:
+
+```bash
+graphify query "how are tasks stored?"
+graphify path "TaskList" "database"
+graphify explain "session middleware"
+```
+
+The `graphify-out/GRAPH_REPORT.md` file gives a broad architecture overview if you need it.
+
+### Claude Code hook
+
+When you run `graphify claude install` (already committed in `.claude/settings.json`), Claude Code automatically gets a reminder to query the graph before running `grep`/`find` searches. No extra configuration needed — the hook fires as long as `graphify` is on your `PATH`.
+
+---
+
 ## Branching strategy
 
 | Branch       | Purpose                                          |

@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vscode/settings.json
+
+# graphify — generated knowledge graph (each dev builds locally)
+graphify-out/
