@@ -96,7 +96,6 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 - [x] Repository structure decided and documented in `README.md`
 - [x] Branching strategy: `production` (stable releases), `develop` (integration), feature branches off `develop`
 - [x] Branch protection rules on `production` and `develop` (require PR, require passing CI, no direct push)
-- [x] [Conventional Commits](https://www.conventionalcommits.org/) adopted — useful both for changelog generation and for keeping commit messages disciplined
 - [x] Issue templates in `.github/ISSUE_TEMPLATE/` (feature, bug)
 - [x] Pull request template in `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] ESLint + Prettier configured and CI-enforced
@@ -116,7 +115,6 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 ### References
 
 - [Next.js project structure](https://nextjs.org/docs/app/getting-started/project-structure)
-- [Conventional Commits spec](https://www.conventionalcommits.org/en/v1.0.0/)
 - [GitHub Actions for Node.js](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs)
 
 ---

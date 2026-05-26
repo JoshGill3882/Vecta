@@ -124,21 +124,3 @@ When you run `graphify claude install` (already committed in `.claude/settings.j
 | `fix/*`      | Bug fix branches, cut from `develop`             |
 
 All changes go through a pull request into `develop`. Releases are cut from `develop` → `production`.
-
-## Commit conventions
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/). Format:
-
-```
-<type>(<scope>): <description>
-```
-
-Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`.
-
-Examples:
-
-```
-feat(tasks): add category filter to task list
-fix(auth): correct session cookie expiry
-docs: update self-hosting instructions
-```
