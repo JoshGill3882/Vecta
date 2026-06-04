@@ -40,8 +40,9 @@ The following decisions were made up-front and should not be re-litigated mid-bu
 **In scope:**
 
 - Tasks with: title, description (Markdown stored as text, rendered on display), category, status (`open` / `in_progress` / `closed`)
-- Categories (flat — no sub-categories in MVP)
+- Categories (flat — no sub-categories in MVP), each with an assignable colour
 - Task list view, grouped by status, with collapsible sections
+- Inline quick-add (type a title, press Enter) for fast task capture
 - Task create / edit / delete
 - Single-admin authentication
 - Mobile-responsive layout (desktop-first, but usable on phone)
@@ -145,7 +146,8 @@ model Task {
 
 model Category {
   id        String @id @default(cuid())
-  name      String @unique
+  name      String   @unique
+  color     String   @default("#6366f1") // hex colour for the category dot / badge
   tasks     Task[]
   createdAt DateTime @default(now())
 }
@@ -263,6 +265,8 @@ Sessions are managed by [iron-session](https://github.com/vvo/iron-session) — 
 
 > **Goal:** the app is usable end-to-end via the UI.
 
+> **Design:** the primary UI design is already complete (built in Claude Design). It defines the login screen, app shell (top bar + Tasks/Categories tabs), the task list with an inline quick-add bar and three collapsible status sections, task cards, the create/edit modal (segmented status control + category select), and the categories view with per-category colours. Build to match it. Design file: https://claude.ai/design/p/959c7f14-0ec7-4102-a374-1d60ad78582e?via=share
+
 **Effort:** ~40 hrs · **Calendar:** Weeks 4–6 · **The biggest phase — protect time for it.**
 
 This is the phase where back-end developers tend to underestimate. shadcn/ui mitigates that significantly but doesn't eliminate it.
@@ -279,12 +283,13 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [ ] Task list view (`/`):
   - Three collapsible sections: Open, In Progress, Closed
   - Each task shown as a card with title, category badge, truncated description preview
-  - Click a task to open its detail / edit dialog (or navigate to a detail page — pick one and stick with it)
+  - Click a task card (or its ⋮ overflow menu) to open the edit modal — the design uses a modal dialog, not a separate detail page
   - Empty state when no tasks exist
   - "New Task" button prominent
+  - Inline quick-add bar at the top of the list: type a title and press Enter to create an Open task; supports a keyboard shortcut (`c`) to focus it (per the design)
 - [ ] Task create form:
-  - Modal dialog (or dedicated page — your call; modal is faster to build)
-  - Fields: title (required), description (textarea), category (select with "+ create new" inline option), status (select, defaults to Open)
+  - Modal dialog (confirmed by the design — same modal serves create and edit); supports keyboard shortcuts: `Esc` to cancel, `Cmd/Ctrl+Enter` to save
+  - Fields: title (required), description (textarea), category (select with "+ create new" inline option), status (segmented 3-button control — Open / In Progress / Closed — per the design, defaults to Open)
   - Client-side validation mirrors the Zod schema
   - On submit, calls server action; toast on success or error
 - [ ] Task edit form:
@@ -293,7 +298,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [ ] Task delete: confirm dialog before destructive action
 - [ ] Markdown rendering: use [`react-markdown`](https://github.com/remarkjs/react-markdown) with [`remark-gfm`](https://github.com/remarkjs/remark-gfm) for tables/strikethrough; sanitise with `rehype-sanitize` to be safe
 - [ ] Category management page (`/categories`):
-  - List, create, rename, delete
+  - List, create, rename, delete — each category has a colour (shown as a coloured dot / badge throughout, set via a colour swatch in the create/edit form, per the design)
   - Deleting a category sets affected tasks' `categoryId` to `null` (already in schema as `onDelete: SetNull`) — show a confirmation that explains this
 - [ ] Mobile responsive pass: test at 375px and 768px viewports
 - [ ] Loading states (use [`<Suspense>` boundaries](https://react.dev/reference/react/Suspense) where appropriate)
