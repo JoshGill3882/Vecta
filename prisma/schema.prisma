@@ -15,4 +15,25 @@ datasource db {
   provider = "sqlite"
 }
 
-// Models are added in a later issue (data layer / schema).
+
+// Models below are shared by both providers. Per PLAN.md: stick to String/Int/
+// DateTime/Boolean only — no Json/Jsonb or native UUID types — so the one schema
+// compiles to both SQLite and Postgres.
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @default("")
+  status      String    // "open" | "in_progress" | "closed" — enum-as-string for SQLite compat
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#6366f1") // hex colour for the category dot / badge
+  tasks     Task[]
+  createdAt DateTime @default(now())
+}
