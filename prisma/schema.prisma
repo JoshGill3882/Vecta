@@ -1,0 +1,18 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+// provider is patched to match DATABASE_URL by scripts/resolve-provider.mjs
+// (runs before every Prisma command). The committed default is SQLite.
+// The connection url is injected from DATABASE_URL via prisma.config.ts.
+datasource db {
+  provider = "sqlite"
+}
+
+// Models are added in a later issue (data layer / schema).
