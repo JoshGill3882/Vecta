@@ -11,7 +11,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:generate": "node scripts/resolve-provider.mjs && prisma generate",
+    "db:migrate": "node scripts/resolve-provider.mjs && prisma migrate dev",
+    "db:deploy": "node scripts/resolve-provider.mjs && prisma migrate deploy",
+    "db:studio": "node scripts/resolve-provider.mjs && prisma studio",
+    "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -23,13 +28,17 @@
     ]
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "dotenv": "^17.4.2",
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -38,6 +47,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
