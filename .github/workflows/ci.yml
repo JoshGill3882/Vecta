@@ -9,6 +9,12 @@ jobs:
     name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
 
+    # The generated Prisma client lives in /generated/ (gitignored), so it must
+    # be generated in CI. resolve-provider.mjs and the build read DATABASE_URL;
+    # SQLite is the committed default, so a file: URL is enough here.
+    env:
+      DATABASE_URL: "file:./data/app.db"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +25,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
 
       - name: Lint
         run: npm run lint
