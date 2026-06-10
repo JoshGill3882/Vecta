@@ -1,3 +1,4 @@
+import "server-only"; // "Side-Effect" style import - activates on all contents of module
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
