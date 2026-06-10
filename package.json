@@ -16,7 +16,8 @@
     "db:migrate": "node scripts/resolve-provider.mjs && prisma migrate dev",
     "db:deploy": "node scripts/resolve-provider.mjs && prisma migrate deploy",
     "db:studio": "node scripts/resolve-provider.mjs && prisma studio",
-    "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset"
+    "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -50,6 +51,7 @@
     "prettier": "^3.8.3",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
