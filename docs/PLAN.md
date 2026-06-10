@@ -128,9 +128,9 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 
 ### Tasks
 
-- [ ] Install Prisma and `@prisma/client`
-- [ ] Configure dual-provider setup: SQLite by default, switchable to Postgres via `DATABASE_URL`
-- [ ] Define `schema.prisma` with the following models (initial cut):
+- [x] Install Prisma and `@prisma/client`
+- [x] Configure dual-provider setup: SQLite by default, switchable to Postgres via `DATABASE_URL`
+- [x] Define `schema.prisma` with the following models (initial cut):
 
 ```prisma
 model Task {
@@ -153,14 +153,14 @@ model Category {
 }
 ```
 
-- [ ] First migration generated and applied (`prisma migrate dev`)
-- [ ] Service layer scaffolding under `src/server/services/`:
+- [x] First migration generated and applied (`prisma migrate dev`)
+- [x] Service layer scaffolding under `src/server/services/`:
   - `tasks.ts` — `getTasks()`, `getTaskById()`, `createTask()`, `updateTask()`, `deleteTask()`
   - `categories.ts` — equivalent functions
   - Stub implementations only at this stage; logic comes in Phase 3
-- [ ] Singleton Prisma client at `src/server/db.ts` (avoids connection storm in dev hot-reload)
-- [ ] Seed script at `prisma/seed.ts` for development data
-- [ ] Database file path configurable via env var (defaults to `./data/app.db` for SQLite)
+- [x] Singleton Prisma client at `src/server/db.ts` (avoids connection storm in dev hot-reload)
+- [x] Seed script at `prisma/seed.ts` for development data
+- [x] Database file path configurable via env var (defaults to `./data/app.db` for SQLite)
 
 ### Definition of Done
 
