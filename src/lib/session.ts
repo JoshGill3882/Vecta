@@ -1,5 +1,6 @@
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 interface SessionData {
   isLoggedIn: boolean;
@@ -12,4 +13,9 @@ export async function getSession() {
   });
   if (!session.isLoggedIn) return null;
   return session;
+}
+
+export async function requireSession() {
+  const session = await getSession();
+  if (!session) redirect("/login");
 }
