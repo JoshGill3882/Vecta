@@ -17,7 +17,9 @@
     "db:deploy": "node scripts/resolve-provider.mjs && prisma migrate deploy",
     "db:studio": "node scripts/resolve-provider.mjs && prisma studio",
     "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -33,6 +35,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "dotenv": "^17.4.2",
+    "iron-session": "^8.0.4",
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -52,6 +55,7 @@
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
