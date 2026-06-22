@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/src/lib/session";
+import { getSessionFromRequest } from "@/src/lib/session";
 
 // Routes reachable without a session. Everything else is treated as protected.
 const PUBLIC_ROUTES = ["/login"];
@@ -12,8 +12,9 @@ export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const isPublicRoute = PUBLIC_ROUTES.includes(path);
 
-  // getSession() returns null unless the cookie decrypts to a logged-in session.
-  const session = await getSession();
+  // Reads + decrypts the session cookie straight off the request; null unless it
+  // decrypts to a logged-in session.
+  const session = await getSessionFromRequest(req);
 
   // Unauthenticated request for a protected route → send to the login page.
   if (!session && !isPublicRoute) {
