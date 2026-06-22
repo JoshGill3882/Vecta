@@ -12,6 +12,9 @@ async function getRawSession(): Promise<IronSession<SessionData>> {
   return getIronSession<SessionData>(await cookies(), {
     password: process.env.SESSION_SECRET || "", // Will never hit a Null error due to pre-load checks
     cookieName: "Task-Manager-Auth",
+    cookieOptions: {
+      secure: process.env.NODE_ENV === "production", // dev runs over plain http
+    },
   });
 }
 
