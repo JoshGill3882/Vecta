@@ -5,11 +5,19 @@ import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in · Task Manager" };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   // If the Session is not null, redirect to "/"
   if (await getSession()) {
     redirect("/");
   }
+
+  // Captured by the proxy when an unauthenticated request was bounced here;
+  // forwarded to the action via a hidden field and validated there.
+  const { next } = await searchParams;
 
   return (
     // flex-1 fills the flex-col <body> from the root layout; centres the card
@@ -22,7 +30,7 @@ export default async function LoginPage() {
         </div>
 
         {/* the interactive island — everything stateful lives in here */}
-        <LoginForm />
+        <LoginForm next={next} />
 
         <p className="mt-5 border-t border-white/5 pt-4 text-xs leading-relaxed text-zinc-400">
           No accounts to manage — authentication is a single admin password set via the{" "}

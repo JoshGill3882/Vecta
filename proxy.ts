@@ -16,9 +16,13 @@ export default async function proxy(req: NextRequest) {
   // decrypts to a logged-in session.
   const session = await getSessionFromRequest(req);
 
-  // Unauthenticated request for a protected route → send to the login page.
+  // Unauthenticated request for a protected route → send to the login page,
+  // preserving the originally-requested path (+ query) as ?next= so the login
+  // action can return the user there. The action validates it before redirecting.
   if (!session && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    const loginUrl = new URL("/login", req.nextUrl);
+    loginUrl.searchParams.set("next", path + req.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Already authenticated but sitting on a public route (e.g. /login) → send home.

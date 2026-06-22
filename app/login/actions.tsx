@@ -17,6 +17,17 @@ function passwordMatches(input: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+// Only honour same-origin, absolute-path destinations. Reject protocol-relative
+// ("//host") and backslash ("/\host") values that browsers may treat as a host —
+// otherwise the post-login redirect becomes an open-redirect vector.
+function safeRedirectTarget(raw: string | undefined): string {
+  const next = raw ?? "/";
+  if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
+    return "/";
+  }
+  return next;
+}
+
 export async function loginAction(prevState: LoginState, formData: FormData): Promise<LoginState> {
   if (isRateLimited()) return { error: "Too many attempts. Retry in a minute" };
 
@@ -30,5 +41,5 @@ export async function loginAction(prevState: LoginState, formData: FormData): Pr
   }
 
   await createSession();
-  redirect("/");
+  redirect(safeRedirectTarget(formData.get("next")?.toString()));
 }

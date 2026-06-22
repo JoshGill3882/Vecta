@@ -36,9 +36,10 @@ const mockRedirect = vi.mocked(redirect);
 
 const PASSWORD = "correct-horse-battery-staple";
 
-function form(password: string): FormData {
+function form(password: string, next?: string): FormData {
   const fd = new FormData();
   fd.set("password", password);
+  if (next !== undefined) fd.set("next", next);
   return fd;
 }
 
@@ -93,6 +94,23 @@ describe("loginAction", () => {
     expect(mockCreateSession).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledWith("/");
     expect(mockRecordFailure).not.toHaveBeenCalled();
+  });
+
+  it("returns to a safe `next` path on success", async () => {
+    await expect(loginAction({}, form(PASSWORD, "/tasks/42"))).rejects.toThrow(
+      "REDIRECT:/tasks/42"
+    );
+
+    expect(mockCreateSession).toHaveBeenCalledOnce();
+    expect(mockRedirect).toHaveBeenCalledWith("/tasks/42");
+  });
+
+  it("ignores an unsafe `next` (open-redirect guard) and falls back to /", async () => {
+    await expect(loginAction({}, form(PASSWORD, "//evil.example.com"))).rejects.toThrow(
+      "REDIRECT:/"
+    );
+
+    expect(mockRedirect).toHaveBeenCalledWith("/");
   });
 });
 

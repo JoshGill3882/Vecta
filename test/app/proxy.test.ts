@@ -21,12 +21,14 @@ beforeEach(() => {
 });
 
 describe("proxy (auth perimeter)", () => {
-  it("redirects an unauthenticated request for a protected route to /login", async () => {
+  it("redirects an unauthenticated request for a protected route to /login, capturing ?next", async () => {
     mockGetSession.mockResolvedValue(null);
 
     const res = await proxy(requestFor("/tasks"));
 
-    expect(res.headers.get("location")).toBe("http://localhost/login");
+    const location = new URL(res.headers.get("location")!);
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("next")).toBe("/tasks");
   });
 
   it("lets an unauthenticated request reach a public route", async () => {

@@ -5,7 +5,7 @@ import { loginAction, type LoginState } from "./actions";
 
 const initialState: LoginState = {}; // matches the { error?, fieldErrors? } shape
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   // useActionState binds a server action to form state.
   // - `state` is whatever your action RETURNS (errors render from here → AC2/AC3/AC7)
   // - `formAction` is what you hand to the <form action={...}>
@@ -15,6 +15,9 @@ export function LoginForm() {
 
   return (
     <form action={formAction}>
+      {/* Post-login destination captured by the proxy; the action validates it. */}
+      <input type="hidden" name="next" value={next ?? "/"} />
+
       <label htmlFor="pw" className="text-sm font-medium text-zinc-300">
         Admin password
       </label>
