@@ -25,7 +25,14 @@ vi.mock("iron-session", () => ({
 }));
 
 // Import the code under test *after* the mocks are declared.
-import { getSession, requireSession } from "../../src/lib/session";
+import {
+  getSession,
+  requireSession,
+  createSession,
+  destroySession,
+  getSessionFromRequest,
+} from "../../src/lib/session";
+import type { NextRequest } from "next/server";
 import { getIronSession } from "iron-session";
 import { redirect } from "next/navigation";
 
@@ -78,5 +85,50 @@ describe("requireSession", () => {
     // Expect the Redirect not to be called as the session should be returned correctly
     expect(mockRedirect).not.toHaveBeenCalled();
     expect(result).toBe(session);
+  });
+});
+
+describe("createSession", () => {
+  it("marks the session logged in and persists it", async () => {
+    // iron-session hands back a fresh, logged-out session object with a save().
+    const save = vi.fn();
+    const session = { isLoggedIn: false, save };
+    mockGetIronSession.mockResolvedValue(session as never);
+
+    await createSession();
+
+    expect(session.isLoggedIn).toBe(true);
+    expect(save).toHaveBeenCalledOnce(); // the encrypted Set-Cookie is written
+  });
+});
+
+describe("destroySession", () => {
+  it("destroys the underlying iron-session", async () => {
+    // destroy() wipes the data and emits the expiring Set-Cookie header.
+    const destroy = vi.fn();
+    mockGetIronSession.mockResolvedValue({ isLoggedIn: true, destroy } as never);
+
+    await destroySession();
+
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+});
+
+describe("getSessionFromRequest", () => {
+  // The proxy reads the cookie off the request rather than via next/headers, so
+  // getIronSession is called with the (req, res, options) overload.
+  const fakeReq = {} as NextRequest;
+
+  it("returns the session data when logged in", async () => {
+    const session = { isLoggedIn: true };
+    mockGetIronSession.mockResolvedValue(session as never);
+
+    expect(await getSessionFromRequest(fakeReq)).toBe(session);
+  });
+
+  it("returns null when the session isn't logged in", async () => {
+    mockGetIronSession.mockResolvedValue({ isLoggedIn: false } as never);
+
+    expect(await getSessionFromRequest(fakeReq)).toBeNull();
   });
 });

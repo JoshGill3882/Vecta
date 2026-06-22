@@ -11,6 +11,9 @@ export default defineConfig({
       // See test/stubs/empty.js — `server-only` only exists inside a Next
       // build, so point it at a no-op module for tests.
       "server-only": fileURLToPath(new URL("./test/stubs/empty.js", import.meta.url)),
+      // Mirror the tsconfig `@/*` path alias so modules that import via `@/...`
+      // (e.g. the server actions) resolve when loaded by the test runner.
+      "@/": fileURLToPath(new URL("./", import.meta.url)),
     },
   },
 });
