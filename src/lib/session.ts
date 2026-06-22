@@ -32,3 +32,9 @@ export async function requireSession(): Promise<IronSession<SessionData> | null>
   if (!session) redirect("/login");
   return session;
 }
+
+export async function destroySession(): Promise<void> {
+  const session = await getRawSession();
+  session.destroy(); // ← clears data + emits an expiring Set-Cookie header
+  // Note: no `isLoggedIn = false` needed — destroy() wipes the whole session
+}
