@@ -98,7 +98,9 @@ if (await getSession()) redirect("/");
 - **Login** (`app/login/actions.tsx`) is a Server Action that rate-limits
   attempts (see [Rate limiting](./rate-limiting.md)), compares the submitted
   password against `ADMIN_PASSWORD` via `passwordMatches` (SHA-256 digests +
-  `crypto.timingSafeEqual`), calls `createSession()`, then `redirect("/")`.
+  `crypto.timingSafeEqual`), calls `createSession()`, then redirects to the
+  post-login destination — the `next` form field validated by
+  `safeRedirectTarget`, falling back to `/`.
 - **Logout** (`app/logout/actions.tsx`) calls `destroySession()` then
   `redirect("/login")`.
 - The form (`app/login/login-form.tsx`) is the reference pattern for any
@@ -135,3 +137,7 @@ These call out decisions that are easy to get wrong if you extend the auth code.
 - **Password comparison is timing-safe over the full value.** `passwordMatches`
   hashes both sides to equal-length SHA-256 digests before `timingSafeEqual`, so
   the comparison never throws on a length mismatch and doesn't leak length.
+- **Post-login `next` is open-redirect-guarded.** The proxy captures the bounced
+  path as `?next=`, but the action treats it as untrusted: `safeRedirectTarget`
+  only honours same-origin absolute paths and rejects `//host` / `/\host`,
+  falling back to `/`. Never pass a `next` value to `redirect()` unchecked.

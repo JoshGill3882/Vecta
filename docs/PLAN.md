@@ -192,31 +192,39 @@ Sessions are managed by [iron-session](https://github.com/vvo/iron-session) — 
 
 ### Tasks
 
-- [ ] Install `iron-session`
-- [ ] Add required env vars to `.env.example`:
+- [x] Install `iron-session`
+- [x] Add required env vars to `.env.example`:
   - `ADMIN_PASSWORD` (required; app refuses to start if missing)
   - `SESSION_SECRET` (required; min 32 chars; document that users must generate their own)
-- [ ] Boot-time check: app exits with a clear error if either env var is missing or `SESSION_SECRET` is too short
-- [ ] `/login` page (server component) with a simple form
-- [ ] Login server action: timing-safe comparison of submitted password against `ADMIN_PASSWORD` (use `crypto.timingSafeEqual`), set session cookie on success
-- [ ] Logout server action: clears the session
-- [ ] Middleware (`src/middleware.ts`) that redirects unauthenticated requests to `/login` for all routes except `/login` itself and static assets
-- [ ] Auth helpers: `getSession()`, `requireSession()` for use in server components and actions
-- [ ] Rate-limiting on the login action (in-memory bucket is fine for single-user; deters brute force)
+- [x] Boot-time check: app exits with a clear error if either env var is missing or `SESSION_SECRET` is too short — see `instrumentation.ts` (`register()`)
+- [x] `/login` page (server component) with a simple form — `app/login/page.tsx` + `app/login/login-form.tsx` (client island)
+- [x] Login server action: timing-safe comparison of submitted password against `ADMIN_PASSWORD` (use `crypto.timingSafeEqual`), set session cookie on success — `app/login/actions.tsx`
+- [x] Logout server action: clears the session — `app/logout/actions.tsx`
+- [x] ~~Middleware (`src/middleware.ts`)~~ **Proxy (`proxy.ts`)** that redirects unauthenticated requests to `/login` for all routes except `/login` itself and static assets. Next.js 16 renamed Middleware → Proxy; this is an optimistic perimeter check only — each protected page still calls `requireSession()` as the real guard.
+- [x] Auth helpers: `getSession()`, `requireSession()` for use in server components and actions — `src/lib/session.ts` (also `createSession()` / `destroySession()`)
+- [x] Rate-limiting on the login action (in-memory bucket is fine for single-user; deters brute force) — `src/lib/rate-limit.ts`
 
 ### Definition of Done
 
-- Hitting any route while logged out redirects to `/login`
-- Submitting the correct password redirects to `/` (or wherever was originally requested)
-- Submitting the wrong password 5 times in 60 seconds returns a 429
-- Logout clears the cookie and redirects to `/login`
-- App refuses to boot with a missing `ADMIN_PASSWORD` or `SESSION_SECRET`, with a clear error message
-- The session secret is genuinely random — document this in the README and provide a snippet (`openssl rand -hex 32`)
+- [x] Hitting any route while logged out redirects to `/login`
+- [x] Submitting the correct password redirects to `/`, or back to the originally-requested path when there is one — the proxy appends `?next=<path>` on the bounce, the login form forwards it, and the action redirects there after validating it is a same-origin relative path (open-redirect guard in `safeRedirectTarget`)
+- [x] Submitting the wrong password 5 times in 60 seconds is blocked — the login Server Action returns a user-facing `{ error: "Too many attempts…" }` message. (A form-action's return value is delivered as a `200` payload, not an HTTP status; emitting a real `429` would require moving the check into a Route Handler. The message is the intended behaviour here.)
+- [x] Logout clears the cookie and redirects to `/login`
+- [x] App refuses to boot with a missing `ADMIN_PASSWORD` or `SESSION_SECRET`, with a clear error message
+- [x] The session secret is genuinely random — document this in the README and provide a snippet (`openssl rand -hex 32`)
+
+### Tests
+
+Auth is covered by Vitest unit tests under `test/` (which mirrors the source
+tree); run them with `npm test`. Coverage spans the session helpers, the proxy
+perimeter, the rate-limit window, and the login/logout actions. See the
+[testing guide](./guides/testing.md) for the mocking patterns used — listing
+individual files here only invites drift.
 
 ### References
 
 - [iron-session docs (Next.js App Router examples)](https://github.com/vvo/iron-session#nextjs-app-router)
-- [Next.js middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware)
+- [Next.js Proxy (formerly Middleware)](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
 - [`crypto.timingSafeEqual` — Node.js docs](https://nodejs.org/api/crypto.html#cryptotimingsafeequala-b)
 
 ---
