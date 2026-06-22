@@ -1,12 +1,20 @@
 "use server"; // ← THIS is what turns every export below into a Server Action
 
 import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createSession } from "@/src/lib/session";
 import { redirect } from "next/navigation";
 
 export interface LoginState {
   error?: string;
+}
+
+// Equal-length digests → timingSafeEqual never throws, and the password
+// length isn't leaked by the comparison.
+function passwordMatches(input: string, expected: string): boolean {
+  const a = createHash("sha256").update(input).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
 
 export async function loginAction(prevState: LoginState, formData: FormData): Promise<LoginState> {
@@ -16,12 +24,7 @@ export async function loginAction(prevState: LoginState, formData: FormData): Pr
   const password = formData.get("password")?.toString() ?? "";
 
   // If the passwords don't match, return an error
-  if (
-    !timingSafeEqual(
-      Buffer.alloc(5, password),
-      Buffer.alloc(5, process.env.ADMIN_PASSWORD!) // Will never hit a Null error due to pre-load checks
-    )
-  ) {
+  if (!passwordMatches(password, process.env.ADMIN_PASSWORD!)) {
     recordFailure();
     return { error: "Password Invalid" };
   }
