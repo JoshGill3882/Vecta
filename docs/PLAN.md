@@ -237,9 +237,10 @@ individual files here only invites drift.
 
 ### Tasks
 
-- [ ] Zod schemas for input validation in `src/lib/schemas/`:
+- [x] Zod schemas for input validation in `src/lib/schemas/`:
   - `taskCreateSchema`, `taskUpdateSchema`
   - `categoryCreateSchema`, `categoryUpdateSchema`
+- [x] Shared `validate(schema, input)` helper in `src/lib/validation.ts` flattens failures into the structured `{ fieldErrors, formErrors }` shape, so every action returns errors the same way.
 - [ ] Service layer fully implemented:
   - All CRUD operations
   - Sensible error types (e.g. `NotFoundError`, `ValidationError`) — don't leak Prisma errors directly
