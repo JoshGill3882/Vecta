@@ -15,5 +15,6 @@ for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.
 | [Database & service layer](./database.md)                      | The Prisma singleton, the `src/server/services` seam, how to add DB-backed features |
 | [Dual-provider DB & migrations](./dual-provider-migrations.md) | Running on SQLite or Postgres from one schema, the migration workflow               |
 | [Environment & boot-time contract](./environment.md)           | Required env vars and how the app validates them on startup                         |
+| [Input validation](./validation.md)                            | Zod schemas for tasks/categories, the shared `validate()` helper, structured errors |
 | [Rate limiting](./rate-limiting.md)                            | Applying the in-memory attempt limiter to an action                                 |
 | [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                       |
