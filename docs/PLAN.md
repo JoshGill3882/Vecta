@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Task Manager — Project Plan
 
 > **Studio MVP** · Self-hosted, open-source, single-user task management
