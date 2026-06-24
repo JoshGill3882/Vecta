@@ -1,16 +1,11 @@
-import type { TaskModel } from "@/generated/prisma/models";
+import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/lib/dtos/tasks";
+import { prisma } from "@/src/server/db";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { NotFoundError } from "@/src/server/errors";
 
-/**
- * Task service — the seam all task DB access flows through.
- *
- * Bodies are stubbed until Phase 3 (Backend); see docs/PLAN.md §6. Signatures are
- * the contract callers (Server Actions / route handlers) build against now, and
- * are where service-action-boundary logging lands in Phase 3.
- */
+// Task service — the seam all task DB access flows through.
 
-/** Allowed task states. Stored as a String column for SQLite/Postgres parity. */
-export type TaskStatus = "open" | "in_progress" | "closed";
-
+/** Create Task Input Parameters */
 export interface CreateTaskInput {
   title: string;
   description?: string;
@@ -18,6 +13,7 @@ export interface CreateTaskInput {
   categoryId?: string | null;
 }
 
+/** Update Task Input Parameters */
 export interface UpdateTaskInput {
   title?: string;
   description?: string;
@@ -25,27 +21,71 @@ export interface UpdateTaskInput {
   categoryId?: string | null;
 }
 
-export async function getTasks(): Promise<TaskModel[]> {
-  throw new Error("not implemented");
+/** Gets all Tasks
+ *
+ * @returns List of TaskDTOs containing the found objects
+ */
+export async function getTasks(): Promise<TaskDTO[]> {
+  const tasks = await prisma.task.findMany();
+  return tasks.map((t) => toTaskDTO(t));
 }
 
-export async function getTaskById(id: string): Promise<TaskModel | null> {
-  void id;
-  throw new Error("not implemented");
+/** Get a specific Task, given an ID
+ *
+ * @param id ID of the Task to find
+ * @returns Found Task as a DTO
+ * @throws NotFoundError if not found
+ */
+export async function getTaskById(id: string): Promise<TaskDTO> {
+  try {
+    const task = await prisma.task.findUniqueOrThrow({
+      where: { id: id },
+    });
+    return toTaskDTO(task);
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      throw new NotFoundError("Task", id);
+    }
+    throw e;
+  }
 }
 
-export async function createTask(input: CreateTaskInput): Promise<TaskModel> {
-  void input;
-  throw new Error("not implemented");
+/** Create a new Task, given input parameters
+ *
+ * @param input Input Parameters for the new Task
+ * @returns Newly created Task as a DTO
+ */
+export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
+  const createdTask = await prisma.task.create({ data: input });
+  return toTaskDTO(createdTask);
 }
 
-export async function updateTask(id: string, input: UpdateTaskInput): Promise<TaskModel> {
-  void id;
-  void input;
-  throw new Error("not implemented");
+/** Update an existing Task, given an ID and new parameters
+ *
+ * @param id ID of the Task being updated
+ * @param input New fields of the Task
+ * @returns Updated Task as a DTO
+ * @throws NotFoundError if Task doesn't exist
+ */
+export async function updateTask(id: string, input: UpdateTaskInput): Promise<TaskDTO> {
+  try {
+    const updatedTask = await prisma.task.update({
+      where: { id: id },
+      data: input,
+    });
+    return toTaskDTO(updatedTask);
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      throw new NotFoundError("Task", id);
+    }
+    throw e;
+  }
 }
 
+/** Delete an existing Task, given an ID
+ *
+ * @param id ID of the Task to be deleted
+ */
 export async function deleteTask(id: string): Promise<void> {
-  void id;
-  throw new Error("not implemented");
+  await prisma.task.delete({ where: { id: id } });
 }
