@@ -11,7 +11,8 @@ export const categoryCreateSchema = z.object({
     .trim() // strip whitespace BEFORE length checks
     .min(1, "Name is required") // "" and "   " both fail after trim
     .max(60),
-  color: hexColor,
+  // Optional on input: when omitted, Prisma's @default("#6366f1") fills it in.
+  color: hexColor.optional(),
 });
 
 // update = "same shape, everything optional". Don't retype it — derive it.

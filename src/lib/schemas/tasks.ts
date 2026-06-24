@@ -12,7 +12,10 @@ export const taskCreateSchema = z.object({
     .max(120, "Title must be 120 characters or fewer"),
   description: z.string().trim().max(2000).optional(),
   status: z.enum(TASK_STATUSES), // value must be one of the three
-  categoryId: z.cuid().optional(), // matches Prisma @default(cuid()) ids
+  // string = assign to a category, null = explicitly unassign, omitted = leave as-is.
+  // null/optional mirror the Prisma `categoryId String?` column so the service-layer
+  // .parse() accepts every shape the model supports.
+  categoryId: z.cuid().nullable().optional(), // matches Prisma @default(cuid()) ids
 });
 
 // update = "same shape, everything optional"
