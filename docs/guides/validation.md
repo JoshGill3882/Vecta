@@ -29,7 +29,7 @@ export const taskCreateSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120, "..."),
   description: z.string().trim().max(2000).optional(),
   status: z.enum(TASK_STATUSES),
-  categoryId: z.cuid().optional(),
+  categoryId: z.cuid().nullable().optional(), // string = assign, null = unassign, omitted = leave
 });
 export const taskUpdateSchema = taskCreateSchema.partial();
 ```
@@ -77,8 +77,13 @@ either `data` (typed) or the error buckets — never both.
 
 ## How it's used
 
-Validate **once, at the boundary** (a Server Action or route handler), then trust
-the typed `data` everywhere below it. Don't re-validate deep in the service layer.
+The Server Action is the **primary** gate: it validates untrusted input and returns
+friendly, field-keyed errors the form renders. Services then run a lightweight
+defensive `schema.parse(input)` at their own boundary — a second line of defence
+for non-action callers (future REST routes, scripts) that **throws** rather than
+returning the friendly shape. Same schema, two audiences: the action validates for
+the _user_, the service for the _programmer_. See
+[Database & service layer](./database.md#defensive-validation-at-the-seam).
 
 ```ts
 "use server";

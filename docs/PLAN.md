@@ -243,16 +243,16 @@ individual files here only invites drift.
   - `taskCreateSchema`, `taskUpdateSchema`
   - `categoryCreateSchema`, `categoryUpdateSchema`
 - [x] Shared `validate(schema, input)` helper in `src/lib/validation.ts` flattens failures into the structured `{ fieldErrors, formErrors }` shape, so every action returns errors the same way.
-- [ ] Service layer fully implemented:
+- [x] Service layer fully implemented:
   - All CRUD operations
-  - Sensible error types (e.g. `NotFoundError`, `ValidationError`) — don't leak Prisma errors directly
-  - All functions return DTOs, not raw Prisma models, so the shape is decoupled from the schema
+  - Domain error types (`NotFoundError`, `ConflictError` in `src/server/errors.ts`) — Prisma errors (P2025/P2002/P2003) are translated, never leaked
+  - All functions return DTOs (`src/lib/dtos/`), not raw Prisma models, so the shape is decoupled from the schema
 - [ ] Server Actions in `src/app/actions/`:
   - Wrap each service call
   - Validate input with Zod before passing to service
   - Translate errors into a consistent return shape (`{ ok: true, data } | { ok: false, error }`)
   - Call `revalidatePath()` after mutations
-- [ ] Unit tests for service layer (using [Vitest](https://vitest.dev/)) — mock Prisma; aim for ~80% coverage of services
+- [x] Unit tests for service layer (using [Vitest](https://vitest.dev/)) — mock Prisma; aim for ~80% coverage of services (`test/server/services/`)
 - [ ] Integration tests for at least the critical paths: create task, update task, delete task — run against a real SQLite test DB
 
 ### Definition of Done
