@@ -1,4 +1,5 @@
 import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/lib/dtos/tasks";
+import { taskCreateSchema, taskUpdateSchema } from "@/src/lib/schemas/tasks";
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { NotFoundError } from "@/src/server/errors";
@@ -56,8 +57,20 @@ export async function getTaskById(id: string): Promise<TaskDTO> {
  * @returns Newly created Task as a DTO
  */
 export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
-  const createdTask = await prisma.task.create({ data: input });
-  return toTaskDTO(createdTask);
+  // Defensive re-validation at the service seam: callers other than our validated
+  // Server Actions (future REST routes, scripts) shouldn't be trusted to have run
+  // Zod. A failure here is a caller bug, so .parse() throwing is the right signal.
+  const data = taskCreateSchema.parse(input);
+  try {
+    const createdTask = await prisma.task.create({ data });
+    return toTaskDTO(createdTask);
+  } catch (e) {
+    // P2003 = FK constraint: the supplied categoryId points at no Category.
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2003") {
+      throw new NotFoundError("Category", String(data.categoryId));
+    }
+    throw e;
+  }
 }
 
 /** Update an existing Task, given an ID and new parameters
@@ -68,15 +81,18 @@ export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
  * @throws NotFoundError if Task doesn't exist
  */
 export async function updateTask(id: string, input: UpdateTaskInput): Promise<TaskDTO> {
+  const data = taskUpdateSchema.parse(input);
   try {
     const updatedTask = await prisma.task.update({
       where: { id: id },
-      data: input,
+      data,
     });
     return toTaskDTO(updatedTask);
   } catch (e) {
-    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
-      throw new NotFoundError("Task", id);
+    if (e instanceof PrismaClientKnownRequestError) {
+      // P2025 = the task itself wasn't found; P2003 = the new categoryId has no Category.
+      if (e.code === "P2025") throw new NotFoundError("Task", id);
+      if (e.code === "P2003") throw new NotFoundError("Category", String(data.categoryId));
     }
     throw e;
   }
@@ -87,5 +103,12 @@ export async function updateTask(id: string, input: UpdateTaskInput): Promise<Ta
  * @param id ID of the Task to be deleted
  */
 export async function deleteTask(id: string): Promise<void> {
-  await prisma.task.delete({ where: { id: id } });
+  try {
+    await prisma.task.delete({ where: { id: id } });
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      throw new NotFoundError("Task", id);
+    }
+    throw e;
+  }
 }

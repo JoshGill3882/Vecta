@@ -1,7 +1,8 @@
 import { CategoryDTO, toCategoryDTO } from "@/src/lib/dtos/categories";
+import { categoryCreateSchema, categoryUpdateSchema } from "@/src/lib/schemas/categories";
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
-import { NotFoundError } from "@/src/server/errors";
+import { ConflictError, NotFoundError } from "@/src/server/errors";
 
 // Category service — the seam all category DB access flows through.
 
@@ -51,8 +52,17 @@ export async function getCategoryById(id: string): Promise<CategoryDTO> {
  * @returns Category created as a DTO
  */
 export async function createCategory(input: CreateCategoryInput): Promise<CategoryDTO> {
-  const createdCategory = await prisma.category.create({ data: input });
-  return toCategoryDTO(createdCategory);
+  const data = categoryCreateSchema.parse(input);
+  try {
+    const createdCategory = await prisma.category.create({ data });
+    return toCategoryDTO(createdCategory);
+  } catch (e) {
+    // P2002 = unique constraint: a Category already owns this name.
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new ConflictError(`A category named "${data.name}" already exists`);
+    }
+    throw e;
+  }
 }
 
 /** Update a Category, given an ID and parameters
@@ -63,15 +73,19 @@ export async function createCategory(input: CreateCategoryInput): Promise<Catego
  * @throws NotFoundError if the Category can't be found
  */
 export async function updateCategory(id: string, input: UpdateCategoryInput): Promise<CategoryDTO> {
+  const data = categoryUpdateSchema.parse(input);
   try {
     const category = await prisma.category.update({
       where: { id: id },
-      data: input,
+      data,
     });
     return toCategoryDTO(category);
   } catch (e) {
-    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
-      throw new NotFoundError("Category", id);
+    if (e instanceof PrismaClientKnownRequestError) {
+      // P2025 = no such category; P2002 = the new name collides with another.
+      if (e.code === "P2025") throw new NotFoundError("Category", id);
+      if (e.code === "P2002")
+        throw new ConflictError(`A category named "${data.name}" already exists`);
     }
     throw e;
   }
@@ -82,5 +96,12 @@ export async function updateCategory(id: string, input: UpdateCategoryInput): Pr
  * @param id ID of the Category to Delete
  */
 export async function deleteCategory(id: string): Promise<void> {
-  await prisma.category.delete({ where: { id: id } });
+  try {
+    await prisma.category.delete({ where: { id: id } });
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
+      throw new NotFoundError("Category", id);
+    }
+    throw e;
+  }
 }
