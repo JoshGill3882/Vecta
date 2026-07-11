@@ -6,7 +6,7 @@ import { createCategory, updateCategory, deleteCategory } from "@/src/server/ser
 import { revalidateCategories } from "@/src/lib/cache";
 import { validate } from "@/src/lib/validation";
 import { categoryCreateSchema, categoryUpdateSchema } from "@/src/lib/schemas/categories";
-import { requireSession } from "@/src/lib/session";
+import { getSession } from "@/src/lib/session";
 
 /** Server Action for creating a Category
  *
@@ -14,7 +14,8 @@ import { requireSession } from "@/src/lib/session";
  * @returns ActionResult with new CategoryDTO or Error
  */
 export async function createCategoryAction(formData: FormData): Promise<ActionResult<CategoryDTO>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   const result = validate(categoryCreateSchema, Object.fromEntries(formData));
   if (!result.success)
@@ -39,7 +40,8 @@ export async function updateCategoryAction(
   id: string,
   formData: FormData
 ): Promise<ActionResult<CategoryDTO>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   if (!id) return { ok: false, error: "Missing Category ID" };
   const result = validate(categoryUpdateSchema, Object.fromEntries(formData));
@@ -61,7 +63,8 @@ export async function updateCategoryAction(
  * @returns ActionResult with empty content or Error
  */
 export async function deleteCategoryAction(id: string): Promise<ActionResult<void>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   if (!id) return { ok: false, error: "Missing Category ID" };
 
