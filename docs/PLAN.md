@@ -256,7 +256,7 @@ individual files here only invites drift.
   - Documented in the [Server Actions guide](./guides/server-actions.md)
 - [x] Unit tests for service layer (using [Vitest](https://vitest.dev/)) — mock Prisma; aim for ~80% coverage of services (`test/server/services/`)
 - [x] Unit tests for the Server Actions — mock auth/service/`updateTag`, keep `validate()` real (`test/app/task-actions.test.ts`, `test/app/category-actions.test.ts`)
-- [ ] Integration tests for at least the critical paths: create task, update task, delete task — run against a real SQLite test DB
+- [x] Integration tests for the critical paths — create/update/delete for both tasks and categories, plus the real error-translation and `onDelete: SetNull` behaviours — run against an in-memory SQLite DB (`test/integration/`)
 
 ### Definition of Done
 
