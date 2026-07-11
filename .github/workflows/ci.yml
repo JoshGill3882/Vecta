@@ -32,6 +32,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check for Acceptance-Criteria references
+        run: npm run check:ac
+
       - name: Format check
         run: npm run format:check
 

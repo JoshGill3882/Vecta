@@ -14,7 +14,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 import { detectProvider } from "../scripts/db-provider.mjs";
 
-// AC3: the SQLite file path comes from DATABASE_URL; fall back to the project
+// the SQLite file path comes from DATABASE_URL; fall back to the project
 // default so the seed works out of the box even without a .env file.
 const url = process.env.DATABASE_URL ?? "file:./data/app.db";
 

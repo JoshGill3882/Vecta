@@ -44,7 +44,7 @@ beforeEach(() => {
 });
 
 describe("getCategories", () => {
-  it("maps rows to DTOs with an ISO-string createdAt (AC3)", async () => {
+  it("maps rows to DTOs with an ISO-string createdAt", async () => {
     category.findMany.mockResolvedValue([categoryRow] as never);
 
     const result = await getCategories();

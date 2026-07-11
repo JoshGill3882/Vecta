@@ -82,7 +82,7 @@ describe("taskCreateSchema", () => {
     });
   });
 
-  it("AC4: reports every invalid field at once, keyed by field name", () => {
+  it("reports every invalid field at once, keyed by field name", () => {
     const result = taskCreateSchema.safeParse({ title: "", status: "nope" });
     expect(result.success).toBe(false);
     if (!result.success) {

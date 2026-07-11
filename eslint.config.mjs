@@ -15,7 +15,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
-  // AC4: the Prisma client never leaves the server boundary. Application code
+  // The Prisma client never leaves the server boundary. Application code
   // (app/, src/lib, components, …) must reach the database only through a
   // service in src/server/services — never by importing the client or the
   // `prisma` singleton directly. Enforced everywhere EXCEPT:
@@ -43,12 +43,12 @@ const eslintConfig = defineConfig([
                 "**/generated/prisma/internal/*",
               ],
               message:
-                "AC4: don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma/models are fine).",
+                "Don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma/models are fine).",
             },
             {
               group: ["@/src/server/db", "**/src/server/db"],
               message:
-                "AC4: the `prisma` singleton is server-only. Call a service from src/server/services/ instead of importing src/server/db.",
+                "The `prisma` singleton is server-only. Call a service from src/server/services/ instead of importing src/server/db.",
             },
           ],
         },
