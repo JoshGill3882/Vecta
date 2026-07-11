@@ -212,11 +212,10 @@ of it — so the `id` argument targets an item's **existing** detail entry, and
 | update | the list + the item's detail view             | `revalidateTasks(id)` |
 | delete | the list + the item's (now-ghost) detail view | `revalidateTasks(id)` |
 
-> **Reads must opt in.** Invalidation only does anything once the read side is
-> cached and tagged — e.g. `getTasks()` marked `"use cache"` with
-> `cacheTag("tasks")`. Until those pages exist (Phase 4), these calls are harmless
-> no-ops; the actions already carry the correct contract so the reads just work when
-> they land.
+> **Reads must opt in.** Invalidation acts only on reads that are cached and tagged
+> — e.g. `getTasks()` marked `"use cache"` with `cacheTag("tasks")`. A read that
+> isn't tagged (a plain dynamic Server Component) is unaffected, since it already
+> re-runs on every request.
 
 ## Tests
 
