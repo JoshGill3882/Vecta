@@ -1,9 +1,9 @@
-"use server"; // ← THIS is what turns every export below into a Server Action
+"use server";
 
 import { ActionResult, toActionError } from "@/src/lib/result";
 import { CategoryDTO } from "@/src/lib/dtos/categories";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
-import { revalidatePath } from "next/cache";
+import { revalidateCategories } from "@/src/lib/cache";
 import { validate } from "@/src/lib/validation";
 import { categoryCreateSchema, categoryUpdateSchema } from "@/src/lib/schemas/categories";
 import { requireSession } from "@/src/lib/session";
@@ -22,7 +22,7 @@ export async function createCategoryAction(formData: FormData): Promise<ActionRe
 
   try {
     const data = await createCategory(result.data);
-    revalidatePath("/categories");
+    revalidateCategories();
     return { ok: true, data };
   } catch (e) {
     return toActionError(e);
@@ -48,7 +48,7 @@ export async function updateCategoryAction(
 
   try {
     const data = await updateCategory(id, result.data);
-    revalidatePath("/categories");
+    revalidateCategories(id);
     return { ok: true, data };
   } catch (e) {
     return toActionError(e);
@@ -67,7 +67,7 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult<voi
 
   try {
     await deleteCategory(id);
-    revalidatePath("/categories");
+    revalidateCategories(id);
     return { ok: true, data: undefined };
   } catch (e) {
     return toActionError(e);

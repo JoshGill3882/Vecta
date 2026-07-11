@@ -1,12 +1,12 @@
-"use server"; // ← THIS is what turns every export below into a Server Action
+"use server";
 
 import { ActionResult, toActionError } from "@/src/lib/result";
 import { TaskDTO } from "@/src/lib/dtos/tasks";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
-import { revalidatePath } from "next/cache";
+import { revalidateTasks } from "@/src/lib/cache";
 import { validate } from "@/src/lib/validation";
 import { taskCreateSchema, taskUpdateSchema } from "@/src/lib/schemas/tasks";
-import { requireSession } from "@/src/lib/session";
+import { getSession } from "@/src/lib/session";
 
 /** Server Action for creating a Task
  *
@@ -14,7 +14,8 @@ import { requireSession } from "@/src/lib/session";
  * @returns ActionResult with new TaskDTO or Error
  */
 export async function createTaskAction(formData: FormData): Promise<ActionResult<TaskDTO>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   const result = validate(taskCreateSchema, Object.fromEntries(formData));
   if (!result.success)
@@ -22,7 +23,7 @@ export async function createTaskAction(formData: FormData): Promise<ActionResult
 
   try {
     const data = await createTask(result.data);
-    revalidatePath("/tasks");
+    revalidateTasks();
     return { ok: true, data };
   } catch (e) {
     return toActionError(e);
@@ -39,7 +40,8 @@ export async function updateTaskAction(
   id: string,
   formData: FormData
 ): Promise<ActionResult<TaskDTO>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   if (!id) return { ok: false, error: "Missing Task ID" };
   const result = validate(taskUpdateSchema, Object.fromEntries(formData));
@@ -48,7 +50,7 @@ export async function updateTaskAction(
 
   try {
     const data = await updateTask(id, result.data);
-    revalidatePath("/tasks");
+    revalidateTasks(id);
     return { ok: true, data };
   } catch (e) {
     return toActionError(e);
@@ -61,13 +63,14 @@ export async function updateTaskAction(
  * @returns ActionResult with empty content or Error
  */
 export async function deleteTaskAction(id: string): Promise<ActionResult<void>> {
-  await requireSession();
+  const session = await getSession();
+  if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   if (!id) return { ok: false, error: "Missing Task ID" };
 
   try {
     await deleteTask(id);
-    revalidatePath("/tasks");
+    revalidateTasks(id);
     return { ok: true, data: undefined };
   } catch (e) {
     return toActionError(e);
