@@ -4,14 +4,18 @@ on:
   pull_request:
     branches: [production, develop]
 
+permissions:
+  contents: read
+
 jobs:
-  ci:
-    name: Lint, Typecheck, Test & Build
+  # Static checks + build. Runs in parallel with the `test` job below.
+  checks:
+    name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
 
-    # The generated Prisma client lives in /generated/ (gitignored), so it must
-    # be generated in CI. resolve-provider.mjs and the build read DATABASE_URL;
-    # SQLite is the committed default, so a file: URL is enough here.
+    # resolve-provider.mjs and the build read DATABASE_URL; SQLite is the
+    # committed default, so a file: URL is enough here. The generated Prisma
+    # client lives in /generated/ (gitignored), so it must be generated in CI.
     env:
       DATABASE_URL: "file:./data/app.db"
 
@@ -32,14 +36,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check for Acceptance-Criteria references
+        run: npm run check:ac
+
       - name: Format check
         run: npm run format:check
 
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
-        run: npm test
-
       - name: Build
         run: npm run build
+
+  # Unit + integration tests, via the reusable workflow the deploy pipelines
+  # will also gate on (Phase 6). Kept separate so tests aren't re-authored there.
+  test:
+    name: Tests
+    uses: ./.github/workflows/_test.yml

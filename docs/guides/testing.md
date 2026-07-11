@@ -6,15 +6,17 @@ server seams, which mostly come down to mocking the Next.js-only dependencies.
 
 **Key files**
 
-- `vitest.config.ts` — environment + module aliases
+- `vitest.config.ts` — two projects (`unit`, `integration`) + shared module aliases
 - `test/` — mirrors the source tree (`test/lib`, `test/app`, `test/scripts`)
+- `test/integration/` — real-database integration project (`setup.ts` + `*.int.test.ts`)
 - `test/stubs/empty.js` — no-op stand-in for `server-only`
 
 Run with:
 
 ```bash
-npm test          # one-shot (vitest run)
+npm test                              # both projects (unit + integration)
 npm run test:watch
+npx vitest run --project integration  # integration only
 ```
 
 ## Module aliases (`vitest.config.ts`)
@@ -97,8 +99,36 @@ expect(res.headers.get("location")).toBe("http://localhost/login");
 > Vitest, so we test the proxy **function's** behavior rather than matcher
 > matching.
 
+## Integration tests (real database)
+
+Most specs are **unit** tests that mock their collaborators. A second Vitest
+**project** holds **integration** tests that drive the genuine stack — Server
+Action → `validate()` → service → Prisma → a real database — so they catch what
+mocks can't: real Prisma error translation (`P2003`/`P2025`/`P2002` →
+`NotFoundError`/`ConflictError`) and schema behaviour like `onDelete: SetNull`.
+Both projects are declared in `vitest.config.ts`, and `npm test` runs both.
+
+- **Database — in-memory SQLite.** The integration project sets
+  `DATABASE_URL=file::memory:` (the `file:` prefix is required so the provider
+  resolver detects SQLite; the adapter strips it back to `:memory:`). Nothing
+  hits disk, and the DB is discarded when the worker exits — so it is created and
+  torn down every run for free.
+- **Schema — replayed migrations.** `test/integration/setup.ts` executes the
+  committed migration SQL (`prisma/migrations/sqlite/**`) through the app's own
+  connection. `prisma migrate deploy` can't be used: it runs in a separate process
+  and would populate a _different_ in-memory DB than the tests connect to.
+- **Isolation — per test.** `beforeEach` clears every row (tasks → categories,
+  FK-safe order). A guard refuses to run unless `DATABASE_URL` is in-memory, so a
+  real database can never be wiped. `PRAGMA foreign_keys = ON` is set in setup —
+  the FK-violation and SetNull tests depend on it.
+- **What's mocked — only the Next edges.** `getSession` (auth) and `updateTag`
+  (cache); the DB and services are real.
+
+Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`).
+
 ## Where to put tests
 
 Mirror the source path under `test/`: a module at `src/lib/foo.ts` →
 `test/lib/foo.test.ts`; a Server Action under `app/` → `test/app/`. Pure helpers
 (no Next/DB deps) need no mocks — see `test/scripts/db-provider.test.ts`.
+Integration specs (real DB) go in `test/integration/` as `*.int.test.ts`.

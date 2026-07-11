@@ -55,6 +55,7 @@ export async function getTaskById(id: string): Promise<TaskDTO> {
  *
  * @param input Input Parameters for the new Task
  * @returns Newly created Task as a DTO
+ * @throws NotFoundError if the Category provided isn't found
  */
 export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
   // Defensive re-validation at the service seam: callers other than our validated
@@ -101,6 +102,8 @@ export async function updateTask(id: string, input: UpdateTaskInput): Promise<Ta
 /** Delete an existing Task, given an ID
  *
  * @param id ID of the Task to be deleted
+ * @returns None
+ * @throws NotFoundError if the Task ID is not found
  */
 export async function deleteTask(id: string): Promise<void> {
   try {

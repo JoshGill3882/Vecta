@@ -58,9 +58,7 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 - [`PLAN.md`](./docs/PLAN.md) — full project docs/PLAN, phased delivery, definition of done
 - [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
-- `ARCHITECTURE.md` — _(coming in Phase 5)_ technical architecture, directory layout, key patterns
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local setup, branching
-- `CHANGELOG.md` — _(from v0.1.0)_ version history
 
 ---
 
@@ -92,8 +90,6 @@ cp .env.example .env
 # Edit .env to set ADMIN_PASSWORD and SESSION_SECRET
 docker compose up -d
 ```
-
-Configuration reference, backup guidance, and reverse-proxy notes will be added during Phase 5.
 
 ---
 

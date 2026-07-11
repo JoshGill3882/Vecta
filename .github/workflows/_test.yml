@@ -1,0 +1,43 @@
+name: Tests
+
+# Reusable workflow: the test gate. Called by ci.yml on PRs, and (from Phase 6)
+# by the deploy pipelines via `needs: test` so a deploy can't ship untested code.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit & Integration
+    runs-on: ubuntu-latest
+
+    # The generated Prisma client lives in /generated/ (gitignored), so it must
+    # be generated in CI. Integration tests override DATABASE_URL to an in-memory
+    # SQLite DB (via vitest.config.ts); this file: URL only satisfies db:generate.
+    env:
+      DATABASE_URL: "file:./data/app.db"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Unit tests
+        run: npx vitest run --project unit
+
+      - name: Integration tests
+        # Run even if the unit step failed, so a red PR surfaces both tiers'
+        # results in one run rather than masking integration behind a unit failure.
+        if: ${{ !cancelled() }}
+        run: npx vitest run --project integration

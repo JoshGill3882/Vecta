@@ -7,7 +7,7 @@ const initialState: LoginState = {}; // matches the { error?, fieldErrors? } sha
 
 export function LoginForm({ next }: { next?: string }) {
   // useActionState binds a server action to form state.
-  // - `state` is whatever your action RETURNS (errors render from here → AC2/AC3/AC7)
+  // - `state` is whatever your action RETURNS (errors render from here)
   // - `formAction` is what you hand to the <form action={...}>
   // - `pending` is true while the action runs → drives the "Signing in…" state
   const [state, formAction, pending] = useActionState(loginAction, initialState);
@@ -40,7 +40,7 @@ export function LoginForm({ next }: { next?: string }) {
         </button>
       </div>
 
-      {/* AC2/AC3/AC7: errors come back through `state`, rendered inline, no reload */}
+      {/* errors come back through `state`, rendered inline, no reload */}
       <div className="min-h-[22px] py-1.5 text-sm text-red-400">{state.error}</div>
 
       <button

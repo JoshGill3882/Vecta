@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 // Mock the singleton so the service runs against an in-memory fake, never a DB.
-// (Same seam AC1/AC4 enforce: all task DB access flows through @/src/server/db.)
+// (The seam all task DB access flows through: @/src/server/db.)
 vi.mock("@/src/server/db", () => ({
   prisma: {
     task: {
@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 describe("getTasks", () => {
-  it("maps every row to a DTO (AC3: Dates become ISO strings, never raw models)", async () => {
+  it("maps every row to a DTO (Dates become ISO strings, never raw models)", async () => {
     task.findMany.mockResolvedValue([taskRow] as never);
 
     const result = await getTasks();

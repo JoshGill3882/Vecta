@@ -247,13 +247,16 @@ individual files here only invites drift.
   - All CRUD operations
   - Domain error types (`NotFoundError`, `ConflictError` in `src/server/errors.ts`) — Prisma errors (P2025/P2002/P2003) are translated, never leaked
   - All functions return DTOs (`src/lib/dtos/`), not raw Prisma models, so the shape is decoupled from the schema
-- [ ] Server Actions in `src/app/actions/`:
+- [x] Server Actions, co-located with their routes in `app/tasks/actions.tsx` and `app/categories/actions.tsx` (rather than a shared `src/app/actions/` folder):
   - Wrap each service call
-  - Validate input with Zod before passing to service
-  - Translate errors into a consistent return shape (`{ ok: true, data } | { ok: false, error }`)
-  - Call `revalidatePath()` after mutations
+  - Validate input with the Zod schema (`validate()`) before passing to the service
+  - Return a consistent shape via `ActionResult<T>` / `toActionError()` (`{ ok: true, data } | { ok: false, error, code?, fieldErrors? }`) — never throws to the client
+  - Auth-gate each action with `getSession()`, returning `{ ok: false, code: "UNAUTHENTICATED" }` when signed out
+  - Invalidate caches after each successful mutation — tag-based via `src/lib/cache.ts` (`revalidateTasks()` / `revalidateCategories()` → Next 16 `updateTag()`)
+  - Documented in the [Server Actions guide](./guides/server-actions.md)
 - [x] Unit tests for service layer (using [Vitest](https://vitest.dev/)) — mock Prisma; aim for ~80% coverage of services (`test/server/services/`)
-- [ ] Integration tests for at least the critical paths: create task, update task, delete task — run against a real SQLite test DB
+- [x] Unit tests for the Server Actions — mock auth/service/`updateTag`, keep `validate()` real (`test/app/task-actions.test.ts`, `test/app/category-actions.test.ts`)
+- [x] Integration tests for the critical paths — create/update/delete for both tasks and categories, plus the real error-translation and `onDelete: SetNull` behaviours — run against an in-memory SQLite DB (`test/integration/`)
 
 ### Definition of Done
 

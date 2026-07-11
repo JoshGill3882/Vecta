@@ -16,7 +16,7 @@ describe("validate", () => {
     if (result.success) expect(result.data).toEqual({ name: "Ada", age: 36 });
   });
 
-  it("returns field-keyed errors for invalid input (AC4)", () => {
+  it("returns field-keyed errors for invalid input", () => {
     const result = validate(schema, { name: "", age: -1 });
     expect(result.success).toBe(false);
     if (!result.success) {

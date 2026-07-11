@@ -15,7 +15,18 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
-  // AC4: the Prisma client never leaves the server boundary. Application code
+  // Don't flag a variable destructured only to omit it from a `...rest` sibling
+  // (the "object without property X" idiom, e.g. `const { status, ...rest } = obj`).
+  // `^_`-prefixed names stay ignored too, matching the usual convention.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { ignoreRestSiblings: true, argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  // The Prisma client never leaves the server boundary. Application code
   // (app/, src/lib, components, …) must reach the database only through a
   // service in src/server/services — never by importing the client or the
   // `prisma` singleton directly. Enforced everywhere EXCEPT:
@@ -43,12 +54,12 @@ const eslintConfig = defineConfig([
                 "**/generated/prisma/internal/*",
               ],
               message:
-                "AC4: don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma/models are fine).",
+                "Don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma/models are fine).",
             },
             {
               group: ["@/src/server/db", "**/src/server/db"],
               message:
-                "AC4: the `prisma` singleton is server-only. Call a service from src/server/services/ instead of importing src/server/db.",
+                "The `prisma` singleton is server-only. Call a service from src/server/services/ instead of importing src/server/db.",
             },
           ],
         },
