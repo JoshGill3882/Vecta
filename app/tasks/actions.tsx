@@ -1,6 +1,6 @@
 "use server";
 
-import { ActionResult, toActionError } from "@/src/lib/result";
+import { ActionResult, toActionError, FormState } from "@/src/lib/result";
 import { TaskDTO } from "@/src/lib/dtos/tasks";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
 import { revalidateTasks } from "@/src/lib/cache";
@@ -13,7 +13,10 @@ import { getSession } from "@/src/lib/session";
  * @param formData Form data from the page
  * @returns ActionResult with new TaskDTO or Error
  */
-export async function createTaskAction(formData: FormData): Promise<ActionResult<TaskDTO>> {
+export async function createTaskAction(
+  _prev: FormState<TaskDTO>,
+  formData: FormData
+): Promise<ActionResult<TaskDTO>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
@@ -38,6 +41,7 @@ export async function createTaskAction(formData: FormData): Promise<ActionResult
  */
 export async function updateTaskAction(
   id: string,
+  _prev: FormState<TaskDTO>,
   formData: FormData
 ): Promise<ActionResult<TaskDTO>> {
   const session = await getSession();

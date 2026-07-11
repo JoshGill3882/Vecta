@@ -13,3 +13,5 @@ export function toActionError(e: unknown): ActionResult<never> {
   console.error("[action] unexpected error", e); // or your logger
   return { ok: false, error: "Something went wrong. Please try again." };
 }
+
+export type FormState<T> = ActionResult<T> | null; // Null represents empty/idle state

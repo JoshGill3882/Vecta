@@ -1,6 +1,6 @@
 "use server";
 
-import { ActionResult, toActionError } from "@/src/lib/result";
+import { ActionResult, toActionError, FormState } from "@/src/lib/result";
 import { CategoryDTO } from "@/src/lib/dtos/categories";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
 import { revalidateCategories } from "@/src/lib/cache";
@@ -13,7 +13,10 @@ import { getSession } from "@/src/lib/session";
  * @param formData Form data from the page
  * @returns ActionResult with new CategoryDTO or Error
  */
-export async function createCategoryAction(formData: FormData): Promise<ActionResult<CategoryDTO>> {
+export async function createCategoryAction(
+  _prev: FormState<CategoryDTO>,
+  formData: FormData
+): Promise<ActionResult<CategoryDTO>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
@@ -38,6 +41,7 @@ export async function createCategoryAction(formData: FormData): Promise<ActionRe
  */
 export async function updateCategoryAction(
   id: string,
+  _prev: FormState<CategoryDTO>,
   formData: FormData
 ): Promise<ActionResult<CategoryDTO>> {
   const session = await getSession();
