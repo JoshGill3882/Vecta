@@ -15,6 +15,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Don't flag a variable destructured only to omit it from a `...rest` sibling
+  // (the "object without property X" idiom, e.g. `const { status, ...rest } = obj`).
+  // `^_`-prefixed names stay ignored too, matching the usual convention.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { ignoreRestSiblings: true, argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
   // The Prisma client never leaves the server boundary. Application code
   // (app/, src/lib, components, …) must reach the database only through a
   // service in src/server/services — never by importing the client or the
