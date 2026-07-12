@@ -17,5 +17,6 @@ for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.
 | [Environment & boot-time contract](./environment.md)           | Required env vars and how the app validates them on startup                         |
 | [Input validation](./validation.md)                            | Zod schemas for tasks/categories, the shared `validate()` helper, structured errors |
 | [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation       |
+| [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming   |
 | [Rate limiting](./rate-limiting.md)                            | Applying the in-memory attempt limiter to an action                                 |
 | [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                       |
