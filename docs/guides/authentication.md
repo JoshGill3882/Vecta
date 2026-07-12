@@ -66,7 +66,7 @@ export default async function SettingsPage() {
 }
 ```
 
-See `app/page.tsx` for the canonical example.
+See `app/(app)/page.tsx` for the canonical example.
 
 ## How to protect a Server Action
 

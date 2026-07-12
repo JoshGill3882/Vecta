@@ -247,7 +247,7 @@ individual files here only invites drift.
   - All CRUD operations
   - Domain error types (`NotFoundError`, `ConflictError` in `src/server/errors.ts`) — Prisma errors (P2025/P2002/P2003) are translated, never leaked
   - All functions return DTOs (`src/lib/dtos/`), not raw Prisma models, so the shape is decoupled from the schema
-- [x] Server Actions, co-located with their routes in `app/tasks/actions.tsx` and `app/categories/actions.tsx` (rather than a shared `src/app/actions/` folder):
+- [x] Server Actions, co-located with their routes in `app/(app)/actions.tsx` and `app/(app)/categories/actions.tsx` (rather than a shared `src/app/actions/` folder):
   - Wrap each service call
   - Validate input with the Zod schema (`validate()`) before passing to the service
   - Return a consistent shape via `ActionResult<T>` / `toActionError()` (`{ ok: true, data } | { ok: false, error, code?, fieldErrors? }`) — never throws to the client
@@ -287,13 +287,14 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Tasks
 
-- [ ] [shadcn/ui](https://ui.shadcn.com/docs/installation/next) initialised
-- [ ] Install components as needed: `button`, `input`, `textarea`, `select`, `dialog`, `card`, `dropdown-menu`, `form`, `toast`, `collapsible`, `badge`
-- [ ] Theme tokens reviewed and lightly customised (don't go down a design rabbit hole)
-- [ ] Application shell:
-  - Top bar with app title and logout button
+- [x] [shadcn/ui](https://ui.shadcn.com/docs/installation/next) initialised
+- [x] Install components as needed: `button`, `input`, `textarea`, `select`, `dialog`, `card`, `dropdown-menu`, `form`, `collapsible`, `badge`, and [`sonner`](https://ui.shadcn.com/docs/components/sonner) (shadcn deprecated the original `toast` component; `sonner` is its replacement)
+- [x] Theme tokens reviewed and lightly customised (don't go down a design rabbit hole)
+- [x] Application shell:
+  - Top bar with logo, app title, and logout button
+  - Tasks / Categories tab navigation (route-based, active state from the current path)
   - Main content region
-  - Mobile: hamburger menu pattern for any nav, but for MVP this is minimal
+  - Mobile: the nav collapses to a segmented tab row beneath the bar (the two-tab MVP doesn't need a hamburger)
 - [ ] Task list view (`/`):
   - Three collapsible sections: Open, In Progress, Closed
   - Each task shown as a card with title, category badge, truncated description preview

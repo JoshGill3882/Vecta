@@ -9,15 +9,15 @@ branch on without ever catching an exception.
 
 **Key files:**
 
-- `app/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
-- `app/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
+- `app/(app)/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
+- `app/(app)/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
 - `src/lib/result.ts` — the `ActionResult<T>` / `FormState<T>` types + `toActionError()` translator
 - `src/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
 
 > **`"use server"`.** The directive at the top of each file is what turns every
 > exported function into a Server Action. It must be the first line — actions are
-> co-located with the routes they serve (`app/tasks/`, `app/categories/`) rather
-> than in a shared folder.
+> co-located with the routes they serve (`app/(app)/`, `app/(app)/categories/`)
+> rather than in a shared folder.
 
 ## The return contract
 

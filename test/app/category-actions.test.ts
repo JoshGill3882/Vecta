@@ -23,7 +23,7 @@ import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-} from "../../app/categories/actions";
+} from "../../app/(app)/categories/actions";
 import { getSession } from "@/src/lib/session";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
 import { updateTag } from "next/cache";

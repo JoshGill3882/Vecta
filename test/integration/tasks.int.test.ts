@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { prisma } from "@/src/server/db";
-import { createTaskAction, updateTaskAction, deleteTaskAction } from "../../app/tasks/actions";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "../../app/(app)/actions";
 
 // A valid, DB-shaped cuid that no row will ever own — for "missing" lookups.
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
