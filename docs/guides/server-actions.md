@@ -16,8 +16,8 @@ branch on without ever catching an exception.
 
 > **`"use server"`.** The directive at the top of each file is what turns every
 > exported function into a Server Action. It must be the first line — actions are
-> co-located with the routes they serve (`app/tasks/`, `app/categories/`) rather
-> than in a shared folder.
+> co-located with the routes they serve (`app/(app)/`, `app/(app)/categories/`)
+> rather than in a shared folder.
 
 ## The return contract
 
