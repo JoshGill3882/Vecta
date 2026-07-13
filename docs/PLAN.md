@@ -301,7 +301,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Click a task card (or its ⋮ overflow menu) to open the edit modal — the design uses a modal dialog, not a separate detail page
   - Empty state when no tasks exist
   - "New Task" button prominent
-  - Inline quick-add bar at the top of the list: type a title and press Enter to create an Open task; supports a keyboard shortcut (`c`) to focus it (per the design)
+  - Keyboard shortcuts `c` and `n` can be used to quick load the Task create form
 - [ ] Task create form:
   - Modal dialog (confirmed by the design — same modal serves create and edit); supports keyboard shortcuts: `Esc` to cancel, `Cmd/Ctrl+Enter` to save
   - Fields: title (required), description (textarea), category (select with "+ create new" inline option), status (segmented 3-button control — Open / In Progress / Closed — per the design, defaults to Open)
