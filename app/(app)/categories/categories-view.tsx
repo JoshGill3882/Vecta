@@ -1,16 +1,107 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { Plus } from "lucide-react";
+
+import { Button } from "@/src/components/ui/button";
+import type { CategoryDTO } from "@/src/lib/dtos/categories";
+import { suggestCategoryColor } from "@/src/lib/palette";
+
+import { CategoryEditor } from "./category-editor";
+import { CategoryRow } from "./category-row";
+
 /**
- * Categories view — the content of the `/categories` route. See the note in
- * tasks-view.tsx: the page stays thin, this owns the presentation.
+ * Categories view — the content of the `/categories` route. `page.tsx` stays
+ * thin (auth + data); this owns the presentation.
+ *
+ * Unlike the other views this is a Client Component: the page is one
+ * interactive unit — "is the create form open" and "which row is being edited"
+ * are mutually exclusive halves of the same state, and every element on the
+ * page sits inside one branch or the other. Reads still happen on the server;
+ * the data arrives as props.
  */
-export function CategoriesView() {
+export function CategoriesView({
+  categories,
+  taskCounts,
+}: {
+  categories: CategoryDTO[];
+  taskCounts: Record<string, number>;
+}) {
+  // At most one editor is open at a time: the create form, or a single row.
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Stable identity: CategoryEditor fires this from an effect when its action
+  // succeeds, so an inline arrow here would re-run that effect on every render.
+  const closeEditors = useCallback(() => {
+    setAdding(false);
+    setEditingId(null);
+  }, []);
+
   return (
     <section>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-[-0.01em]">Categories</h1>
-        <p className="text-text-3 text-sm">Colour-coded labels you can assign to tasks.</p>
-      </div>
-      <div className="border-border/70 text-text-3 rounded-[14px] border border-dashed p-12 text-center text-sm">
-        No categories yet.
+      <header className="mb-[18px] flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Categories</h1>
+          <p className="text-text-3 mt-1 text-[13.5px]">
+            Flat labels to group your tasks. {categories.length} total.
+          </p>
+        </div>
+        {!adding && (
+          <Button
+            size="lg"
+            onClick={() => {
+              setAdding(true);
+              setEditingId(null);
+            }}
+          >
+            <Plus className="size-4" />
+            New category
+          </Button>
+        )}
+      </header>
+
+      {adding && (
+        <CategoryEditor
+          submitLabel="Create category"
+          initialColor={suggestCategoryColor(categories.length)}
+          onDone={closeEditors}
+          onCancel={closeEditors}
+        />
+      )}
+
+      <div className="bg-card overflow-hidden rounded-[13px] border">
+        {categories.map((category) =>
+          editingId === category.id ? (
+            <div
+              key={category.id}
+              className="bg-surface-2 border-border/60 border-b p-2.5 last:border-b-0"
+            >
+              <CategoryEditor
+                category={category}
+                submitLabel="Save changes"
+                onDone={closeEditors}
+                onCancel={closeEditors}
+              />
+            </div>
+          ) : (
+            <CategoryRow
+              key={category.id}
+              category={category}
+              taskCount={taskCounts[category.id] ?? 0}
+              onEdit={() => {
+                setEditingId(category.id);
+                setAdding(false);
+              }}
+            />
+          )
+        )}
+
+        {categories.length === 0 && !adding && (
+          <p className="text-text-3 px-4 py-10 text-center text-sm">
+            No categories yet. Tasks work fine without them.
+          </p>
+        )}
       </div>
     </section>
   );
