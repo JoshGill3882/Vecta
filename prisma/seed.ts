@@ -28,57 +28,68 @@ const adapter =
 
 const prisma = new PrismaClient({ adapter });
 
-// Fixed ids (prefixed `seed-`) make every upsert target the same row on re-run.
+// Fixed ids make every upsert target the same row on re-run.
+//
+// They are also cuid-shaped, which is not cosmetic: `taskCreateSchema` validates
+// `categoryId` with `z.cuid()`, mirroring the `@default(cuid())` on the column.
+// Ids the app could never generate are ids the app then refuses to accept — the
+// earlier `seed-cat-*` ids made every seeded task fail validation on edit. Seed
+// rows have to satisfy the same invariants as real ones.
+//
+// `z.cuid()` wants a leading `c`, 9+ characters, and no hyphens or underscores;
+// entropy isn't checked, so these stay readable and greppable. If the column ever
+// moves to `cuid(2)`, the schema must move to `z.cuid2()` in step — the two are
+// separate validators, and the mismatch fails the same silent way.
 const categories = [
-  { id: "seed-cat-work", name: "Work", color: "#6366f1" }, // indigo
-  { id: "seed-cat-personal", name: "Personal", color: "#10b981" }, // emerald
-  { id: "seed-cat-urgent", name: "Urgent", color: "#ef4444" }, // red
-  { id: "seed-cat-ideas", name: "Ideas", color: "#f59e0b" }, // amber
+  { id: "cseedcatwork", name: "Work", color: "#6366f1" }, // indigo
+  { id: "cseedcatpersonal", name: "Personal", color: "#10b981" }, // emerald
+  { id: "cseedcaturgent", name: "Urgent", color: "#ef4444" }, // red
+  { id: "cseedcatideas", name: "Ideas", color: "#f59e0b" }, // amber
 ] as const;
 
 // Tasks spread across all three statuses ("open" | "in_progress" | "closed").
 const tasks = [
   {
-    id: "seed-task-1",
+    id: "cseedtask1",
     title: "Write the project README",
     description: "Cover setup, scripts, and the dual SQLite/Postgres story.",
     status: "open",
-    categoryId: "seed-cat-work",
+    categoryId: "cseedcatwork",
   },
   {
-    id: "seed-task-2",
+    id: "cseedtask2",
     title: "Wire up the task service layer",
     description: "Replace the stubbed bodies with real Prisma queries.",
     status: "in_progress",
-    categoryId: "seed-cat-work",
+    categoryId: "cseedcatwork",
   },
   {
-    id: "seed-task-3",
+    id: "cseedtask3",
     title: "Book the dentist",
     description: "",
     status: "open",
-    categoryId: "seed-cat-personal",
+    categoryId: "cseedcatpersonal",
   },
   {
-    id: "seed-task-4",
+    id: "cseedtask4",
     title: "Renew the TLS certificate",
     description: "Production cert expires at the end of the month.",
     status: "in_progress",
-    categoryId: "seed-cat-urgent",
+    categoryId: "cseedcaturgent",
   },
   {
-    id: "seed-task-5",
+    id: "cseedtask5",
     title: "Add a dark-mode toggle",
     description: "A nice-to-have once the core flows are done.",
     status: "closed",
-    categoryId: "seed-cat-ideas",
+    categoryId: "cseedcatideas",
   },
   {
-    id: "seed-task-6",
+    id: "cseedtask6",
     title: "Set up the development seed script",
     description: "Example data for new contributors.",
     status: "closed",
-    categoryId: "seed-cat-work",
+    categoryId: "cseedcatwork",
   },
 ] as const;
 

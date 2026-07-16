@@ -52,13 +52,8 @@ const taskDTO = {
   updatedAt: "2026-01-02T00:00:00.000Z",
 };
 
-function form(fields: Record<string, string>): FormData {
-  const fd = new FormData();
-  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
-  return fd;
-}
-
-// Every valid create form needs a title + a legal status enum value.
+// Every valid create needs a title + a legal status enum value. The actions take
+// a plain object, so these go straight in — no FormData round-trip to fake.
 const validCreate = { title: "Write action tests", status: "open" };
 
 beforeEach(() => {
@@ -70,7 +65,7 @@ describe("createTaskAction", () => {
   it("gates on the session before doing anything", async () => {
     mockCreateTask.mockResolvedValue(taskDTO);
 
-    await createTaskAction(null, form(validCreate));
+    await createTaskAction(validCreate);
 
     expect(mockGetSession).toHaveBeenCalledOnce();
   });
@@ -78,7 +73,7 @@ describe("createTaskAction", () => {
   it("returns { ok: false, code: UNAUTHENTICATED } when signed out — never throws, never touches the service", async () => {
     mockGetSession.mockResolvedValue(null);
 
-    const result = await createTaskAction(null, form(validCreate));
+    const result = await createTaskAction(validCreate);
 
     expect(result).toEqual({
       ok: false,
@@ -90,7 +85,7 @@ describe("createTaskAction", () => {
   });
 
   it("invalid input returns a structured error and never reaches the service", async () => {
-    const result = await createTaskAction(null, form({ title: "", status: "open" }));
+    const result = await createTaskAction({ title: "", status: "open" });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("expected failure");
@@ -103,26 +98,16 @@ describe("createTaskAction", () => {
   it("valid input wraps the service and returns { ok: true, data }", async () => {
     mockCreateTask.mockResolvedValue(taskDTO);
 
-    const result = await createTaskAction(null, form(validCreate));
+    const result = await createTaskAction(validCreate);
 
     expect(mockCreateTask).toHaveBeenCalledOnce();
-    expect(result).toEqual({ ok: true, data: taskDTO });
-  });
-
-  it("ignores the previous state — each submit recomputes the result from scratch", async () => {
-    mockCreateTask.mockResolvedValue(taskDTO);
-    // A stale prior result (e.g. a failed earlier submit) must not leak through.
-    const stalePrev = { ok: false as const, error: "old error" };
-
-    const result = await createTaskAction(stalePrev, form(validCreate));
-
     expect(result).toEqual({ ok: true, data: taskDTO });
   });
 
   it("a new task invalidates only the list tag — there is no detail entry to bust yet", async () => {
     mockCreateTask.mockResolvedValue(taskDTO);
 
-    await createTaskAction(null, form(validCreate));
+    await createTaskAction(validCreate);
 
     expect(mockUpdateTag).toHaveBeenCalledWith("tasks");
     expect(mockUpdateTag).toHaveBeenCalledTimes(1); // no `task-<id>` on create
@@ -131,10 +116,11 @@ describe("createTaskAction", () => {
   it("a DomainError from the service becomes { ok: false, error, code } — never thrown", async () => {
     mockCreateTask.mockRejectedValue(new NotFoundError("Category", "c-missing"));
 
-    const result = await createTaskAction(
-      null,
-      form({ title: "Orphan", status: "open", categoryId: "cjld2cjxh0000qzrmn831i7rn" })
-    );
+    const result = await createTaskAction({
+      title: "Orphan",
+      status: "open",
+      categoryId: "cjld2cjxh0000qzrmn831i7rn",
+    });
 
     expect(result).toEqual({
       ok: false,
@@ -148,7 +134,7 @@ describe("createTaskAction", () => {
     mockCreateTask.mockRejectedValue(new Error("boom — DB down"));
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await createTaskAction(null, form(validCreate));
+    const result = await createTaskAction(validCreate);
 
     expect(result).toEqual({ ok: false, error: "Something went wrong. Please try again." });
     errSpy.mockRestore();
@@ -159,7 +145,7 @@ describe("updateTaskAction", () => {
   it("returns UNAUTHENTICATED when signed out", async () => {
     mockGetSession.mockResolvedValue(null);
 
-    const result = await updateTaskAction("t1", null, form({ title: "x" }));
+    const result = await updateTaskAction("t1", { title: "x" });
 
     expect(result).toEqual({
       ok: false,
@@ -170,14 +156,14 @@ describe("updateTaskAction", () => {
   });
 
   it("a missing id short-circuits before validation or the service", async () => {
-    const result = await updateTaskAction("", null, form({ title: "x" }));
+    const result = await updateTaskAction("", { title: "x" });
 
     expect(result).toEqual({ ok: false, error: "Missing Task ID" });
     expect(mockUpdateTask).not.toHaveBeenCalled();
   });
 
   it("invalid input returns field errors and skips the service", async () => {
-    const result = await updateTaskAction("t1", null, form({ status: "not-a-status" }));
+    const result = await updateTaskAction("t1", { status: "not-a-status" });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("expected failure");
@@ -188,16 +174,28 @@ describe("updateTaskAction", () => {
   it("a valid update wraps the service and returns the DTO", async () => {
     mockUpdateTask.mockResolvedValue({ ...taskDTO, title: "Renamed" });
 
-    const result = await updateTaskAction("t1", null, form({ title: "Renamed" }));
+    const result = await updateTaskAction("t1", { title: "Renamed" });
 
     expect(mockUpdateTask).toHaveBeenCalledWith("t1", { title: "Renamed" });
     expect(result).toEqual({ ok: true, data: { ...taskDTO, title: "Renamed" } });
   });
 
+  it("carries an explicit null categoryId through to the service, unassigning the task", async () => {
+    mockUpdateTask.mockResolvedValue({ ...taskDTO, categoryId: null });
+
+    await updateTaskAction("t1", { title: "Unfiled", categoryId: null });
+
+    // null and "field omitted" mean different things to the service: null clears
+    // the column, undefined leaves it alone. Passing the input as an object is
+    // what keeps them distinguishable — FormData carries strings, so it could
+    // only ever say "omitted", and clearing a category was impossible.
+    expect(mockUpdateTask).toHaveBeenCalledWith("t1", { title: "Unfiled", categoryId: null });
+  });
+
   it("an update invalidates both the list and the task's own detail tag", async () => {
     mockUpdateTask.mockResolvedValue({ ...taskDTO, title: "Renamed" });
 
-    await updateTaskAction("t1", null, form({ title: "Renamed" }));
+    await updateTaskAction("t1", { title: "Renamed" });
 
     expect(mockUpdateTag).toHaveBeenCalledWith("tasks");
     expect(mockUpdateTag).toHaveBeenCalledWith("task-t1");
@@ -207,7 +205,7 @@ describe("updateTaskAction", () => {
   it("a NotFoundError on a missing task is returned, not thrown", async () => {
     mockUpdateTask.mockRejectedValue(new NotFoundError("Task", "missing"));
 
-    const result = await updateTaskAction("missing", null, form({ title: "x" }));
+    const result = await updateTaskAction("missing", { title: "x" });
 
     expect(result).toEqual({
       ok: false,
