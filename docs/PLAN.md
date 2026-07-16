@@ -302,12 +302,12 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Empty state when no tasks exist
   - "New Task" button prominent
   - Keyboard shortcuts `c` and `n` can be used to quick load the Task create form
-- [ ] Task create form:
+- [x] Task create form:
   - Modal dialog (confirmed by the design — same modal serves create and edit); supports keyboard shortcuts: `Esc` to cancel, `Cmd/Ctrl+Enter` to save
   - Fields: title (required), description (textarea), category (select with "+ create new" inline option), status (segmented 3-button control — Open / In Progress / Closed — per the design, defaults to Open)
   - Client-side validation mirrors the Zod schema
   - On submit, calls server action; toast on success or error
-- [ ] Task edit form:
+- [x] Task edit form:
   - Same shape as create
   - Pre-populated; tracks dirty state to enable/disable save
 - [ ] Task delete: confirm dialog before destructive action
