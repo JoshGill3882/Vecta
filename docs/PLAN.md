@@ -315,7 +315,6 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [x] Category management page (`/categories`):
   - List, create, rename, delete — each category has a colour (shown as a coloured dot / badge throughout, set via a colour swatch in the create/edit form, per the design)
   - Deleting a category sets affected tasks' `categoryId` to `null` (already in schema as `onDelete: SetNull`) — show a confirmation that explains this
-- [ ] Mobile responsive pass: test at 375px and 768px viewports
 - [ ] Loading states (use [`<Suspense>` boundaries](https://react.dev/reference/react/Suspense) where appropriate)
 - [ ] Error boundaries for graceful failure
 
@@ -346,6 +345,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 ### Tasks
 
 - [ ] Accessibility pass: keyboard navigation works on all interactive elements; focus rings visible; semantic HTML (use [Lighthouse](https://developer.chrome.com/docs/lighthouse/) and [axe DevTools](https://www.deque.com/axe/devtools/) as a baseline check)
+- [ ] Mobile responsive pass: test at 375px and 768px viewports — the layout is desktop-first (§3), so it adapts once the desktop UI has settled
 - [ ] Empty / error / loading states audited across the app
 - [ ] Toast feedback on every server action
 - [ ] Favicon and basic OG metadata (title, description)
