@@ -9,12 +9,15 @@ import { cn } from "@/src/lib/utils";
 type Tab = { href: string; label: string; Icon: LucideIcon };
 
 const TABS: Tab[] = [
-  { href: "/", label: "Tasks", Icon: List },
+  { href: "/tasks", label: "Tasks", Icon: List },
   { href: "/categories", label: "Categories", Icon: Tag },
 ];
 
+// Match the tab's own route and anything nested under it, but not a sibling
+// that merely shares a prefix — a future "/team-settings" must not light up
+// the "/team" tab.
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Desktop tabs — sit inline in the top bar, hidden on narrow viewports. */

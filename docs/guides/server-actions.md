@@ -9,7 +9,7 @@ branch on without ever catching an exception.
 
 **Key files:**
 
-- `app/(app)/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
+- `app/(app)/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
 - `app/(app)/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
 - `src/lib/result.ts` — the `ActionResult<T>` / `FormState<T>` types + `toActionError()` translator
 - `src/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
