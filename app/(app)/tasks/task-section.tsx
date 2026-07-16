@@ -28,6 +28,7 @@ export function TaskSection({
   categoriesById,
   collapsed,
   onToggle,
+  onEdit,
 }: {
   status: TaskStatus;
   label: string;
@@ -35,6 +36,7 @@ export function TaskSection({
   categoriesById: Map<string, CategoryDTO>;
   collapsed: boolean;
   onToggle: () => void;
+  onEdit: (task: TaskDTO) => void;
 }) {
   const accent = STATUS_ACCENT[status];
 
@@ -66,6 +68,7 @@ export function TaskSection({
                 key={task.id}
                 task={task}
                 category={task.categoryId ? categoriesById.get(task.categoryId) : undefined}
+                onEdit={onEdit}
               />
             ))}
           </div>
