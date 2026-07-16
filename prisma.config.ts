@@ -15,8 +15,11 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: MIGRATIONS_DIR[provider],
-    // Lets `prisma db seed` (and the auto-seed after `prisma migrate reset`) run
-    // the seed script. `npm run db:seed` invokes the same command directly.
+    // Serves `prisma db seed` only. Prisma 7 dropped the auto-seed that used to
+    // follow `prisma migrate reset` — the runner now has exactly one caller, and
+    // even `--skip-seed` is gone, so no config here can make a reset seed. That
+    // is why `db:reset` chains `db:seed` itself; a reset that quietly left the
+    // database empty is what put this comment here.
     seed: "tsx prisma/seed.ts",
   },
   datasource: {

@@ -17,7 +17,7 @@
     "db:migrate": "node scripts/resolve-provider.mjs && prisma migrate dev",
     "db:deploy": "node scripts/resolve-provider.mjs && prisma migrate deploy",
     "db:studio": "node scripts/resolve-provider.mjs && prisma studio",
-    "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset",
+    "db:reset": "node scripts/resolve-provider.mjs && prisma migrate reset && npm run db:seed",
     "db:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
