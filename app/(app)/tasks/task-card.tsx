@@ -29,10 +29,18 @@ export function TaskCard({
   const preview = previewOf(task.description);
   const closed = task.status === "closed";
 
+  function openFromCard() {
+    // A drag to select text finishes with a click on the card. Opening the
+    // dialog then would tear the selection away mid-gesture.
+    if (window.getSelection()?.toString()) return;
+    onEdit(task);
+  }
+
   return (
     <article
+      onClick={openFromCard}
       className={cn(
-        "bg-card rounded-[12px] border p-4 transition-colors",
+        "bg-card hover:border-ring/50 cursor-pointer rounded-[12px] border p-4 transition-colors",
         closed && "opacity-[0.78]"
       )}
     >
@@ -43,9 +51,27 @@ export function TaskCard({
             closed && "text-text-2 line-through"
           )}
         >
-          {task.title}
+          {/* The card's keyboard route in. It carries no handler of its own:
+              Enter/Space fire a click that bubbles to the article, so pointer
+              and keyboard arrive at one place. A button around the whole card
+              would nest the ⋮ trigger inside it — invalid, and it would cost
+              the title its accessible name.
+
+              `select-text` is load-bearing: a button's text is unselectable by
+              default, so without it a drag across the title selects nothing and
+              reads as a plain click — opening the dialog mid-gesture. */}
+          <button
+            type="button"
+            className="focus-visible:ring-ring/50 cursor-pointer rounded-md text-left outline-none select-text focus-visible:ring-3"
+          >
+            {task.title}
+          </button>
         </h3>
-        <TaskCardMenu task={task} onEdit={onEdit} />
+        {/* Radix portals the menu's items out of the card, so only the trigger
+            itself sits in the article's bubble path. */}
+        <div onClick={(event) => event.stopPropagation()} className="contents">
+          <TaskCardMenu task={task} onEdit={onEdit} />
+        </div>
       </div>
 
       {preview && (
