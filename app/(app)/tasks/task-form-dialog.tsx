@@ -56,9 +56,23 @@ export function TaskFormDialog({
         // warning about the missing `aria-describedby` when it's cleared.
         aria-describedby={undefined}
         // The close button is the first tabbable in the content, so Radix's
-        // default would land focus there. The design opens on the title.
+        // default would land focus there. Never let it: this always takes over.
+        //
+        // Where focus goes then depends on the pointer, not the viewport — what
+        // raises the on-screen keyboard is the input device, so a narrow desktop
+        // window keeps the desktop behaviour. With a mouse, the design opens on
+        // the title, ready to type. On touch, focusing any field would throw the
+        // keyboard up over the form before the user has chosen a field, so focus
+        // the dialog itself: it carries tabIndex={-1}, which keeps the dialog
+        // announced and gives the focus trap a start without priming an input.
+        // Cancelling without focusing anything would strand focus on the trigger
+        // behind the dialog — silent on a phone, broken for a screen reader.
         onOpenAutoFocus={(event) => {
           event.preventDefault();
+          if (window.matchMedia("(pointer: coarse)").matches) {
+            (event.currentTarget as HTMLElement).focus();
+            return;
+          }
           document.getElementById("task-title")?.focus();
         }}
         className="top-[7vh] flex max-h-[86vh] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]"
