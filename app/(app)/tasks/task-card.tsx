@@ -21,10 +21,13 @@ export function TaskCard({
   task,
   category,
   onEdit,
+  onDelete,
 }: {
   task: TaskDTO;
   category?: CategoryDTO;
   onEdit: (task: TaskDTO) => void;
+  /** Resolves true when the task was deleted, which closes the confirm dialog. */
+  onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
   const preview = previewOf(task.description);
   const closed = task.status === "closed";
@@ -70,7 +73,7 @@ export function TaskCard({
         {/* Radix portals the menu's items out of the card, so only the trigger
             itself sits in the article's bubble path. */}
         <div onClick={(event) => event.stopPropagation()} className="contents">
-          <TaskCardMenu task={task} onEdit={onEdit} />
+          <TaskCardMenu task={task} onEdit={onEdit} onDelete={onDelete} />
         </div>
       </div>
 
