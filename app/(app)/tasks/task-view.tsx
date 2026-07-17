@@ -7,6 +7,8 @@ import type { CategoryDTO } from "@/src/lib/dtos/categories";
 import type { TaskDTO } from "@/src/lib/dtos/tasks";
 import { relativeTime } from "@/src/lib/relative-time";
 
+import { TaskDescription } from "./task-description";
+
 /**
  * Read/view mode — the modal's default state for an existing task, and where a
  * save lands. The list card carries no description preview, so this is the one
@@ -44,14 +46,7 @@ export function TaskView({
 
         <p className="text-text-2 mb-[7px] text-[12.5px] font-medium">Description</p>
         {task.description.trim() ? (
-          // TEMPORARY passthrough: descriptions are Markdown, but this renders
-          // them as escaped plain text (React escapes children, so nothing here
-          // can inject). The sanitised react-markdown + remark-gfm + rehype-
-          // sanitize renderer is the next piece of #24 and replaces this block.
-          // Never reach for dangerouslySetInnerHTML on this content.
-          <div className="text-[14px] leading-[1.6] break-words whitespace-pre-wrap">
-            {task.description}
-          </div>
+          <TaskDescription markdown={task.description} />
         ) : (
           <p className="text-text-faint text-[14px] italic">No description.</p>
         )}
