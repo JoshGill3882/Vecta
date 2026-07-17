@@ -7,16 +7,7 @@ import { cn } from "@/src/lib/utils";
 
 import { TaskCardMenu } from "./task-card-menu";
 
-/**
- * Strip the markdown punctuation that would otherwise show up as literal `#`
- * and `**` in the preview line. Descriptions are rendered properly in the task
- * dialog; this is a flattened one-liner, not a renderer.
- */
-function previewOf(description: string): string {
-  return description.replace(/[#*`>_]/g, "").trim();
-}
-
-/** One task in the list: title, description preview, status, category, age. */
+/** One task in the list: title, status, category, age. */
 export function TaskCard({
   task,
   category,
@@ -29,7 +20,6 @@ export function TaskCard({
   /** Resolves true when the task was deleted, which closes the confirm dialog. */
   onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
-  const preview = previewOf(task.description);
   const closed = task.status === "closed";
 
   function openFromCard() {
@@ -76,10 +66,6 @@ export function TaskCard({
           <TaskCardMenu task={task} onEdit={onEdit} onDelete={onDelete} />
         </div>
       </div>
-
-      {preview && (
-        <p className="text-text-3 mt-1.5 line-clamp-2 text-[13.5px] leading-[1.5]">{preview}</p>
-      )}
 
       <div className="mt-[13px] flex flex-wrap items-center gap-2">
         <StatusBadge status={task.status} />

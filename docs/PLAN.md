@@ -297,7 +297,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Mobile: the nav collapses to a segmented tab row beneath the bar (the two-tab MVP doesn't need a hamburger)
 - [ ] Task list view (`/tasks`, with `/` redirecting to it so every tab is a route of its own):
   - Three collapsible sections: Open, In Progress, Closed
-  - Each task shown as a card with title, category badge, truncated description preview
+  - Each task shown as a card with title, category badge, and status (no description preview — descriptions are Markdown and render in the task view modal, not on the card)
   - Click a task card (or its ⋮ overflow menu) to open the edit modal — the design uses a modal dialog, not a separate detail page
   - Empty state when no tasks exist
   - "New Task" button prominent
