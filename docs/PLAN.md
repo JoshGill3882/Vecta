@@ -310,7 +310,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [x] Task edit form:
   - Same shape as create
   - Pre-populated; tracks dirty state to enable/disable save
-- [ ] Task delete: confirm dialog before destructive action
+- [x] Task delete: confirm dialog before destructive action
 - [ ] Markdown rendering: use [`react-markdown`](https://github.com/remarkjs/react-markdown) with [`remark-gfm`](https://github.com/remarkjs/remark-gfm) for tables/strikethrough; sanitise with `rehype-sanitize` to be safe
 - [x] Category management page (`/categories`):
   - List, create, rename, delete — each category has a colour (shown as a coloured dot / badge throughout, set via a colour swatch in the create/edit form, per the design)
