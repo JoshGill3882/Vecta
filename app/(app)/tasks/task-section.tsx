@@ -29,6 +29,7 @@ export function TaskSection({
   collapsed,
   onToggle,
   onEdit,
+  onDelete,
 }: {
   status: TaskStatus;
   label: string;
@@ -37,6 +38,8 @@ export function TaskSection({
   collapsed: boolean;
   onToggle: () => void;
   onEdit: (task: TaskDTO) => void;
+  /** Resolves true when the task was deleted, which closes the confirm dialog. */
+  onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
   const accent = STATUS_ACCENT[status];
 
@@ -69,6 +72,7 @@ export function TaskSection({
                 task={task}
                 category={task.categoryId ? categoriesById.get(task.categoryId) : undefined}
                 onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
           </div>

@@ -116,3 +116,30 @@ shadcn's `form` component wraps
 [react-hook-form](https://react-hook-form.com/). Pair it with the Zod schemas
 from the [validation guide](./validation.md) so the client mirrors the same
 rules the server enforces — one schema, both sides.
+
+## Confirmations & destructive actions
+
+Every destructive action gets a confirmation step (a project rule — see
+[`docs/PLAN.md`](../PLAN.md)). Use the shadcn **`AlertDialog`** primitive, not
+`Dialog`: it's the modal-confirm variant, and it can't be dismissed by clicking
+the overlay. Name the thing being destroyed in the description so the prompt is
+unambiguous. The task delete flow (`app/(app)/tasks/delete-task-dialog.tsx`) is
+the reference; the categories delete reuses the same shape.
+
+Three things are easy to get wrong:
+
+- **Trigger and dialog are separate Radix layers.** When the confirm is opened
+  from a `DropdownMenu` item, keep the `AlertDialog` a **sibling** of the menu,
+  not nested inside a menu item — both trap focus, so the menu must close before
+  the dialog opens or they fight over it. Drive the dialog from state the menu
+  sets (`onSelect={() => setConfirmOpen(true)}`).
+- **Let the confirm callback own the close.** Give the dialog an
+  `onConfirm: () => Promise<boolean>` that resolves `true` only when the action
+  succeeded — the same contract the [form dialog](#forms) uses for save. A
+  failure then keeps the dialog open over the item the user was trying to remove
+  rather than dismissing as though it worked; the caller surfaces the error as a
+  [toast](#toasts).
+- **Stop `AlertDialogAction` auto-closing when the work is async.** It closes on
+  click by default, which tears the dialog down before an `await` resolves.
+  `preventDefault()` in its `onClick` and close via the `onConfirm` result
+  instead; disable both buttons while the action is in flight.

@@ -13,7 +13,7 @@ import { suggestCategoryColor } from "@/src/lib/palette";
 import { TASK_STATUSES } from "@/src/lib/task-status";
 
 import { createCategoryAction } from "../categories/actions";
-import { createTaskAction, updateTaskAction } from "./actions";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection } from "./task-section";
 
@@ -64,6 +64,19 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     }
 
     toast.success(editing ? "Changes saved" : "Task created");
+    router.refresh();
+    return true;
+  }
+
+  async function deleteTask(task: TaskDTO): Promise<boolean> {
+    const result = await deleteTaskAction(task.id);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return false;
+    }
+
+    toast.success("Task deleted");
     router.refresh();
     return true;
   }
@@ -121,6 +134,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           collapsed={collapsed[status.id]}
           onToggle={() => toggle(status.id)}
           onEdit={openEdit}
+          onDelete={deleteTask}
         />
       ))}
 
