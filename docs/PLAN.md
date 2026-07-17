@@ -295,10 +295,10 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Tasks / Categories tab navigation (route-based, active state from the current path)
   - Main content region
   - Mobile: the nav collapses to a segmented tab row beneath the bar (the two-tab MVP doesn't need a hamburger)
-- [ ] Task list view (`/tasks`, with `/` redirecting to it so every tab is a route of its own):
+- [x] Task list view (`/tasks`, with `/` redirecting to it so every tab is a route of its own):
   - Three collapsible sections: Open, In Progress, Closed
-  - Each task shown as a card with title, category badge, truncated description preview
-  - Click a task card (or its ⋮ overflow menu) to open the edit modal — the design uses a modal dialog, not a separate detail page
+  - Each task shown as a card with title, category badge, and status (no description preview — descriptions are Markdown and render in the task view modal, not on the card)
+  - Click a task card (or its ⋮ overflow menu) to open the task modal — it opens in a read/view mode that renders the Markdown description, with an Edit action that flips the same dialog into the form; the design uses a modal dialog, not a separate detail page
   - Empty state when no tasks exist
   - "New Task" button prominent
   - Keyboard shortcuts `c` and `n` can be used to quick load the Task create form
@@ -311,7 +311,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Same shape as create
   - Pre-populated; tracks dirty state to enable/disable save
 - [x] Task delete: confirm dialog before destructive action
-- [ ] Markdown rendering: use [`react-markdown`](https://github.com/remarkjs/react-markdown) with [`remark-gfm`](https://github.com/remarkjs/remark-gfm) for tables/strikethrough; sanitise with `rehype-sanitize` to be safe
+- [x] Markdown rendering: descriptions render in the task view modal (the detail view), not on list cards, via [`react-markdown`](https://github.com/remarkjs/react-markdown) with [`remark-gfm`](https://github.com/remarkjs/remark-gfm) for tables/strikethrough, sanitised with `rehype-sanitize`; links get safe `rel`/`target` handling
 - [x] Category management page (`/categories`):
   - List, create, rename, delete — each category has a colour (shown as a coloured dot / badge throughout, set via a colour swatch in the create/edit form, per the design)
   - Deleting a category sets affected tasks' `categoryId` to `null` (already in schema as `onDelete: SetNull`) — show a confirmation that explains this
