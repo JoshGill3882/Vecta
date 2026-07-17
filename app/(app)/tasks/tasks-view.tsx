@@ -53,19 +53,19 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     return buckets;
   }, [tasks]);
 
-  async function saveTask(values: TaskFormValues): Promise<boolean> {
+  async function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
     const result = editing
       ? await updateTaskAction(editing.id, values)
       : await createTaskAction(values);
 
     if (!result.ok) {
       toast.error(result.error);
-      return false;
+      return null;
     }
 
     toast.success(editing ? "Changes saved" : "Task created");
     router.refresh();
-    return true;
+    return result.data;
   }
 
   async function deleteTask(task: TaskDTO): Promise<boolean> {

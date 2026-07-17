@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Plus, X } from "lucide-react";
+import { FileText, Pencil, Plus, X } from "lucide-react";
 import type { z } from "zod";
 
 import { Button } from "@/src/components/ui/button";
@@ -16,6 +17,7 @@ import { taskCreateSchema } from "@/src/lib/schemas/tasks";
 
 import { CategorySelect } from "./category-select";
 import { StatusPicker } from "./status-picker";
+import { TaskView } from "./task-view";
 
 /**
  * The form's values are the create schema's, in both modes. `taskUpdateSchema`
@@ -39,15 +41,17 @@ export function TaskFormDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Omitted for create; supplied for edit, which pre-populates from it. */
+  /** Omitted for create; supplied for edit, which opens in view mode over it. */
   task?: TaskDTO;
   categories: CategoryDTO[];
-  /** Resolves true when the task was saved, which closes the dialog. */
-  onSubmit: (values: TaskFormValues) => Promise<boolean>;
+  /**
+   * Persists the task and resolves the saved row — the fresh DTO, so view mode
+   * can show the new state (create included) without waiting on a refetch — or
+   * `null` when the save failed, which keeps the form open with its errors.
+   */
+  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
 }) {
-  const isEdit = task !== undefined;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -58,44 +62,28 @@ export function TaskFormDialog({
         // The close button is the first tabbable in the content, so Radix's
         // default would land focus there. Never let it: this always takes over.
         //
-        // Where focus goes then depends on the pointer, not the viewport — what
-        // raises the on-screen keyboard is the input device, so a narrow desktop
-        // window keeps the desktop behaviour. With a mouse, the design opens on
-        // the title, ready to type. On touch, focusing any field would throw the
-        // keyboard up over the form before the user has chosen a field, so focus
-        // the dialog itself: it carries tabIndex={-1}, which keeps the dialog
-        // announced and gives the focus trap a start without priming an input.
-        // Cancelling without focusing anything would strand focus on the trigger
-        // behind the dialog — silent on a phone, broken for a screen reader.
+        // Only the edit form has a field to prime, and even then only with a
+        // mouse: on touch, focusing any field throws the keyboard up over the
+        // form before the user has chosen one. So focus the title input only on
+        // a fine pointer when it exists (edit mode) — otherwise (view mode, or
+        // touch) focus the dialog itself. It carries tabIndex={-1}, which keeps
+        // the dialog announced and gives the focus trap a start without priming
+        // an input. Cancelling without focusing anything would strand focus on
+        // the trigger behind the dialog — silent on a phone, broken for a reader.
         onOpenAutoFocus={(event) => {
           event.preventDefault();
-          if (window.matchMedia("(pointer: coarse)").matches) {
-            (event.currentTarget as HTMLElement).focus();
+          const title = document.getElementById("task-title");
+          if (title && !window.matchMedia("(pointer: coarse)").matches) {
+            title.focus();
             return;
           }
-          document.getElementById("task-title")?.focus();
+          (event.currentTarget as HTMLElement).focus();
         }}
         className="top-[7vh] flex max-h-[86vh] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]"
       >
-        <div className="flex shrink-0 items-center justify-between border-b px-[18px] py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="bg-primary/15 text-primary flex size-[30px] items-center justify-center rounded-lg">
-              {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
-            </span>
-            <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-              {isEdit ? "Edit task" : "New task"}
-            </DialogTitle>
-          </div>
-          <DialogClose asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Close">
-              <X />
-            </Button>
-          </DialogClose>
-        </div>
-
         {/* Radix unmounts dialog content on close, so this remounts on each open —
-            the form always starts from the current task, with no reset to run. */}
-        <TaskForm
+            mode and the shown task both start fresh from `task`, with no reset. */}
+        <TaskDialogBody
           task={task}
           categories={categories}
           onSubmit={onSubmit}
@@ -107,7 +95,7 @@ export function TaskFormDialog({
   );
 }
 
-function TaskForm({
+function TaskDialogBody({
   task,
   categories,
   onSubmit,
@@ -116,9 +104,88 @@ function TaskForm({
 }: {
   task?: TaskDTO;
   categories: CategoryDTO[];
-  onSubmit: (values: TaskFormValues) => Promise<boolean>;
+  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
   onOpenChange: (open: boolean) => void;
+}) {
+  // An existing task opens in view; create opens straight in the form. `current`
+  // is the task on screen: a save swaps in the returned DTO so view mode reflects
+  // the new state, and a created task then has a row to view and re-edit.
+  const [current, setCurrent] = useState(task);
+  const [mode, setMode] = useState<"view" | "edit">(task ? "view" : "edit");
+
+  const category = current ? categories.find((c) => c.id === current.categoryId) : undefined;
+
+  const headerIcon =
+    mode === "view" ? (
+      <FileText className="size-4" />
+    ) : current ? (
+      <Pencil className="size-4" />
+    ) : (
+      <Plus className="size-4" />
+    );
+  const headerTitle = mode === "view" ? (current?.title ?? "") : current ? "Edit task" : "New task";
+
+  return (
+    <>
+      <div className="flex shrink-0 items-center justify-between gap-2.5 border-b px-[18px] py-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="bg-primary/15 text-primary flex size-[30px] shrink-0 items-center justify-center rounded-lg">
+            {headerIcon}
+          </span>
+          <DialogTitle className="line-clamp-2 text-base leading-tight font-semibold tracking-[-0.01em]">
+            {headerTitle}
+          </DialogTitle>
+        </div>
+        <DialogClose asChild>
+          <Button variant="ghost" size="icon-sm" aria-label="Close" className="shrink-0">
+            <X />
+          </Button>
+        </DialogClose>
+      </div>
+
+      {mode === "view" && current ? (
+        <TaskView
+          task={current}
+          category={category}
+          onEdit={() => setMode("edit")}
+          onClose={() => onOpenChange(false)}
+        />
+      ) : (
+        <TaskForm
+          task={current}
+          categories={categories}
+          onSubmit={onSubmit}
+          onCreateCategory={onCreateCategory}
+          // A save reveals the fresh row in view mode. On failure onSubmit
+          // resolves null, so the form stays put with its inline errors.
+          onSaved={(saved) => {
+            setCurrent(saved);
+            setMode("view");
+          }}
+          // Cancel steps back to view when there's a task to return to; a brand
+          // new task has none, so it closes the dialog instead.
+          onCancel={() => (current ? setMode("view") : onOpenChange(false))}
+        />
+      )}
+    </>
+  );
+}
+
+function TaskForm({
+  task,
+  categories,
+  onSubmit,
+  onCreateCategory,
+  onSaved,
+  onCancel,
+}: {
+  task?: TaskDTO;
+  categories: CategoryDTO[];
+  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
+  onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
+  onSaved: (task: TaskDTO) => void;
+  onCancel: () => void;
 }) {
   const isEdit = task !== undefined;
 
@@ -144,7 +211,7 @@ function TaskForm({
 
   const submit = form.handleSubmit(async (values) => {
     const saved = await onSubmit(values);
-    if (saved) onOpenChange(false);
+    if (saved) onSaved(saved);
   });
 
   return (
@@ -252,7 +319,7 @@ function TaskForm({
           <kbd className={KBD_CLASS}>↵</kbd> to save
         </span>
         <div className="flex gap-2">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" disabled={saveDisabled}>
