@@ -316,7 +316,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - List, create, rename, delete — each category has a colour (shown as a coloured dot / badge throughout, set via a colour swatch in the create/edit form, per the design)
   - Deleting a category sets affected tasks' `categoryId` to `null` (already in schema as `onDelete: SetNull`) — show a confirmation that explains this
 - [x] Loading states (use [`<Suspense>` boundaries](https://react.dev/reference/react/Suspense) where appropriate)
-- [ ] Error boundaries for graceful failure
+- [x] Error boundaries for graceful failure
 
 ### Definition of Done
 
