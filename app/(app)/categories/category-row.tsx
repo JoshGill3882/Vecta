@@ -26,10 +26,17 @@ export function CategoryRow({
   category,
   taskCount,
   onEdit,
+  onDeleted,
 }: {
   category: CategoryDTO;
   taskCount: number;
   onEdit: () => void;
+  /**
+   * Fired after a successful delete. The row (and the Delete button that opened
+   * the confirm dialog) unmounts on refresh, so the parent restores focus to a
+   * landmark that survives rather than letting it fall to `<body>` (#50).
+   */
+  onDeleted: () => void;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -46,6 +53,7 @@ export function CategoryRow({
       }
       toast.success(`“${category.name}” deleted`);
       setConfirming(false);
+      onDeleted();
       router.refresh();
     });
   }

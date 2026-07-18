@@ -15,6 +15,16 @@ import { cn } from "@/src/lib/utils";
 import { TaskCard } from "./task-card";
 
 /**
+ * DOM id of a section's header button. It's the focus landmark a successful
+ * delete lands on: the card that opened the confirm dialog is gone by then, so
+ * focus returns to the header of the status it lived under rather than to
+ * `<body>` (#50).
+ */
+export function taskSectionHeaderId(status: TaskStatus) {
+  return `task-section-${status}`;
+}
+
+/**
  * One collapsible status section: a header carrying the status dot, label and
  * count badge, over the tasks in that status.
  *
@@ -45,7 +55,10 @@ export function TaskSection({
 
   return (
     <Collapsible open={!collapsed} onOpenChange={onToggle} className="mb-3.5">
-      <CollapsibleTrigger className="focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3">
+      <CollapsibleTrigger
+        id={taskSectionHeaderId(status)}
+        className="focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3"
+      >
         <ChevronDown
           className={cn(
             "text-text-3 size-4 shrink-0 transition-transform duration-[180ms]",
