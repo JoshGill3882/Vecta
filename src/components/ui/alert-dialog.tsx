@@ -5,6 +5,7 @@ import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { useRestoreFocus } from "@/src/components/ui/use-restore-focus";
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
@@ -39,10 +40,16 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   size = "default",
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: "default" | "sm";
 }) {
+  // Return focus to the opener on close — Radix's own restore is a no-op for the
+  // trigger-less, controlled dialogs used here (#50).
+  const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
@@ -54,6 +61,7 @@ function AlertDialogContent({
           className
         )}
         {...props}
+        {...restoreFocus}
       />
     </AlertDialogPortal>
   );

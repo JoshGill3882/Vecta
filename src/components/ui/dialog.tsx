@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { useRestoreFocus } from "@/src/components/ui/use-restore-focus";
 import { XIcon } from "lucide-react";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -43,10 +44,16 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  // Return focus to the opener on close — Radix's own restore is a no-op for the
+  // trigger-less, controlled dialogs used here (#50).
+  const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -57,6 +64,7 @@ function DialogContent({
           className
         )}
         {...props}
+        {...restoreFocus}
       >
         {children}
         {showCloseButton && (

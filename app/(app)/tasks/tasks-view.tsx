@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ListIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -8,14 +8,14 @@ import { toast } from "sonner";
 import { Button } from "@/src/components/ui/button";
 import { useCollapsedSections } from "@/src/hooks/use-collapsed-sections";
 import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+import type { TaskDTO, TaskStatus } from "@/src/lib/dtos/tasks";
 import { suggestCategoryColor } from "@/src/lib/palette";
 import { TASK_STATUSES } from "@/src/lib/task-status";
 
 import { createCategoryAction } from "../categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
-import { TaskSection } from "./task-section";
+import { TaskSection, taskSectionHeaderId } from "./task-section";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -28,6 +28,18 @@ import { TaskSection } from "./task-section";
 export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories: CategoryDTO[] }) {
   const { collapsed, toggle } = useCollapsedSections();
   const router = useRouter();
+
+  // A successful delete unmounts the card that opened the confirm dialog, so its
+  // focus has nowhere to return — the shared restore lands on `<body>`. Record
+  // the deleted task's status and, once the refreshed list has rendered, move
+  // focus to that section's header instead of leaving the user at the top (#50).
+  const pendingSectionFocus = useRef<TaskStatus | null>(null);
+  useEffect(() => {
+    const status = pendingSectionFocus.current;
+    if (!status) return;
+    pendingSectionFocus.current = null;
+    document.getElementById(taskSectionHeaderId(status))?.focus();
+  }, [tasks]);
 
   // One dialog serves create and edit; `editing` is what tells them apart —
   // undefined creates, a task edits. The open flag is held separately from the
@@ -77,6 +89,8 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     }
 
     toast.success("Task deleted");
+    // Focus its section header once the refresh has re-rendered without the card.
+    pendingSectionFocus.current = task.status;
     router.refresh();
     return true;
   }

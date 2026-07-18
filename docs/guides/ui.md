@@ -143,3 +143,33 @@ Three things are easy to get wrong:
   click by default, which tears the dialog down before an `await` resolves.
   `preventDefault()` in its `onClick` and close via the `onConfirm` result
   instead; disable both buttons while the action is in flight.
+
+## Dialog focus
+
+Every dialog here is **controlled** — opened from an `open` prop, with no
+`DialogTrigger`. Radix's modal close behaviour restores focus to that trigger;
+with no trigger the restore is a no-op and focus falls to `<body>`, stranding a
+keyboard or screen-reader user at the top of the page. The shared `DialogContent`
+and `AlertDialogContent` wrappers close this gap with `useRestoreFocus`
+(`src/components/ui/use-restore-focus.ts`): it records the element that had focus
+when the dialog opened and returns focus to it on close, however the dialog is
+dismissed (Esc, the close button, Cancel, the overlay). This is automatic — a new
+dialog inherits it with no per-dialog wiring. To opt a dialog out (custom close
+focus), pass your own `onCloseAutoFocus` and call `preventDefault()`.
+
+The one case the shared restore can't cover is **a close that removes its own
+opener** — a successful delete unmounts the card or row whose control opened the
+confirm dialog. Returning focus to a node that is about to vanish just lands on
+`<body>` a moment later, and because `router.refresh()` is async the opener is
+often still mounted at close time, so the restore can't detect it. Handle this in
+the view that _survives_ the delete, not in the dialog:
+
+- Record the intent in a **ref** (not state — a render here would race the
+  refresh), then move focus in an effect keyed on the refreshed data, so it runs
+  after the list re-renders without the deleted item.
+- Aim focus at a **stable landmark**: the task's status-section header
+  (`taskSectionHeaderId(status)` in `task-section.tsx`) for a task delete, the
+  page heading for a category delete. A non-interactive landmark like the heading
+  needs `tabIndex={-1}` to be focusable.
+
+`tasks-view.tsx` and `categories-view.tsx` are the reference implementations.
