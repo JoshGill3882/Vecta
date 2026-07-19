@@ -50,7 +50,7 @@ export default function GlobalError({
         <button
           type="button"
           onClick={() => unstable_retry()}
-          className="bg-primary text-primary-foreground hover:bg-primary/80 focus-visible:ring-ring/50 focus-visible:border-ring mt-5 inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium outline-none focus-visible:ring-3"
+          className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 focus-visible:ring-ring/50 focus-visible:border-ring mt-5 inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium outline-none focus-visible:ring-3"
         >
           Try again
         </button>
