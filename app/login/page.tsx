@@ -20,21 +20,25 @@ export default async function LoginPage({
   const { next } = await searchParams;
 
   return (
-    // flex-1 fills the flex-col <body> from the root layout; centres the card
-    <main className="flex flex-1 items-center justify-center bg-black px-6">
-      <div className="w-full max-w-[396px] rounded-2xl border border-white/10 bg-zinc-900/60 p-8 shadow-2xl">
+    // flex-1 fills the flex-col <body> from the root layout; centres the card.
+    // No background of its own — the body's radial gradient (globals.css) shows
+    // through, matching the design.
+    <main className="flex flex-1 items-center justify-center px-6">
+      <div className="border-border-strong from-surface-2 to-card w-full max-w-[396px] rounded-2xl border bg-gradient-to-b p-8 shadow-2xl">
         {/* brand + heading — purely static, no JS needed */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Task Manager</h1>
-          <p className="mt-1.5 text-sm text-zinc-400">Sign in to your self-hosted instance.</p>
+          <h1 className="text-foreground text-2xl font-semibold tracking-[-0.02em]">
+            Task Manager
+          </h1>
+          <p className="text-text-3 mt-1.5 text-sm">Sign in to your self-hosted instance.</p>
         </div>
 
         {/* the interactive island — everything stateful lives in here */}
         <LoginForm next={next} />
 
-        <p className="mt-5 border-t border-white/5 pt-4 text-xs leading-relaxed text-zinc-400">
+        <p className="text-text-3 mt-5 border-t border-border pt-4 text-xs leading-relaxed">
           No accounts to manage — authentication is a single admin password set via the{" "}
-          <code className="rounded bg-white/10 px-1 py-0.5">ADMIN_PASSWORD</code> environment
+          <code className="bg-surface-3 rounded px-1 py-0.5">ADMIN_PASSWORD</code> environment
           variable.
         </p>
       </div>

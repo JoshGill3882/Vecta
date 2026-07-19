@@ -18,7 +18,7 @@ export function LoginForm({ next }: { next?: string }) {
       {/* Post-login destination captured by the proxy; the action validates it. */}
       <input type="hidden" name="next" value={next ?? "/"} />
 
-      <label htmlFor="pw" className="text-sm font-medium text-zinc-300">
+      <label htmlFor="pw" className="text-text-2 text-sm font-medium">
         Admin password
       </label>
 
@@ -28,25 +28,31 @@ export function LoginForm({ next }: { next?: string }) {
           name="password"
           type={show ? "text" : "password"}
           autoComplete="current-password"
-          className="h-11 w-full rounded-lg border border-white/10 bg-black/40 pr-16 pl-3 text-zinc-100"
+          className="border-input bg-input/30 text-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border pr-16 pl-3 outline-none focus-visible:ring-3"
           placeholder="Enter password"
         />
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-zinc-400"
+          aria-pressed={show}
+          aria-label={show ? "Hide password" : "Show password"}
+          className="text-text-3 hover:text-foreground focus-visible:ring-ring/50 absolute top-1/2 right-2 -translate-y-1/2 rounded text-[12.5px] font-medium outline-none focus-visible:ring-2"
         >
           {show ? "Hide" : "Show"}
         </button>
       </div>
 
-      {/* errors come back through `state`, rendered inline, no reload */}
-      <div className="min-h-[22px] py-1.5 text-sm text-red-400">{state.error}</div>
+      {/* errors come back through `state`, rendered inline, no reload. role=alert
+          makes a failed sign-in announce to a screen reader (the container is
+          always present, so the change to its text is what's announced). */}
+      <div role="alert" className="text-destructive min-h-[22px] py-1.5 text-sm">
+        {state.error}
+      </div>
 
       <button
         type="submit"
         disabled={pending}
-        className="h-11 w-full rounded-lg bg-blue-500 font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+        className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg font-medium outline-none focus-visible:ring-3 disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in →"}
       </button>
