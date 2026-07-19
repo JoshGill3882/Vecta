@@ -70,6 +70,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -108,15 +109,23 @@
   --card-foreground: #e8ebf1;
   --popover: #171b22; /* design --surface-2 */
   --popover-foreground: #e8ebf1;
-  --primary: #2f88ff; /* brand blue */
+  --primary: #2f88ff; /* brand blue — used as accent/link/ring text on dark */
   --primary-foreground: #ffffff;
+  /* Darker brand blue for solid button fills only: white text on #2f88ff is
+     3.45:1 (below AA), so filled buttons use this instead while --primary stays
+     the lighter shade for text/links (which need the opposite — lighter — to
+     stay legible on the dark background). See #26. */
+  --primary-strong: #1a6fe0;
   --secondary: #171b22;
   --secondary-foreground: #e8ebf1;
   --muted: #171b22;
   --muted-foreground: #7b8492; /* design --text-3 */
   --accent: #1d222b; /* design --surface-3 (hover fills) */
   --accent-foreground: #e8ebf1;
-  --destructive: #e0484d;
+  /* Lightened from the design's #e0484d (4.28:1 as text on the popover surface —
+     below WCAG AA). Every destructive usage here is red text/icon on a dark
+     surface (no solid-red fill anywhere), so one value clears them all. See #26. */
+  --destructive: #e5545a;
   --border: #242a34;
   --input: #323a47; /* design --border-strong */
   --ring: #2f88ff;
@@ -140,7 +149,11 @@
   --border-strong: #323a47;
   --text-2: #aab2c0;
   --text-3: #7b8492;
-  --text-faint: #5b636f;
+  /* Bumped from the design's #5b636f (≈3:1 on the dark background — below WCAG
+     AA) so faint small text (card timestamps, counts, kbd hints) clears 4.5:1.
+     This sits close to --text-3 by necessity: AA on 11–13px text leaves little
+     room beneath it. See #26. */
+  --text-faint: #787f8b;
   --brand-orange: #fb7616;
   --status-open: #4f9dff;
   --status-prog: #fe7616;

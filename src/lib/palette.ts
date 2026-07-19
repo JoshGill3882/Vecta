@@ -9,7 +9,7 @@
 export const CATEGORY_PALETTE = [
   "#3b9eff", // blue
   "#5aa3ff",
-  "#2f6fe0",
+  "#3b7bee", // deep blue (lightened from #2f6fe0 to clear AA as chip text — #26)
   "#9b87f5", // violet
   "#b06bd6",
   "#3fbf8f", // green / teal
