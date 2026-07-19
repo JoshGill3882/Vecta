@@ -55,22 +55,28 @@ export function TaskSection({
 
   return (
     <Collapsible open={!collapsed} onOpenChange={onToggle} className="mb-3.5">
-      <CollapsibleTrigger
-        id={taskSectionHeaderId(status)}
-        className="focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3"
-      >
-        <ChevronDown
-          className={cn(
-            "text-text-3 size-4 shrink-0 transition-transform duration-[180ms]",
-            collapsed && "-rotate-90"
-          )}
-        />
-        <span className={cn("size-2 shrink-0 rounded-full ring-3", accent.dot, accent.ring)} />
-        <span className="text-[14.5px] font-semibold tracking-[-0.01em]">{label}</span>
-        <span className="text-text-3 bg-surface-2 min-w-6 rounded-full border px-[9px] py-px text-center text-xs font-semibold">
-          {tasks.length}
-        </span>
-      </CollapsibleTrigger>
+      {/* A real <h2> so the list reads h1 (page) → h2 (status section) → h3 (card
+          title): the section header carries the visuals, but the heading is what
+          gives screen readers and Lighthouse a proper outline. Preflight leaves
+          headings unstyled, so the wrapper adds no layout of its own. */}
+      <h2>
+        <CollapsibleTrigger
+          id={taskSectionHeaderId(status)}
+          className="focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3"
+        >
+          <ChevronDown
+            className={cn(
+              "text-text-3 size-4 shrink-0 transition-transform duration-[180ms]",
+              collapsed && "-rotate-90"
+            )}
+          />
+          <span className={cn("size-2 shrink-0 rounded-full ring-3", accent.dot, accent.ring)} />
+          <span className="text-[14.5px] font-semibold tracking-[-0.01em]">{label}</span>
+          <span className="text-text-3 bg-surface-2 min-w-6 rounded-full border px-[9px] py-px text-center text-xs font-semibold">
+            {tasks.length}
+          </span>
+        </CollapsibleTrigger>
+      </h2>
 
       <CollapsibleContent>
         {tasks.length === 0 ? (
