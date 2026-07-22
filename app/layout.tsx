@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/lib/fonts";
 
@@ -24,6 +24,21 @@ export const metadata: Metadata = {
     title,
     description,
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Make the on-screen keyboard shrink the layout viewport, so `dvh` and fixed
+  // positioning describe the space the user can actually see and the task
+  // dialog's footer stays reachable with the keyboard up. Without it the
+  // keyboard overlays the page and the viewport still reports full height.
+  //
+  // Chrome/Android honours this; iOS Safari ignores it, and only the
+  // visualViewport API reports the keyboard there — see useVisibleViewport.
+  interactiveWidget: "resizes-content",
+  // Deliberately no `maximumScale`/`userScalable`: both would block pinch-zoom,
+  // which people rely on to read. Next's docs show them, they are not defaults.
 };
 
 export default function RootLayout({
