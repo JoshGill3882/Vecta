@@ -87,6 +87,7 @@
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
   --color-border-strong: var(--border-strong);
+  --color-border-faint: var(--border-faint);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
   --color-text-faint: var(--text-faint);
@@ -147,6 +148,10 @@
   --surface-2: #171b22;
   --surface-3: #1d222b;
   --border-strong: #323a47;
+  /* Third rung below --border, for hairlines that divide regions *within* a
+     card. Sitting under the card's own outline keeps the divided parts reading
+     as one block rather than two stacked boxes. */
+  --border-faint: #1b2029;
   --text-2: #aab2c0;
   --text-3: #7b8492;
   /* Bumped from the design's #5b636f (≈3:1 on the dark background — below WCAG
