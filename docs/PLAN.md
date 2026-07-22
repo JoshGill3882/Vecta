@@ -73,16 +73,16 @@ Based on a combined capacity of **~20 developer-hours per week** (2 × 10hrs), t
 - ~10–15% slack built in for unknowns (always more than you expect)
 - Phases overlap where possible to allow parallel work
 
-| Phase     | Description                                   | Est. effort  | Calendar weeks                 |
-| --------- | --------------------------------------------- | ------------ | ------------------------------ |
-| 0         | Foundations: repo, CI, tooling                | ~15 hrs      | Week 1                         |
-| 1         | Data layer: Prisma, schema, services skeleton | ~15 hrs      | Week 2 (parallel with Phase 2) |
-| 2         | Authentication                                | ~15 hrs      | Week 2 (parallel with Phase 1) |
-| 3         | Backend: services, server actions, validation | ~25 hrs      | Weeks 3–4                      |
-| 4         | Frontend: shadcn, list view, forms            | ~40 hrs      | Weeks 4–6                      |
-| 5         | Polish, accessibility, docs                   | ~15 hrs      | Week 7                         |
-| 6         | Packaging: Dockerfile, compose, GHCR pipeline | ~20 hrs      | Week 8                         |
-| **Total** |                                               | **~145 hrs** | **~8 weeks**                   |
+| Phase     | Description                                         | Est. effort  | Calendar weeks                 |
+| --------- | --------------------------------------------------- | ------------ | ------------------------------ |
+| 0         | Foundations: repo, CI, tooling                      | ~15 hrs      | Week 1                         |
+| 1         | Data layer: Prisma, schema, services skeleton       | ~15 hrs      | Week 2 (parallel with Phase 2) |
+| 2         | Authentication                                      | ~15 hrs      | Week 2 (parallel with Phase 1) |
+| 3         | Backend: services, server actions, validation       | ~25 hrs      | Weeks 3–4                      |
+| 4         | Frontend: shadcn, list view, forms                  | ~40 hrs      | Weeks 4–6                      |
+| 5         | Polish and accessibility                            | ~15 hrs      | Week 7                         |
+| 6         | Packaging: Dockerfile, compose, GHCR pipeline, docs | ~20 hrs      | Week 8                         |
+| **Total** |                                                     | **~145 hrs** | **~8 weeks**                   |
 
 A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable last-minute fixes and a final manual QA pass on a freshly deployed instance.
 
@@ -336,9 +336,9 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ---
 
-## 10. Phase 5 — Polish & Documentation
+## 10. Phase 5 — Polish & Accessibility
 
-> **Goal:** the app feels finished, and someone unfamiliar with the project can deploy it.
+> **Goal:** the app feels finished.
 
 **Effort:** ~15 hrs · **Calendar:** Week 7
 
@@ -352,13 +352,10 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Definition of Done
 
-- A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README
 - Lighthouse score on the list view: ≥90 accessibility, ≥90 best practices
 
 ### References
 
-- [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
-- [Mermaid diagrams in GitHub Markdown](https://github.blog/developer-skills/github/include-diagrams-markdown-files-mermaid/)
 - [WCAG 2.1 quick reference](https://www.w3.org/WAI/WCAG21/quickref/)
 
 ---
@@ -372,9 +369,10 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 ### Tasks
 
 - [ ] **Dockerfile** — multi-stage build using Next.js `output: "standalone"` mode; final image based on `node:lts-alpine` for small size
-- [ ] [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files) configured in `next.config.js`
+- [ ] [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files) configured in `next.config.ts`
 - [ ] Migrations run on container start (entrypoint script that runs `prisma migrate deploy` then starts the server)
 - [ ] Data directory mounted as a volume; SQLite file lives there
+- [ ] Prisma client resolved from disk at runtime rather than inlined into the bundle, with the entrypoint regenerating it against the container's `DATABASE_URL` — otherwise `prisma generate` bakes the provider into the image at build time and one image can only ever serve one engine
 - [ ] Healthcheck endpoint at `/api/health` (returns 200 with a small JSON; used by Docker `HEALTHCHECK` and reverse proxies)
 - [ ] **`docker-compose.yml`** — committed to repo:
   - The app service using the locally-built image
@@ -415,6 +413,8 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 - `docker compose up -d` from a fresh clone results in a working app reachable on the configured port
 - `docker run` against the published image works the same way
+- A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README
+- One image serves both engines: given a `postgres://` `DATABASE_URL` it applies the Postgres migration history and reads and writes through the app, and the same image still does so against SQLite
 - The `:unstable` and `:v0.1.0-rc1` tags exist on GHCR and were built by the pipeline (not manually)
 - The image is under ~250MB compressed (sanity check on bloat)
 - Deploying a fresh instance and immediately upgrading to the next published version preserves all data
@@ -423,6 +423,8 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 - [Next.js — Deploying with Docker](https://nextjs.org/docs/app/getting-started/deploying#docker)
 - [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)
+- [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+- [Mermaid diagrams in GitHub Markdown](https://github.blog/developer-skills/github/include-diagrams-markdown-files-mermaid/)
 - [Publishing Docker images to GHCR via Actions](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images)
 - [`docker/build-push-action`](https://github.com/docker/build-push-action) — the standard action for multi-arch builds
 - [Prisma — `migrate deploy` for production](https://www.prisma.io/docs/orm/prisma-migrate/workflows/production-and-testing#deploy-migrations)
@@ -510,7 +512,7 @@ Not committed; just so we don't lose them. Order is roughly by user value, not d
 
 Pulling all the documentation links into one place for convenience:
 
-- **Next.js**: [App Router](https://nextjs.org/docs/app), [Server Actions](https://nextjs.org/docs/app/getting-started/updating-data), [Middleware](https://nextjs.org/docs/app/building-your-application/routing/middleware), [Standalone Output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output), [Docker deployment](https://nextjs.org/docs/app/getting-started/deploying#docker)
+- **Next.js**: [App Router](https://nextjs.org/docs/app), [Server Actions](https://nextjs.org/docs/app/getting-started/updating-data), [Proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy), [Standalone Output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output), [Docker deployment](https://nextjs.org/docs/app/getting-started/deploying#docker)
 - **Prisma**: [Getting Started](https://www.prisma.io/docs/getting-started), [SQLite quickstart](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/relational-databases-typescript-sqlite), [Postgres connection URLs](https://www.prisma.io/docs/orm/overview/databases/postgresql), [Singleton pattern for Next.js](https://www.prisma.io/docs/orm/more/help-and-troubleshooting/help-articles/nextjs-prisma-client-dev-practices), [`migrate deploy`](https://www.prisma.io/docs/orm/prisma-migrate/workflows/production-and-testing)
 - **shadcn/ui**: [Next.js installation](https://ui.shadcn.com/docs/installation/next), [Form component (RHF + Zod)](https://ui.shadcn.com/docs/components/form)
 - **Auth**: [iron-session](https://github.com/vvo/iron-session)
