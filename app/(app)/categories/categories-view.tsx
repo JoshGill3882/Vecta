@@ -54,7 +54,8 @@ export function CategoriesView({
 
   return (
     <section>
-      <header className="mb-[18px] flex items-end justify-between gap-4">
+      {/* Stacks below `sm` — see tasks-view.tsx for why. */}
+      <header className="mb-[18px] flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <h1
             ref={headingRef}
@@ -74,6 +75,7 @@ export function CategoriesView({
               setAdding(true);
               setEditingId(null);
             }}
+            className="w-full sm:w-auto"
           >
             <Plus className="size-4" />
             New category

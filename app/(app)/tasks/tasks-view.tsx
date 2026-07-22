@@ -124,7 +124,12 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
 
   return (
     <section>
-      <header className="mb-[18px] flex items-end justify-between gap-4">
+      {/* Stacks below `sm`. Side by side, the button is bottom-aligned to a
+          subtitle whose line count varies with the data, so it sits at a
+          different height on each page — and a subtitle that wraps squeezes the
+          button as well, since neither this header nor Categories' reserves space
+          for it. Stacking sidesteps both, and matches Categories. */}
+      <header className="mb-[18px] flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Your tasks</h1>
           <p className="text-text-3 mt-1 text-[13.5px]">
@@ -132,7 +137,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
             {categories.length === 1 ? "category" : "categories"}
           </p>
         </div>
-        <Button size="lg" onClick={openCreate}>
+        <Button size="lg" onClick={openCreate} className="w-full sm:w-auto">
           <Plus className="size-4" />
           New task
         </Button>

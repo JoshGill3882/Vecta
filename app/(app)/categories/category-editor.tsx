@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +47,27 @@ export function CategoryEditor({
   const [name, setName] = useState(category?.name ?? "");
   const [color, setColor] = useState(category?.color ?? initialColor ?? CATEGORY_PALETTE[0]);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Same rule as the task dialog: prime the name field only where there's a
+  // mouse. On touch, focusing it throws the keyboard up over the editor —
+  // including the colour swatches — before the user has said they want to type,
+  // and an edit is often only a colour change. Keyed to the pointer rather than
+  // the width, because it's the input device that decides whether focusing a
+  // field costs you half the screen.
+  //
+  // Focus still has to go somewhere: the button that opened this unmounts on
+  // open, so doing nothing would strand focus on a dead node and drop a screen
+  // reader back to the top of the page. The form takes it instead (tabIndex={-1}),
+  // which announces the editor without raising the keyboard.
+  useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      formRef.current?.focus();
+      return;
+    }
+    document.getElementById("category-name")?.focus();
+  }, []);
+
   useEffect(() => {
     if (!state?.ok) return;
     toast.success(isEdit ? "Category updated" : "Category created");
@@ -63,7 +84,10 @@ export function CategoryEditor({
 
   return (
     <form
+      ref={formRef}
       action={formAction}
+      tabIndex={-1}
+      aria-label={isEdit ? `Edit ${category.name}` : "New category"}
       onKeyDown={(e) => {
         if (e.key === "Escape") onCancel();
       }}
@@ -81,7 +105,6 @@ export function CategoryEditor({
           <Input
             id="category-name"
             name="name"
-            autoFocus
             required
             maxLength={60}
             placeholder="e.g. Frontend"
@@ -120,7 +143,11 @@ export function CategoryEditor({
                 aria-label={`Colour ${swatch}`}
                 aria-pressed={selected}
                 className={cn(
-                  "focus-visible:ring-ring flex size-7 items-center justify-center rounded-lg transition-transform focus-visible:ring-3 focus-visible:outline-none",
+                  // Grown to a real 44px on touch rather than given an invisible
+                  // oversized hit area: the swatches sit 9px apart, so overlapping
+                  // hit areas would have you tapping one colour and selecting its
+                  // neighbour. The row wraps, so the extra size costs only height.
+                  "focus-visible:ring-ring flex size-7 items-center justify-center rounded-lg transition-transform focus-visible:ring-3 focus-visible:outline-none pointer-coarse:size-11",
                   selected ? "scale-105" : "hover:scale-105"
                 )}
                 style={{

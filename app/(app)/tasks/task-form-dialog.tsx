@@ -11,6 +11,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/src/component
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
+import { useVisibleViewport } from "@/src/hooks/use-visible-viewport";
 import type { CategoryDTO } from "@/src/lib/dtos/categories";
 import type { TaskDTO } from "@/src/lib/dtos/tasks";
 import { taskCreateSchema } from "@/src/lib/schemas/tasks";
@@ -52,10 +53,22 @@ export function TaskFormDialog({
   onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
 }) {
+  const visible = useVisibleViewport();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
+        // Null on a mouse, so desktop keeps the `dvh` sizing below untouched. On
+        // touch this pins the dialog to the space the keyboard leaves, using the
+        // same 7%/86% proportions — `offsetTop` included because iOS pans the
+        // visual viewport rather than resizing it, and a fixed element has to
+        // follow that pan or it drifts off screen.
+        style={
+          visible
+            ? { top: visible.offsetTop + visible.height * 0.07, maxHeight: visible.height * 0.86 }
+            : undefined
+        }
         // The design gives the dialog no prose description, and Radix only stops
         // warning about the missing `aria-describedby` when it's cleared.
         aria-describedby={undefined}
@@ -79,7 +92,11 @@ export function TaskFormDialog({
           }
           (event.currentTarget as HTMLElement).focus();
         }}
-        className="top-[7vh] flex max-h-[86vh] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]"
+        // `dvh`, not `vh`: `vh` is the viewport with the browser chrome retracted
+        // and ignores the on-screen keyboard entirely, so on a phone the dialog is
+        // sized to more space than it can see and the footer actions sit below the
+        // fold, under the keyboard. `dvh` tracks the space actually visible.
+        className="top-[7dvh] flex max-h-[86dvh] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]"
       >
         {/* Radix unmounts dialog content on close, so this remounts on each open —
             mode and the shown task both start fresh from `task`, with no reset. */}
@@ -236,7 +253,9 @@ function TaskForm({
             placeholder="What needs doing?"
             aria-invalid={errors.title !== undefined}
             aria-describedby={errors.title ? "task-title-error" : undefined}
-            className="h-[42px] rounded-[9px] text-[15px] md:text-[15px]"
+            // The design's 15px, but only where a mouse is: under 16px iOS Safari
+            // zooms the page on focus, and this is the field the dialog opens on.
+            className="h-[42px] rounded-[9px] pointer-fine:text-[15px]"
           />
           {errors.title && (
             <p id="task-title-error" className="text-destructive mt-[7px] text-[12.5px]">
@@ -313,12 +332,17 @@ function TaskForm({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t px-[18px] py-3.5">
-        <span className="text-text-faint text-[11.5px]">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t px-[18px] py-3.5">
+        {/* Instructions for hardware the reader may not have: there is no esc and
+            no ⌘ on a phone. Hidden by pointer, not by width, because that is what
+            the hint is actually about — the shortcuts themselves stay bound, so a
+            keyboard paired with a tablet still works, it just goes unadvertised.
+            `ml-auto` below keeps the actions right-aligned once this is gone. */}
+        <span className="text-text-faint text-[11.5px] pointer-coarse:hidden">
           <kbd className={KBD_CLASS}>esc</kbd> to cancel · <kbd className={KBD_CLASS}>⌘</kbd>
           <kbd className={KBD_CLASS}>↵</kbd> to save
         </span>
-        <div className="flex gap-2">
+        <div className="ml-auto flex gap-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
