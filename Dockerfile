@@ -11,19 +11,48 @@ RUN npm ci
 
 # ── builder ──────────────────────────────────────────────────────────────────
 # The Prisma client generates as TypeScript into generated/, so it has to exist
-# before `next build` compiles it into the bundle. No DATABASE_URL is set here
-# and none should be: resolve-provider.mjs falls back to SQLite, which only
-# decides which provider the schema is patched to — no connection is opened.
+# before `next build` compiles it into the bundle.
+#
+# DATABASE_URL is set here purely to get the build through, and is deliberately
+# a throwaway path rather than the real one — no connection is ever opened with
+# it and it must not reach the final image. It is needed because `next build`
+# evaluates every route module while collecting page data, and src/server/db.ts
+# throws at module load when the variable is missing. The real DATABASE_URL is
+# supplied at container start.
 FROM node:lts-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run db:generate && npm run build
+RUN DATABASE_URL="file:/tmp/build.db" npm run db:generate && \
+    DATABASE_URL="file:/tmp/build.db" npm run build
+
+# ── migrator ─────────────────────────────────────────────────────────────────
+# The entrypoint needs the Prisma CLI, which the app never imports, so nothing
+# puts it in the standalone output. Copying node_modules/prisma by hand does not
+# work either: npm's node_modules layout is flat, so the CLI's transitive deps
+# (effect, dotenv, …) sit at the top level rather than nested inside it, and a
+# hand-picked copy strands them. Installing into an empty project instead lets
+# npm resolve the whole closure. Versions are read from the app's manifest so
+# this can never drift from what the build used.
+FROM node:lts-alpine AS migrator
+WORKDIR /m
+COPY package.json ./app-package.json
+RUN PRISMA_VERSION="$(node -p "require('./app-package.json').devDependencies.prisma")" && \
+    DOTENV_VERSION="$(node -p "require('./app-package.json').dependencies.dotenv")" && \
+    rm app-package.json && \
+    npm init -y > /dev/null && \
+    npm install --no-audit --no-fund \
+      "prisma@${PRISMA_VERSION}" "dotenv@${DOTENV_VERSION}"
 
 # ── runner ───────────────────────────────────────────────────────────────────
 FROM node:lts-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Standalone's server.js binds to $HOSTNAME, and Docker sets that to the
+# container ID — which resolves to the eth0 address only. Published ports still
+# work (they arrive on that interface), but nothing listens on loopback, so the
+# HEALTHCHECK below cannot reach the app. Binding 0.0.0.0 covers both.
+ENV HOSTNAME=0.0.0.0
 RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -S nextjs
 
 COPY --from=builder /app/.next/standalone ./
@@ -37,12 +66,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma.config.ts ./
-# Nothing in the app imports the Prisma CLI, so standalone's file tracing leaves
-# it out — it has to be copied in explicitly for `migrate deploy`. This is the
-# whole CLI, which is heavier than it needs to be (it pulls in Studio and unused
-# database drivers); measure the image before deciding whether to prune it.
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# The Prisma CLI and its full dependency closure, resolved in the migrator
+# stage. This merges into the node_modules the standalone output already
+# created, so it must come after that copy.
+COPY --from=migrator /m/node_modules ./node_modules
 
 COPY --from=builder --chmod=755 /app/docker-entrypoint.sh ./
 # Home of the SQLite file and the documented volume mount point. Created owned
