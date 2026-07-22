@@ -32,14 +32,20 @@ RUN DATABASE_URL="file:/tmp/build.db" npm run db:generate && \
 # work either: npm's node_modules layout is flat, so the CLI's transitive deps
 # (effect, dotenv, …) sit at the top level rather than nested inside it, and a
 # hand-picked copy strands them. Installing into an empty project instead lets
-# npm resolve the whole closure. Versions are read from the app's manifest so
-# this can never drift from what the build used.
+# npm resolve the whole closure.
+#
+# Versions come from the lockfile, not from package.json: the manifest carries
+# caret ranges, so installing from those resolves to whatever is newest at build
+# time and quietly ships a CLI that disagrees with the client the builder stage
+# generated. It also makes the image unreproducible — rebuilding the same tag
+# later would pick up a different Prisma. The lockfile holds the exact versions
+# `npm ci` installed, so reading it keeps every stage on one version.
 FROM node:lts-alpine AS migrator
 WORKDIR /m
-COPY package.json ./app-package.json
-RUN PRISMA_VERSION="$(node -p "require('./app-package.json').devDependencies.prisma")" && \
-    DOTENV_VERSION="$(node -p "require('./app-package.json').dependencies.dotenv")" && \
-    rm app-package.json && \
+COPY package-lock.json ./app-package-lock.json
+RUN PRISMA_VERSION="$(node -p "require('./app-package-lock.json').packages['node_modules/prisma'].version")" && \
+    DOTENV_VERSION="$(node -p "require('./app-package-lock.json').packages['node_modules/dotenv'].version")" && \
+    rm app-package-lock.json && \
     npm init -y > /dev/null && \
     npm install --no-audit --no-fund \
       "prisma@${PRISMA_VERSION}" "dotenv@${DOTENV_VERSION}"
