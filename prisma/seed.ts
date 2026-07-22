@@ -11,7 +11,8 @@ import "dotenv/config";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient as SqliteClient } from "../generated/prisma-sqlite/client";
+import { PrismaClient as PostgresClient } from "../generated/prisma-postgresql/client";
 import { detectProvider } from "../scripts/db-provider.mjs";
 
 // the SQLite file path comes from DATABASE_URL; fall back to the project
@@ -21,12 +22,12 @@ const url = process.env.DATABASE_URL ?? "file:./data/app.db";
 // Pick the driver adapter from the URL shape, mirroring src/server/db.ts. This
 // is a short-lived CLI process, so we build a dedicated client (no globalThis
 // singleton) and disconnect when finished.
-const adapter =
+const prisma =
   detectProvider(url) === "postgresql"
-    ? new PrismaPg({ connectionString: url })
-    : new PrismaBetterSqlite3({ url });
-
-const prisma = new PrismaClient({ adapter });
+    ? (new PostgresClient({
+        adapter: new PrismaPg({ connectionString: url }),
+      }) as unknown as SqliteClient)
+    : new SqliteClient({ adapter: new PrismaBetterSqlite3({ url }) });
 
 // Fixed ids make every upsert target the same row on re-run.
 //

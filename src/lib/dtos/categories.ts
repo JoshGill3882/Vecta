@@ -1,6 +1,6 @@
 // DTOs relating to Categories
 
-import type { CategoryModel } from "@/generated/prisma/models";
+import type { CategoryModel } from "@/generated/prisma-sqlite/models";
 
 // DTO itself
 export interface CategoryDTO {

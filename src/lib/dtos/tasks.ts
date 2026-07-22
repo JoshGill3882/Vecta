@@ -1,6 +1,6 @@
 // DTOs relating to Tasks
 
-import type { TaskModel } from "@/generated/prisma/models";
+import type { TaskModel } from "@/generated/prisma-sqlite/models";
 
 // Allowed task states. Stored as a String column for SQLite/Postgres parity.
 export type TaskStatus = "open" | "in_progress" | "closed";

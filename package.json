@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "db:generate": "node scripts/resolve-provider.mjs && prisma generate",
+    "db:generate": "node scripts/generate-clients.mjs",
     "db:migrate": "node scripts/resolve-provider.mjs && prisma migrate dev",
     "db:deploy": "node scripts/resolve-provider.mjs && prisma migrate deploy",
     "db:studio": "node scripts/resolve-provider.mjs && prisma studio",

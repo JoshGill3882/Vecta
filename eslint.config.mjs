@@ -43,18 +43,20 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               // The generated client + the raw Prisma runtime. Model *types*
-              // (generated/prisma/models, …/enums) are deliberately NOT banned —
-              // DTOs map from them via `import type`.
+              // (generated/prisma-*/models, …/enums) are deliberately NOT banned —
+              // DTOs map from them via `import type`. The glob spans every
+              // per-provider output directory: one client is generated for each
+              // supported engine, and both must stay behind the service layer.
               group: [
                 "@prisma/client",
                 "@prisma/client/*",
-                "**/generated/prisma/client",
-                "**/generated/prisma/client/*",
-                "**/generated/prisma/internal",
-                "**/generated/prisma/internal/*",
+                "**/generated/prisma-*/client",
+                "**/generated/prisma-*/client/*",
+                "**/generated/prisma-*/internal",
+                "**/generated/prisma-*/internal/*",
               ],
               message:
-                "Don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma/models are fine).",
+                "Don't import the Prisma client outside src/server/. Call a service from src/server/services/ instead (model types from generated/prisma-*/models are fine).",
             },
             {
               group: ["@/src/server/db", "**/src/server/db"],

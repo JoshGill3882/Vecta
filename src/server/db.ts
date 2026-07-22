@@ -1,6 +1,7 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient as SqliteClient } from "@/generated/prisma-sqlite/client";
+import { PrismaClient as PostgresClient } from "@/generated/prisma-postgresql/client";
 import { detectProvider } from "@/scripts/db-provider.mjs";
 
 /**
@@ -28,14 +29,21 @@ if (!url) {
   throw new Error('DATABASE_URL is not set. Set it in .env (default: "file:./data/app.db").');
 }
 
-const adapter =
-  detectProvider(url) === "postgresql"
-    ? new PrismaPg({ connectionString: url })
-    : new PrismaBetterSqlite3({ url });
+type AppPrismaClient = SqliteClient;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+// Takes the URL as a parameter rather than closing over it: the guard above
+// narrows `url` to a string at module scope, but that narrowing does not reach
+// inside a function body, so a captured `url` widens back to `string | undefined`.
+function createClient(databaseUrl: string): AppPrismaClient {
+  return detectProvider(databaseUrl) === "postgresql"
+    ? (new PostgresClient({
+        adapter: new PrismaPg({ connectionString: databaseUrl }),
+      }) as unknown as AppPrismaClient)
+    : new SqliteClient({ adapter: new PrismaBetterSqlite3({ url: databaseUrl }) });
+}
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+const globalForPrisma = globalThis as unknown as { prisma?: AppPrismaClient };
+export const prisma = globalForPrisma.prisma ?? createClient(url);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
