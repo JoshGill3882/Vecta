@@ -8,7 +8,11 @@ import { fileURLToPath } from "node:url";
 import { detectProvider } from "./db-provider.mjs";
 
 const schemaPath = fileURLToPath(new URL("../prisma/schema.prisma", import.meta.url));
-const provider = detectProvider(process.env.DATABASE_URL);
+// The Docker build runs `prisma generate` with no DATABASE_URL (an image must
+// never bake one in), so fall back to SQLite rather than throwing. This only
+// decides which provider the schema is patched to — no connection is made, and
+// a real DATABASE_URL at container start re-patches it before migrating.
+const provider = detectProvider(process.env.DATABASE_URL, { fallback: "sqlite" });
 
 const schema = await readFile(schemaPath, "utf8");
 const providerLine = /provider = "(?:sqlite|postgresql)"/;
