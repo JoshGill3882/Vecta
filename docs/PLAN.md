@@ -344,25 +344,11 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Tasks
 
-- [ ] Accessibility pass: keyboard navigation works on all interactive elements; focus rings visible; semantic HTML (use [Lighthouse](https://developer.chrome.com/docs/lighthouse/) and [axe DevTools](https://www.deque.com/axe/devtools/) as a baseline check)
-- [ ] Mobile responsive pass: test at 375px and 768px viewports — the layout is desktop-first (§3), so it adapts once the desktop UI has settled
-- [ ] Empty / error / loading states audited across the app
-- [ ] Toast feedback on every server action
-- [ ] Favicon and basic OG metadata (title, description)
-- [ ] `README.md` rewrite covering:
-  - What the project is, what it isn't
-  - Screenshots
-  - Quick-start: pre-built image
-  - Quick-start: docker-compose with cloned repo
-  - Configuration reference (every env var documented in a table)
-  - Backup & restore guidance (just "back up the volume" for SQLite; documented Postgres dump for Postgres users)
-  - Upgrade path between versions
-- [ ] `ARCHITECTURE.md` covering:
-  - Directory structure
-  - Server Actions + service layer pattern (and why)
-  - Auth model
-  - Database schema diagram (use [Mermaid](https://mermaid.js.org/) — renders natively on GitHub)
-- [ ] `CHANGELOG.md` started (Keep a Changelog format)
+- [x] Accessibility pass: keyboard navigation works on all interactive elements; focus rings visible; semantic HTML (use [Lighthouse](https://developer.chrome.com/docs/lighthouse/) and [axe DevTools](https://www.deque.com/axe/devtools/) as a baseline check)
+- [x] Mobile responsive pass: test at 375px and 768px viewports — the layout is desktop-first (§3), so it adapts once the desktop UI has settled
+- [x] Empty / error / loading states audited across the app
+- [x] Toast feedback on every server action
+- [x] Favicon and basic OG metadata (title, description)
 
 ### Definition of Done
 
@@ -410,6 +396,20 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [ ] Manual end-to-end verification:
   - Pull `ghcr.io/<org>/<repo>:v0.1.0-rc1` on a clean machine, run with the documented compose, confirm it works
   - Repeat for the cloned-repo path
+- [ ] `README.md` rewrite covering:
+  - What the project is, what it isn't
+  - Screenshots
+  - Quick-start: pre-built image
+  - Quick-start: docker-compose with cloned repo
+  - Configuration reference (every env var documented in a table)
+  - Backup & restore guidance (just "back up the volume" for SQLite; documented Postgres dump for Postgres users)
+  - Upgrade path between versions
+- [ ] `ARCHITECTURE.md` covering:
+  - Directory structure
+  - Server Actions + service layer pattern (and why)
+  - Auth model
+  - Database schema diagram (use [Mermaid](https://mermaid.js.org/) — renders natively on GitHub)
+- [ ] `CHANGELOG.md` started (Keep a Changelog format)
 
 ### Definition of Done
 
