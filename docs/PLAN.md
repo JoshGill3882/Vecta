@@ -363,7 +363,6 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Auth model
   - Database schema diagram (use [Mermaid](https://mermaid.js.org/) — renders natively on GitHub)
 - [ ] `CHANGELOG.md` started (Keep a Changelog format)
-- [ ] Tagged release `v0.1.0-rc1` from `develop`
 
 ### Definition of Done
 
@@ -398,21 +397,25 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - All env vars referenced from `.env`
 - [ ] **`docker-compose.prod.yml`** — uses the GHCR image instead of building locally
 - [ ] **GitHub Actions workflow** for image publishing:
-  - On push to `develop`: build and tag as `:unstable`, `:develop-<sha>`
-  - On push to `production`: build and tag as `:stable`, `:latest`, and the version from `package.json`
-  - Multi-arch builds: `linux/amd64` and `linux/arm64` (Raspberry Pi self-hosters will appreciate this)
+  - On push to `develop`: build and tag as `:unstable`, `:develop-<sha>` — rolling dev builds, overwritten freely
+  - On push of a `v*` git tag: build and tag with the exact version (e.g. `:v0.1.0-rc1`). Git tags are immutable, so a published version tag is never rebuilt over — this is what makes "upgrade from `v0.x`" mean one specific set of bits
+  - `:stable` and `:latest` move only on non-prerelease `v*` tags. Semver puts prereleases after a hyphen, so `v0.1.0-rc1` is excluded and `v0.1.0` is not — an rc must never land on the tag self-hosters pull
+  - Releases are cut by tagging `production` after `develop` merges into it; `production` is the CI-green branch, not itself a publish trigger
+  - Multi-arch builds: `linux/amd64` and `linux/arm64` (Raspberry Pi self-hosters will appreciate this). arm64 builds run under QEMU emulation on GitHub runners and are markedly slower than amd64
   - Push to `ghcr.io/<org>/<repo>`
+  - [`docker/metadata-action`](https://github.com/docker/metadata-action) derives this tag set declaratively
 - [ ] [Docker image signing with cosign](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images) — optional but a "industry-standard" nice-to-have
 - [ ] Image labels per [OCI annotations spec](https://github.com/opencontainers/image-spec/blob/main/annotations.md): `org.opencontainers.image.source`, `revision`, `version` etc. — populates the GHCR sidebar nicely
+- [ ] Tagged release `v0.1.0-rc1` — the versioned artefact the deployment paths are verified against, so it comes after the pipeline can turn a tag into a published image
 - [ ] Manual end-to-end verification:
-  - Pull `ghcr.io/<org>/<repo>:stable` on a clean machine, run with the documented compose, confirm it works
+  - Pull `ghcr.io/<org>/<repo>:v0.1.0-rc1` on a clean machine, run with the documented compose, confirm it works
   - Repeat for the cloned-repo path
 
 ### Definition of Done
 
 - `docker compose up -d` from a fresh clone results in a working app reachable on the configured port
 - `docker run` against the published image works the same way
-- Both `:stable` and `:unstable` tags exist on GHCR and were built by the pipeline (not manually)
+- The `:unstable` and `:v0.1.0-rc1` tags exist on GHCR and were built by the pipeline (not manually)
 - The image is under ~250MB compressed (sanity check on bloat)
 - Deploying a fresh instance and immediately upgrading to the next published version preserves all data
 
