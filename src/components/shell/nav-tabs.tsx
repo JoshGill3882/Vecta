@@ -61,7 +61,7 @@ export function AppNavMobile() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex h-[38px] flex-1 items-center justify-center gap-[7px] rounded-[9px] border text-sm font-medium transition-colors",
+              "inline-flex h-11 flex-1 items-center justify-center gap-[7px] rounded-[9px] border text-sm font-medium transition-colors",
               active
                 ? "border-border-strong bg-secondary text-foreground"
                 : "border-border text-text-3"
