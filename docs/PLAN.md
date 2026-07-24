@@ -368,19 +368,19 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Tasks
 
-- [ ] **Dockerfile** — multi-stage build using Next.js `output: "standalone"` mode; final image based on `node:lts-alpine` for small size
-- [ ] [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files) configured in `next.config.ts`
-- [ ] Migrations run on container start (entrypoint script that runs `prisma migrate deploy` then starts the server)
-- [ ] Data directory mounted as a volume; SQLite file lives there
-- [ ] Prisma client resolved from disk at runtime rather than inlined into the bundle, with the entrypoint regenerating it against the container's `DATABASE_URL` — otherwise `prisma generate` bakes the provider into the image at build time and one image can only ever serve one engine
-- [ ] Healthcheck endpoint at `/api/health` (returns 200 with a small JSON; used by Docker `HEALTHCHECK` and reverse proxies)
-- [ ] **`docker-compose.yml`** — committed to repo:
+- [x] **Dockerfile** — multi-stage build using Next.js `output: "standalone"` mode; final image based on `node:lts-alpine` for small size
+- [x] [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files) configured in `next.config.ts`
+- [x] Migrations run on container start (entrypoint script that runs `prisma migrate deploy` then starts the server)
+- [x] Data directory mounted as a volume; SQLite file lives there
+- [x] One image serves either engine. `prisma generate` bakes the provider into the client it emits, so a single generated client can only ever serve one engine — instead both clients are generated at build time and `src/server/db.ts` selects between them from the shape of `DATABASE_URL` at runtime. The entrypoint separately rewrites the schema's `provider` line before `migrate deploy`, since that is what selects the matching migration history
+- [x] Healthcheck endpoint at `/api/health` (returns 200 with a small JSON; used by Docker `HEALTHCHECK` and reverse proxies)
+- [x] **`docker-compose.yml`** — committed to repo:
   - The app service using the locally-built image
   - Volume for data directory
   - Optional, commented-out Postgres service users can opt into
   - All env vars referenced from `.env`
-- [ ] **`docker-compose.prod.yml`** — uses the GHCR image instead of building locally
-- [ ] **GitHub Actions workflow** for image publishing:
+- [x] **`docker-compose.prod.yml`** — uses the GHCR image instead of building locally
+- [x] **GitHub Actions workflow** for image publishing:
   - On push to `develop`: build and tag as `:unstable`, `:develop-<sha>` — rolling dev builds, overwritten freely
   - On push of a `v*` git tag: build and tag with the exact version (e.g. `:v0.1.0-rc1`). Git tags are immutable, so a published version tag is never rebuilt over — this is what makes "upgrade from `v0.x`" mean one specific set of bits
   - `:latest` moves only on non-prerelease `v*` tags. Semver puts prereleases after a hyphen, so `v0.1.0-rc1` is excluded and `v0.1.0` is not — an rc must never land on the tag self-hosters pull. `:latest` is the only moving release pointer: it is what a tagless `docker pull` resolves to, so it has to exist, and a second alias moving in lockstep with it would only create a way for the two to disagree
@@ -389,13 +389,13 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Multi-arch builds: `linux/amd64` and `linux/arm64` (Raspberry Pi self-hosters will appreciate this). arm64 builds run under QEMU emulation on GitHub runners and are markedly slower than amd64
   - Push to `ghcr.io/<org>/<repo>`
   - [`docker/metadata-action`](https://github.com/docker/metadata-action) derives this tag set declaratively
-- [ ] [Docker image signing with cosign](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images) — optional but a "industry-standard" nice-to-have
-- [ ] Image labels per [OCI annotations spec](https://github.com/opencontainers/image-spec/blob/main/annotations.md): `org.opencontainers.image.source`, `revision`, `version` etc. — populates the GHCR sidebar nicely
+- [x] [Docker image signing with cosign](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images) — optional but a "industry-standard" nice-to-have
+- [x] Image labels per [OCI annotations spec](https://github.com/opencontainers/image-spec/blob/main/annotations.md): `org.opencontainers.image.source`, `revision`, `version` etc. — populates the GHCR sidebar nicely
 - [ ] Tagged release `v0.1.0-rc1` — the versioned artefact the deployment paths are verified against, so it comes after the pipeline can turn a tag into a published image
 - [ ] Manual end-to-end verification:
   - Pull `ghcr.io/<org>/<repo>:v0.1.0-rc1` on a clean machine, run with the documented compose, confirm it works
   - Repeat for the cloned-repo path
-- [ ] `README.md` rewrite covering:
+- [x] `README.md` rewrite covering:
   - What the project is, what it isn't
   - Screenshots
   - Quick-start: pre-built image
@@ -403,12 +403,12 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - Configuration reference (every env var documented in a table)
   - Backup & restore guidance (just "back up the volume" for SQLite; documented Postgres dump for Postgres users)
   - Upgrade path between versions
-- [ ] `ARCHITECTURE.md` covering:
+- [x] `ARCHITECTURE.md` covering:
   - Directory structure
   - Server Actions + service layer pattern (and why)
   - Auth model
   - Database schema diagram (use [Mermaid](https://mermaid.js.org/) — renders natively on GitHub)
-- [ ] `CHANGELOG.md` started (Keep a Changelog format)
+- [x] `CHANGELOG.md` started (Keep a Changelog format)
 
 ### Definition of Done
 
@@ -483,11 +483,11 @@ With only two devs, every PR should still be reviewed. The review is the safety 
 
 The project ships v1.0.0 when **all** of the following are true:
 
-- [ ] All MVP scope items in §3 are working end-to-end
+- [x] All MVP scope items in §3 are working end-to-end
 - [ ] All Phase Definitions of Done are signed off
 - [ ] CI is green on `production`
 - [ ] Both deployment paths verified manually on a fresh machine
-- [ ] README, ARCHITECTURE, CHANGELOG, LICENSE, CONTRIBUTING all in place
+- [x] README, ARCHITECTURE, CHANGELOG, LICENSE, CONTRIBUTING all in place
 - [ ] At least one full upgrade path tested (`v0.x` → `v1.0`) preserving data
 - [ ] A tagged release exists on GitHub with release notes
 
