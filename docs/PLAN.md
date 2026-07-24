@@ -30,7 +30,7 @@ The following decisions were made up-front and should not be re-litigated mid-bu
 | **Auth**               | Single admin user; password via `ADMIN_PASSWORD` env var; session cookie via [iron-session](https://github.com/vvo/iron-session)   | Minimum viable; defends against accidental open-internet exposure; future-proofs for multi-user without committing to it now |
 | **API style**          | Server Actions for mutations + Server Components for reads, **with all DB access behind a service layer** (`src/server/services/`) | Speed of Server Actions for MVP; clean seam for a future REST API; idiomatic Next.js in 2026                                 |
 | **Validation**         | [Zod](https://zod.dev/) at every server-action and service-layer entry point                                                       | Run-time validation + TS types from one definition                                                                           |
-| **Distribution**       | GitHub Container Registry; `:stable` from `production`, `:unstable` from `develop`                                                 | As specified in the brief                                                                                                    |
+| **Distribution**       | GitHub Container Registry; `:latest` from non-prerelease `v*` tags, `:unstable` from `develop`                                     | The brief's stable channel, published from an immutable tag rather than a branch. One moving pointer, not two aliases for it |
 | **Licence**            | MIT (suggested — finalise before public launch)                                                                                    | Permissive; standard "no warranty" disclaimer covers liability concerns                                                      |
 
 **Important constraint:** because we support both SQLite and Postgres, the Prisma schema must avoid Postgres-specific column types like `Json`/`Jsonb` and native UUID types. Stick to `String`, `Int`, `DateTime`, `Boolean`. Use `cuid()` or `uuid()` from Prisma for IDs (stored as strings).
@@ -383,7 +383,8 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 - [ ] **GitHub Actions workflow** for image publishing:
   - On push to `develop`: build and tag as `:unstable`, `:develop-<sha>` — rolling dev builds, overwritten freely
   - On push of a `v*` git tag: build and tag with the exact version (e.g. `:v0.1.0-rc1`). Git tags are immutable, so a published version tag is never rebuilt over — this is what makes "upgrade from `v0.x`" mean one specific set of bits
-  - `:stable` and `:latest` move only on non-prerelease `v*` tags. Semver puts prereleases after a hyphen, so `v0.1.0-rc1` is excluded and `v0.1.0` is not — an rc must never land on the tag self-hosters pull
+  - `:latest` moves only on non-prerelease `v*` tags. Semver puts prereleases after a hyphen, so `v0.1.0-rc1` is excluded and `v0.1.0` is not — an rc must never land on the tag self-hosters pull. `:latest` is the only moving release pointer: it is what a tagless `docker pull` resolves to, so it has to exist, and a second alias moving in lockstep with it would only create a way for the two to disagree
+  - The workflow can be dry-run against a simulated version, computing the tag set without building or pushing, so the prerelease rule is provable without cutting a release
   - Releases are cut by tagging `production` after `develop` merges into it; `production` is the CI-green branch, not itself a publish trigger
   - Multi-arch builds: `linux/amd64` and `linux/arm64` (Raspberry Pi self-hosters will appreciate this). arm64 builds run under QEMU emulation on GitHub runners and are markedly slower than amd64
   - Push to `ghcr.io/<org>/<repo>`

@@ -78,7 +78,7 @@ docker run -d \
   -v ./data:/data \
   -e ADMIN_PASSWORD=your-strong-password \
   -e SESSION_SECRET=$(openssl rand -hex 32) \
-  ghcr.io/J-L-Dev-Studio/Task-Management-Solution:stable
+  ghcr.io/J-L-Dev-Studio/Task-Management-Solution:latest
 ```
 
 ### Option 2 — Clone and build (recommended for tinkerers)
