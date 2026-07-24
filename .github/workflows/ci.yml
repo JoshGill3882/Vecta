@@ -53,3 +53,29 @@ jobs:
   test:
     name: Tests
     uses: ./.github/workflows/_test.yml
+
+  # Packaging config. Needs no Node toolchain, so it is its own job rather than
+  # a step queued behind `npm ci` in `checks`.
+  compose:
+    name: Compose Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Both files declare `env_file: .env`, which is gitignored, and both fail
+      # fast on an unset secret — so on a clean checkout `config` errors before
+      # it parses anything. Copying the template is the first step of the
+      # documented quick-start anyway, which makes this stricter than a syntax
+      # check: it also proves .env.example still carries every variable the
+      # compose files reference.
+      - name: Create .env from the template
+        run: cp .env.example .env
+
+      # Parses, interpolates and validates against the Compose spec without
+      # building or pulling anything. The prod file is not an override of the
+      # base one, so it has to be validated on its own.
+      - name: Validate compose files
+        run: |
+          docker compose config -q
+          docker compose -f docker-compose.prod.yml config -q
