@@ -189,12 +189,19 @@ Three things have to agree for that to work:
 All three read the URL through the same `detectProvider()` helper, so they
 cannot disagree about which engine is in play.
 
-The reason this is resolved at **start-up** rather than build time: `prisma
-generate` bakes the provider into the generated client, and that client is
-compiled into the bundle — so an image built the obvious way could only ever
-serve the one engine it was built against. The container regenerates against
-its own `DATABASE_URL` on boot instead, which is what makes a single published
-image work for both.
+`prisma generate` bakes the provider into the client it emits, and that client
+is compiled into the bundle — so an image built the obvious way could only ever
+serve the engine it was built against. The way out is to generate **both**
+clients at build time (`scripts/generate-clients.mjs` runs the generator twice,
+into `generated/prisma-sqlite/` and `generated/prisma-postgresql/`) and choose
+between them at runtime. That is what `src/server/db.ts` does when it picks an
+adapter.
+
+The schema's `provider` line is a separate problem, because Prisma cannot read
+it from an environment variable. `scripts/resolve-provider.mjs` rewrites it at
+container start, before `prisma migrate deploy` runs, which is what selects the
+matching migration history. This is why `prisma/` is the one directory the app
+user needs write access to.
 
 → [Dual-provider DB & migrations](./docs/guides/dual-provider-migrations.md)
 
