@@ -1,0 +1,114 @@
+# Self-host path 1 of 2 — build from this clone.
+#
+# Quick start:
+#   cp .env.example .env      # then set ADMIN_PASSWORD and SESSION_SECRET
+#   docker compose up -d
+#
+# For the pre-built GHCR image instead, use docker-compose.prod.yml — no clone
+# required.
+#
+# TLS is not handled here. The app serves plain HTTP on the published port and
+# expects to sit behind a reverse proxy (Caddy, nginx, Traefik) that terminates
+# HTTPS. Exposing this port directly to the internet sends the admin password
+# and the session cookie in the clear.
+#
+# There is deliberately no `version:` key — Compose v2 ignores it and warns.
+
+services:
+  app:
+    build:
+      context: .
+      # Mirrors the Dockerfile's defaults; CI overrides them with the real
+      # version and commit. A local build is not a released artefact, so it is
+      # labelled as one that came from a working tree.
+      args:
+        VERSION: dev
+        REVISION: local
+    image: task-management-solution:local
+    restart: unless-stopped
+
+    # Everything the app reads comes from .env, which is gitignored — no secret
+    # is ever committed here.
+    env_file: .env
+    environment:
+      # Overrides the .env default `file:./data/app.db`. That relative path
+      # resolves against the process working directory, which happens to be
+      # /app for both the migration CLI and the server — but only by
+      # coincidence of the image layout. The absolute form is pinned to the
+      # volume mount point below so it cannot drift.
+      DATABASE_URL: file:/app/data/app.db
+      # Re-declared purely to fail fast. env_file does not validate, so a
+      # missing secret would otherwise surface as a container that crash-loops
+      # on start-up; `:?` makes `docker compose up` refuse with this message.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+
+    # The container always listens on 3000; PORT only moves the host side.
+    ports:
+      - "${PORT:-3000}:3000"
+
+    # A named volume, not a bind mount. The container runs as uid 1001, and
+    # Docker seeds a named volume from the image directory *including* its
+    # ownership, so the app can write immediately. A host bind mount would
+    # arrive owned by the host user and fail the first migration with EACCES
+    # unless chowned by hand.
+    volumes:
+      - app-data:/app/data
+
+    # The image already declares this. Repeating it here is not redundant:
+    # a compose healthcheck replaces the image's rather than adding to it, so
+    # these values must stay in step with the Dockerfile's HEALTHCHECK.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+
+    # ── PostgreSQL opt-in (2 of 3) ────────────────────────────────────────────
+    # Uncomment alongside the `db` service and the `db-data` volume below.
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+  # ── PostgreSQL opt-in (1 of 3) ──────────────────────────────────────────────
+  # SQLite is the default and needs nothing beyond the volume above. One image
+  # serves both engines: the entrypoint picks the provider and the matching
+  # migration history from the URL shape, so switching is a DATABASE_URL change
+  # and nothing more.
+  #
+  # To opt in, uncomment this service, the `depends_on` block above and the
+  # `db-data` volume at the foot of the file, then replace the DATABASE_URL in
+  # the app's `environment:` with:
+  #
+  #   DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/taskmanager?schema=public
+  #
+  # Existing SQLite data does not migrate across on its own — there is no
+  # conversion step, so treat this as a decision to make before first run.
+  #
+  # db:
+  #   image: postgres:17-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  #     POSTGRES_DB: taskmanager
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
+  #   # Without this, the app would start and run `migrate deploy` against a
+  #   # Postgres that is still initialising. `depends_on` alone only waits for
+  #   # the container to exist, not for the server to accept connections.
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d taskmanager"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #   # Not published to the host: only the app needs it, and it reaches it over
+  #   # the compose network by service name.
+
+volumes:
+  # Holds the SQLite database. This is the thing to back up on the default
+  # path — stop the stack first so no write is in flight.
+  app-data:
+
+  # ── PostgreSQL opt-in (3 of 3) ──────────────────────────────────────────────
+  # db-data:
