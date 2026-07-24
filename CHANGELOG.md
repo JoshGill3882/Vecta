@@ -10,6 +10,8 @@ refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+## [0.1.0-rc1] - 2026-07-24
+
 ### Added
 
 - Tasks with a title, optional Markdown description, category, and an open /
@@ -39,4 +41,5 @@ refactors that change nothing observable are not listed.
   timing-safe
 - The post-login redirect only accepts same-origin absolute paths
 
-[unreleased]: https://github.com/J-L-Dev-Studio/Task-Management-Solution/commits/develop
+[unreleased]: https://github.com/J-L-Dev-Studio/Task-Management-Solution/compare/v0.1.0-rc1...develop
+[0.1.0-rc1]: https://github.com/J-L-Dev-Studio/Task-Management-Solution/releases/tag/v0.1.0-rc1
