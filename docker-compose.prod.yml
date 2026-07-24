@@ -19,7 +19,9 @@
 services:
   app:
     # Pinned by tag, not built. The tag set is produced by the release pipeline:
-    #   :stable   — the newest non-prerelease release (the default here)
+    #   :latest   — the newest non-prerelease release (the default here).
+    #               Release candidates never move it, so it does not drift onto
+    #               a prerelease
     #   :v0.1.0   — one exact, immutable set of bits; pin this to control when
     #               you upgrade
     #   :unstable — rolling build of the develop branch; not for self-hosting
@@ -27,7 +29,7 @@ services:
     # Upgrading is `docker compose -f docker-compose.prod.yml pull` followed by
     # `up -d`. Migrations are applied by the container on start, so nothing else
     # is required — but back the volume up first, because they are one-way.
-    image: ghcr.io/j-l-dev-studio/task-management-solution:${TMS_VERSION:-stable}
+    image: ghcr.io/j-l-dev-studio/task-management-solution:${TMS_VERSION:-latest}
     restart: unless-stopped
 
     # Everything the app reads comes from .env, which lives next to this file
