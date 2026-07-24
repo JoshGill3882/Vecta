@@ -26,7 +26,7 @@ Open a [GitHub Issue](https://github.com/J-L-Dev-Studio/Task-Management-Solution
 
 ## Local development setup
 
-The following is provided for those who want to run the project locally for evaluation or to test a bug report.
+For running the app itself rather than working on it, self-hosting via Docker is the simpler route — see the [README](./README.md#self-hosting). The steps below are for running from source.
 
 ### Prerequisites
 
@@ -48,23 +48,50 @@ npm install
 cp .env.example .env
 # Edit .env — set ADMIN_PASSWORD and SESSION_SECRET at minimum
 
+# Generate the Prisma clients
+npm run db:generate
+
+# Create the local database and apply migrations
+npm run db:migrate
+
+# Optional: load some example categories and tasks
+npm run db:seed
+
 # Run the development server
 npm run dev
 ```
 
 The app runs at `http://localhost:3000`.
 
+`db:generate` is a required step rather than a convenience: the generated
+clients live in `generated/`, which is gitignored, and the app imports from
+them directly — so a fresh clone will not typecheck or build until it has run.
+
 ### Useful commands
 
-| Command                | Description                      |
-| ---------------------- | -------------------------------- |
-| `npm run dev`          | Start the development server     |
-| `npm run build`        | Production build                 |
-| `npm run lint`         | Run ESLint                       |
-| `npm run lint:fix`     | Run ESLint and auto-fix          |
-| `npm run format`       | Format all files with Prettier   |
-| `npm run format:check` | Check formatting without writing |
-| `npm run typecheck`    | TypeScript type check            |
+| Command                | Description                                     |
+| ---------------------- | ----------------------------------------------- |
+| `npm run dev`          | Start the development server                    |
+| `npm run build`        | Production build                                |
+| `npm test`             | Run the unit and integration suites once        |
+| `npm run test:watch`   | Run the suites in watch mode                    |
+| `npm run lint`         | Run ESLint                                      |
+| `npm run lint:fix`     | Run ESLint and auto-fix                         |
+| `npm run format`       | Format all files with Prettier                  |
+| `npm run format:check` | Check formatting without writing                |
+| `npm run typecheck`    | TypeScript type check                           |
+| `npm run db:generate`  | Generate the Prisma clients for both providers  |
+| `npm run db:migrate`   | Create and apply a migration (development)      |
+| `npm run db:deploy`    | Apply existing migrations (what the image runs) |
+| `npm run db:seed`      | Load example data — safe to re-run              |
+| `npm run db:reset`     | Drop, re-migrate and re-seed the local database |
+| `npm run db:studio`    | Open Prisma Studio to inspect the database      |
+
+Every `db:*` command resolves the datasource provider from `DATABASE_URL`
+first, so the same command works whether you are on SQLite or Postgres.
+
+New to the codebase? [`ARCHITECTURE.md`](./ARCHITECTURE.md) is the fastest way
+in, and [`docs/guides/`](./docs/guides/README.md) covers each area in detail.
 
 ---
 
