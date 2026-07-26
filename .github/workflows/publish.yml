@@ -1,0 +1,240 @@
+name: Publish
+
+# Builds the Docker image and publishes it to GHCR.
+#
+# Two publishing triggers, plus a third that publishes nothing:
+#
+#   push to develop  -> :unstable and :develop-<sha>. Rolling dev builds,
+#                       overwritten freely.
+#   push of a v* tag -> the exact version, e.g. :v0.1.0-rc1. Git tags are
+#                       immutable, so a published version tag is never rebuilt
+#                       over — that is what makes "upgrade from v0.x" mean one
+#                       specific set of bits.
+#   workflow_dispatch -> a dry run. Computes the tag set for a simulated version
+#                       and reports it, without building or pushing anything.
+#
+# `production` is deliberately not a trigger. Releases are cut by tagging it
+# after develop merges in; production is the CI-green branch, not a publish
+# event. Deriving the release from an immutable tag rather than a branch push
+# is what stops a second push republishing an already-released version with
+# different bits.
+on:
+  push:
+    branches: [develop]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      simulate_version:
+        description: "Dry run: version to compute the tag set for (e.g. v0.1.0 or v0.1.0-rc1). Nothing is built or pushed."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  # Superseding a develop build is fine — the next one publishes the same
+  # moving tags. Never cancel a tag build: a half-published release is worse
+  # than a wasted runner, and the tag cannot be pushed again to retry.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  # The gate `_test.yml` was written for. A dry run publishes nothing, so it has
+  # no reason to wait for the suite.
+  test:
+    if: github.event_name != 'workflow_dispatch'
+    uses: ./.github/workflows/_test.yml
+
+  publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    needs: test
+    # A skipped `needs` skips the dependent job by default, so the dry run has
+    # to opt back in explicitly.
+    if: ${{ !cancelled() && (needs.test.result == 'success' || github.event_name == 'workflow_dispatch') }}
+
+    permissions:
+      contents: read
+      # Push to GHCR with the run's own GITHUB_TOKEN — no registry credential is
+      # stored anywhere.
+      packages: write
+      # Lets the run mint the OIDC token cosign exchanges for a signing
+      # certificate. Without it, keyless signing fails at the Fulcio call.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Tag rules ────────────────────────────────────────────────────────────
+      # Resolved in one place, in shell, so the dry run and a real publish share
+      # exactly the same logic. Deriving `latest` from metadata-action's
+      # `flavor: latest=auto` instead would key off the *event* being a tag push,
+      # which a workflow_dispatch never is — the dry run would then take a
+      # different code path from the thing it claims to verify.
+      #
+      # Inputs arrive through env rather than ${{ }} interpolation: a value
+      # substituted straight into a run block is pasted in as shell source, so a
+      # crafted input would execute. Through env it is only ever data.
+      - name: Resolve version and image name
+        id: ctx
+        env:
+          SIMULATED: ${{ inputs.simulate_version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$SIMULATED" ]; then
+            version="$SIMULATED"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            version="$REF_NAME"
+          else
+            version=""
+          fi
+
+          # A release is a v* version with no prerelease suffix. Semver puts
+          # prereleases after a hyphen, so that hyphen is the whole test:
+          # v0.1.0-rc1 is excluded, v0.1.0 is not. An rc must never land on the
+          # tag self-hosters pull.
+          release=false
+          case "$version" in
+            v*-*) ;;
+            v*) release=true ;;
+          esac
+
+          # GHCR rejects uppercase in a repository path, and this org and repo
+          # both carry capitals.
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+
+          {
+            echo "version=$version"
+            echo "release=$release"
+            echo "image=$image"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Compute tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.ctx.outputs.image }}
+          # `latest` is handled by an explicit rule below instead.
+          flavor: latest=false
+          # type=raw throughout rather than type=semver: semver's default
+          # pattern strips the leading v, and its major/minor rollups (:v0,
+          # :v0.1) would be extra moving tags this project has not promised to
+          # maintain. Raw publishes exactly the version that was tagged.
+          tags: |
+            type=raw,value=unstable,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=develop-,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=${{ steps.ctx.outputs.version }},enable=${{ steps.ctx.outputs.version != '' }}
+            type=raw,value=latest,enable=${{ steps.ctx.outputs.release == 'true' }}
+
+      # ── Dry run ends here ────────────────────────────────────────────────────
+      - name: Report the computed tag set
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.ctx.outputs.version }}
+          RELEASE: ${{ steps.ctx.outputs.release }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Dry run — \`$VERSION\`"
+            echo
+            echo "Treated as a release (moves \`:latest\`): **$RELEASE**"
+            echo
+            echo "Tags that would be published:"
+            echo '```'
+            printf '%s\n' "$TAGS"
+            echo '```'
+            echo
+            echo "_Nothing was built or pushed._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Build and publish ────────────────────────────────────────────────────
+      # QEMU provides the arm64 emulation the cross-build runs under. It is the
+      # slow half of the build by a wide margin: the deps stage compiles
+      # better-sqlite3 from source against musl, and under emulation that takes
+      # far longer than the amd64 leg. A build that looks stuck is usually just
+      # that.
+      - name: Set up QEMU
+        if: github.event_name != 'workflow_dispatch'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        if: github.event_name != 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        if: github.event_name != 'workflow_dispatch'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # Labels land on the per-architecture images; annotations land on the
+          # multi-arch index. The GHCR package page reads the index, so without
+          # the second line the metadata is present but the sidebar looks empty.
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          # The Dockerfile declares both with placeholder defaults so a plain
+          # `docker build` still produces an attributed image; CI supplies the
+          # real values.
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ github.sha }}
+          # Without a cache every run recompiles the native module under
+          # emulation. mode=max keeps the intermediate stages too, which is
+          # where that cost actually sits.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Signing ──────────────────────────────────────────────────────────────
+      # Keyless: cosign generates a throwaway keypair, exchanges the run's OIDC
+      # token for a ten-minute certificate from Fulcio binding the public key to
+      # this workflow's identity, then records the signature in the public Rekor
+      # transparency log. Nothing is stored, so there is no signing key to leak
+      # or rotate — and what a verifier learns is stronger than "someone signed
+      # this": it is that this workflow, in this repository, produced these bytes.
+      #
+      # The digest is signed, not the tags. Tags move; a digest is the content.
+      # Signing the index digest covers the multi-arch manifest as a whole.
+      - name: Install cosign
+        if: github.event_name != 'workflow_dispatch'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign the published image
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          IMAGE: ${{ steps.ctx.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        # --yes skips the confirmation prompt; there is no terminal here.
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Summarise what was published
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Published"
+            echo
+            echo '```'
+            printf '%s\n' "$TAGS"
+            echo '```'
+            echo
+            echo "Digest: \`$DIGEST\` (signed)"
+          } >> "$GITHUB_STEP_SUMMARY"

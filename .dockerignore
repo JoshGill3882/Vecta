@@ -1,0 +1,21 @@
+# Host-built artefacts that must never reach the build context. node_modules is
+# the important one: the builder installs its own under Alpine/musl, and letting
+# the host's glibc copy overwrite them breaks better-sqlite3's native binding.
+node_modules
+.next
+generated
+
+# Secrets. The image must never bake a .env into a layer.
+.env
+.env.*
+!.env.example
+
+# Local state and tooling with no place in an image.
+.git
+.github
+data
+graphify-out
+coverage
+*.tsbuildinfo
+.vscode
+.DS_Store

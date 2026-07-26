@@ -4,6 +4,8 @@
 
 **Status:** 🚧 In active development. MVP targeted for `v1.0.0`. See [`PLAN.md`](./docs/PLAN.md) for the full roadmap.
 
+![Task list](./docs/images/task-list.png)
+
 ---
 
 ## Why this exists
@@ -39,6 +41,157 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 
 ---
 
+## Screenshots
+
+|                                                     |                                                      |
+| --------------------------------------------------- | ---------------------------------------------------- |
+| ![Creating a task](./docs/images/task-dialog.png)   | ![Categories](./docs/images/categories.png)          |
+| Quick capture — a title is the only required field. | Categories are flat, each with an assignable colour. |
+
+<img src="./docs/images/mobile.png" alt="The task list on a phone" width="320">
+
+---
+
+## Self-hosting
+
+> ⚠️ **Not yet released.** Published images begin at the first tagged release. Until then, the clone-and-build path below is the one that works.
+
+Both paths need a `.env` file. Copy the template and fill in the two secrets:
+
+```bash
+cp .env.example .env
+```
+
+```bash
+# Generate a session secret
+openssl rand -hex 32
+```
+
+Then pick a path.
+
+### Option 1 — Pre-built image
+
+No clone required. Download the compose file and the env template next to each other:
+
+```bash
+curl -O https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/docker-compose.prod.yml
+curl -o .env https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/.env.example
+# edit .env — set ADMIN_PASSWORD and SESSION_SECRET
+
+docker compose -f docker-compose.prod.yml up -d
+```
+
+The app is on <http://localhost:3000>. To pin a version instead of tracking `:latest`, set `TMS_VERSION=v1.0.0` in `.env`.
+
+### Option 2 — Clone and build
+
+```bash
+git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
+cd Task-Management-Solution
+cp .env.example .env
+# edit .env — set ADMIN_PASSWORD and SESSION_SECRET
+
+docker compose up -d
+```
+
+Either way the container applies database migrations on start, so there is no separate setup step.
+
+---
+
+## Configuration
+
+Every variable the app reads. Set them in `.env`, which both compose files load.
+
+| Variable            | Required          | Default                 | Notes                                                                                 |
+| ------------------- | ----------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                       |
+| `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.    |
+| `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you. |
+| `PORT`              | no                | `3000`                  | Host port the compose files publish on. The container always listens on 3000.         |
+| `TMS_VERSION`       | no                | `latest`                | Image tag to run. Pre-built image path only.                                          |
+| `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                      |
+
+### Using PostgreSQL instead of SQLite
+
+SQLite is the default and needs nothing beyond the data volume. Both compose files carry a commented-out Postgres service — uncomment the three marked blocks and point `DATABASE_URL` at it. The same image serves either engine; it picks the driver and the migration history from the URL.
+
+There is no conversion step between the two, so this is a decision to make before first run rather than a switch to flip later.
+
+---
+
+## Security
+
+This app has one password and no user accounts. Three things are your responsibility as the deployer:
+
+- **Set a real `ADMIN_PASSWORD`.** It is the only thing between the internet and your data. The app will not start without one, but it cannot tell a strong password from a weak one.
+- **Generate `SESSION_SECRET` randomly** (`openssl rand -hex 32`). Reusing the example value from `.env.example` means anyone who has read this repository can forge a session cookie.
+- **Terminate HTTPS yourself.** The container serves plain HTTP. Put a reverse proxy (Caddy, nginx, Traefik) in front of it before exposing it beyond your own network — otherwise the password and session cookie travel in the clear.
+
+The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NODE_ENV=production` (which the image sets), so it will only be sent over HTTPS in a deployed instance.
+
+---
+
+## Backup and restore
+
+**SQLite (default).** Everything lives in the `app-data` volume. Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
+
+Stop the stack first so no write is in flight:
+
+```bash
+docker compose stop
+docker run --rm -v task-management-solution_app-data:/data -v "$PWD":/backup \
+  alpine tar czf /backup/taskmanager-backup.tar.gz -C /data .
+docker compose start
+```
+
+Restore by reversing it into an empty volume:
+
+```bash
+docker compose down
+docker run --rm -v task-management-solution_app-data:/data -v "$PWD":/backup \
+  alpine sh -c "rm -rf /data/* && tar xzf /backup/taskmanager-backup.tar.gz -C /data"
+docker compose up -d
+```
+
+**Postgres.** Use `pg_dump` against the database service and keep the dump wherever you keep your other backups.
+
+Whichever engine you use, test a restore at least once. An untested backup is a hypothesis.
+
+---
+
+## Upgrading
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+The container applies any new migrations on start, so no extra step is needed. **Back up first** — migrations are one-way, and downgrading to a previous image after one has run is not supported.
+
+Tags behave as follows:
+
+| Tag         | Moves                              | Use it if                                         |
+| ----------- | ---------------------------------- | ------------------------------------------------- |
+| `:latest`   | on each non-prerelease release     | you want the newest stable version                |
+| `:v1.0.0`   | never — a version tag is immutable | you want to control exactly when you upgrade      |
+| `:unstable` | on every push to `develop`         | you are testing unreleased work, not self-hosting |
+
+---
+
+## Health and logs
+
+`GET /api/health` returns `200 {"status":"ok"}` when the server is up. The image already uses it for its Docker `HEALTHCHECK`, so `docker compose ps` reports `healthy` — point your reverse proxy or uptime monitor at the same endpoint.
+
+Logs go to stdout, which is where Docker expects them:
+
+```bash
+docker compose logs -f
+```
+
+Start-up logs show provider resolution and each migration applied, which is the first place to look if a container will not come up.
+
+---
+
 ## Tech stack
 
 | Layer        | Choice                                                                                       |
@@ -56,70 +209,11 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 ## Documentation
 
-- [`PLAN.md`](./docs/PLAN.md) — full project docs/PLAN, phased delivery, definition of done
-- `ARCHITECTURE.md` — _(coming in Phase 5)_ technical architecture, directory layout, key patterns
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local setup, branching, commit conventions
-- `CHANGELOG.md` — _(from v0.1.0)_ version history
-
----
-
-## Self-hosting
-
-> ⚠️ **Not yet released.** The instructions below are aspirational and will be finalized at `v1.0.0`. Following them now will not produce a working install.
-
-Two supported paths:
-
-### Option 1 — Pre-built image (recommended for users)
-
-```bash
-# (Aspirational — will work from v1.0.0)
-docker run -d \
-  --name task-manager \
-  -p 3000:3000 \
-  -v ./data:/data \
-  -e ADMIN_PASSWORD=your-strong-password \
-  -e SESSION_SECRET=$(openssl rand -hex 32) \
-  ghcr.io/J-L-Dev-Studio/Task-Management-Solution:stable
-```
-
-### Option 2 — Clone and build (recommended for tinkerers)
-
-```bash
-git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
-cd Task-Management-Solution
-cp .env.example .env
-# Edit .env to set ADMIN_PASSWORD and SESSION_SECRET
-docker compose up -d
-```
-
-Configuration reference, backup guidance, and reverse-proxy notes will be added during Phase 5.
-
----
-
-## Development
-
-```bash
-# Clone
-git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
-cd Task-Management-Solution
-
-# Install dependencies
-npm install
-
-# Set up local environment
-cp .env.example .env
-
-# Initialise database
-npm run prisma migrate dev
-npm run db:seed
-
-# Run the dev server
-npm run dev
-```
-
-The app runs at `http://localhost:3000`. Use Prisma Studio (`npm run prisma studio`) to inspect the database during development.
-
-For local setup details, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how the codebase is put together and why
+- [`CHANGELOG.md`](./CHANGELOG.md) — what changed in each release
+- [`PLAN.md`](./docs/PLAN.md) — full project plan, phased delivery, definition of done
+- [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local development setup, branching
 
 ---
 
@@ -135,7 +229,7 @@ The original sketch for this project listed three goals; they've been refined in
 
 ## Roadmap
 
-The full phased docs/PLAN lives in [`PLAN.md`](./docs/PLAN.md). At a glance:
+The full phased plan lives in [`PLAN.md`](./docs/PLAN.md). At a glance:
 
 - [ ] **v1.0.0 (MVP)** — core CRUD, single-admin auth, Docker distribution
 - [ ] **v1.1+** — search, filter, sort; due dates; sub-categories; dependencies
@@ -149,7 +243,7 @@ Major features are tracked as GitHub Issues with the `roadmap` label.
 
 Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/J-L-Dev-Studio/Task-Management-Solution/issues/new/choose). This project is maintained by a two-person studio and is not actively seeking external code contributions.
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for details.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local setup and details.
 
 ---
 

@@ -26,7 +26,7 @@ Open a [GitHub Issue](https://github.com/J-L-Dev-Studio/Task-Management-Solution
 
 ## Local development setup
 
-The following is provided for those who want to run the project locally for evaluation or to test a bug report.
+For running the app itself rather than working on it, self-hosting via Docker is the simpler route — see the [README](./README.md#self-hosting). The steps below are for running from source.
 
 ### Prerequisites
 
@@ -48,23 +48,96 @@ npm install
 cp .env.example .env
 # Edit .env — set ADMIN_PASSWORD and SESSION_SECRET at minimum
 
+# Generate the Prisma clients
+npm run db:generate
+
+# Create the local database and apply migrations
+npm run db:migrate
+
+# Optional: load some example categories and tasks
+npm run db:seed
+
 # Run the development server
 npm run dev
 ```
 
 The app runs at `http://localhost:3000`.
 
+`db:generate` is a required step rather than a convenience: the generated
+clients live in `generated/`, which is gitignored, and the app imports from
+them directly — so a fresh clone will not typecheck or build until it has run.
+
 ### Useful commands
 
-| Command                | Description                      |
-| ---------------------- | -------------------------------- |
-| `npm run dev`          | Start the development server     |
-| `npm run build`        | Production build                 |
-| `npm run lint`         | Run ESLint                       |
-| `npm run lint:fix`     | Run ESLint and auto-fix          |
-| `npm run format`       | Format all files with Prettier   |
-| `npm run format:check` | Check formatting without writing |
-| `npm run typecheck`    | TypeScript type check            |
+| Command                | Description                                     |
+| ---------------------- | ----------------------------------------------- |
+| `npm run dev`          | Start the development server                    |
+| `npm run build`        | Production build                                |
+| `npm test`             | Run the unit and integration suites once        |
+| `npm run test:watch`   | Run the suites in watch mode                    |
+| `npm run lint`         | Run ESLint                                      |
+| `npm run lint:fix`     | Run ESLint and auto-fix                         |
+| `npm run format`       | Format all files with Prettier                  |
+| `npm run format:check` | Check formatting without writing                |
+| `npm run typecheck`    | TypeScript type check                           |
+| `npm run db:generate`  | Generate the Prisma clients for both providers  |
+| `npm run db:migrate`   | Create and apply a migration (development)      |
+| `npm run db:deploy`    | Apply existing migrations (what the image runs) |
+| `npm run db:seed`      | Load example data — safe to re-run              |
+| `npm run db:reset`     | Drop, re-migrate and re-seed the local database |
+| `npm run db:studio`    | Open Prisma Studio to inspect the database      |
+
+Every `db:*` command resolves the datasource provider from `DATABASE_URL`
+first, so the same command works whether you are on SQLite or Postgres.
+
+New to the codebase? [`ARCHITECTURE.md`](./ARCHITECTURE.md) is the fastest way
+in, and [`docs/guides/`](./docs/guides/README.md) covers each area in detail.
+
+---
+
+## AI assistant knowledge graph (Graphify)
+
+This project uses [Graphify](https://github.com/safishamsi/graphify) to give AI coding assistants (Claude Code, Cursor, Codex, etc.) a structured knowledge graph of the codebase instead of raw grepping. The graph lives in `graphify-out/` which is gitignored — each developer builds it locally.
+
+### One-time setup
+
+```bash
+# Install graphify (requires Python 3.9+)
+pip install graphifyy
+
+# Build your local graph (AST-only, no API key needed, ~seconds)
+graphify update .
+```
+
+> **Optional — richer semantic graph:** If you have a Gemini API key you can run a deeper extraction once:
+>
+> ```bash
+> GEMINI_API_KEY=<your-key> graphify extract . --backend gemini
+> ```
+>
+> This embeds semantic relationships on top of the AST graph. Subsequent `graphify update .` calls stay free.
+
+### Day-to-day usage
+
+Keep the graph current after any significant code change:
+
+```bash
+graphify update .   # re-indexes changed files, no API cost
+```
+
+Query the graph instead of grepping:
+
+```bash
+graphify query "how are tasks stored?"
+graphify path "TaskList" "database"
+graphify explain "session middleware"
+```
+
+The `graphify-out/GRAPH_REPORT.md` file gives a broad architecture overview if you need it.
+
+### Claude Code hook
+
+When you run `graphify claude install` (already committed in `.claude/settings.json`), Claude Code automatically gets a reminder to query the graph before running `grep`/`find` searches. No extra configuration needed — the hook fires as long as `graphify` is on your `PATH`.
 
 ---
 
@@ -78,21 +151,3 @@ The app runs at `http://localhost:3000`.
 | `fix/*`      | Bug fix branches, cut from `develop`             |
 
 All changes go through a pull request into `develop`. Releases are cut from `develop` → `production`.
-
-## Commit conventions
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/). Format:
-
-```
-<type>(<scope>): <description>
-```
-
-Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`.
-
-Examples:
-
-```
-feat(tasks): add category filter to task list
-fix(auth): correct session cookie expiry
-docs: update self-hosting instructions
-```

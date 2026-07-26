@@ -1,8 +1,42 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -10,17 +44,276 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* --- J&L design-system extras (see .dark below) --- */
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border-strong: var(--border-strong);
+  --color-border-faint: var(--border-faint);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-faint: var(--text-faint);
+  --color-brand-orange: var(--brand-orange);
+  --color-status-open: var(--status-open);
+  --color-status-prog: var(--status-prog);
+  --color-status-closed: var(--status-closed);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * Dark-only theme, ported from the J&L "Task Manager" Claude Design.
+ * The app forces `class="dark"` on <html> (see app/layout.tsx), so these
+ * values are what actually render. The :root light palette above is the
+ * upstream shadcn baseline, kept dormant should a light theme ever be added.
+ */
+.dark {
+  --background: #0a0c10;
+  --foreground: #e8ebf1;
+  --card: #12151b; /* design --surface */
+  --card-foreground: #e8ebf1;
+  --popover: #171b22; /* design --surface-2 */
+  --popover-foreground: #e8ebf1;
+  --primary: #2f88ff; /* brand blue — used as accent/link/ring text on dark */
+  --primary-foreground: #ffffff;
+  /* Darker brand blue for solid button fills only: white text on #2f88ff is
+     3.45:1 (below AA), so filled buttons use this instead while --primary stays
+     the lighter shade for text/links (which need the opposite — lighter — to
+     stay legible on the dark background). See #26. */
+  --primary-strong: #1a6fe0;
+  --secondary: #171b22;
+  --secondary-foreground: #e8ebf1;
+  --muted: #171b22;
+  --muted-foreground: #7b8492; /* design --text-3 */
+  --accent: #1d222b; /* design --surface-3 (hover fills) */
+  --accent-foreground: #e8ebf1;
+  /* Lightened from the design's #e0484d (4.28:1 as text on the popover surface —
+     below WCAG AA). Every destructive usage here is red text/icon on a dark
+     surface (no solid-red fill anywhere), so one value clears them all. See #26. */
+  --destructive: #e5545a;
+  --border: #242a34;
+  --input: #323a47; /* design --border-strong */
+  --ring: #2f88ff;
+  --chart-1: #2f88ff;
+  --chart-2: #9b87f5;
+  --chart-3: #3fbf8f;
+  --chart-4: #fb7215;
+  --chart-5: #e85b87;
+  --sidebar: #12151b;
+  --sidebar-foreground: #e8ebf1;
+  --sidebar-primary: #2f88ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #171b22;
+  --sidebar-accent-foreground: #e8ebf1;
+  --sidebar-border: #242a34;
+  --sidebar-ring: #2f88ff;
+
+  /* J&L extras exposed as utilities via @theme inline above */
+  --surface-2: #171b22;
+  --surface-3: #1d222b;
+  --border-strong: #323a47;
+  /* Third rung below --border, for hairlines that divide regions *within* a
+     card. Sitting under the card's own outline keeps the divided parts reading
+     as one block rather than two stacked boxes. */
+  --border-faint: #1b2029;
+  --text-2: #aab2c0;
+  --text-3: #7b8492;
+  /* Bumped from the design's #5b636f (≈3:1 on the dark background — below WCAG
+     AA) so faint small text (card timestamps, counts, kbd hints) clears 4.5:1.
+     This sits close to --text-3 by necessity: AA on 11–13px text leaves little
+     room beneath it. See #26. */
+  --text-faint: #787f8b;
+  --brand-orange: #fb7616;
+  --status-open: #4f9dff;
+  --status-prog: #fe7616;
+  --status-closed: #8a93a3;
+  --bg-grad: radial-gradient(1200px 600px at 75% -10%, #11161f 0%, #0a0c10 55%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: var(--bg-grad);
+    background-attachment: fixed;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
+/*
+ * Rendered Markdown for task descriptions (see task-description.tsx). Kept
+ * UNLAYERED on purpose. Tailwind's Preflight resets heading sizes, list markers
+ * and link colours inside the `base` cascade layer; outranking it from a
+ * `@layer components` block is fragile, because layer precedence here comes from
+ * first-appearance order (there's no explicit `@layer …;` declaration) and in
+ * dev Turbopack injects this file as a separate chunk that can register
+ * `components` before `base` — inverting the order so Preflight wins and every
+ * heading and link renders like plain text. Unlayered rules beat every cascade
+ * layer regardless of injection order, so they always win. `:where()` keeps
+ * specificity low; `:not(pre code)` separates inline code from fenced blocks
+ * (react-markdown v10 no longer flags inline code).
+ */
+.task-markdown {
+  font-size: 14px;
+  line-height: 1.65;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-wrap: break-word;
+}
+.task-markdown > :first-child {
+  margin-top: 0;
+}
+.task-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.task-markdown :where(h1, h2, h3, h4, h5, h6) {
+  margin: 1.25rem 0 0.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.task-markdown :where(h1) {
+  font-size: 18px;
+}
+.task-markdown :where(h2) {
+  font-size: 16px;
+}
+.task-markdown :where(h3) {
+  font-size: 14.5px;
+}
+.task-markdown :where(h4, h5, h6) {
+  font-size: 13.5px;
+}
+
+.task-markdown :where(p, ul, ol, blockquote, pre, table) {
+  margin: 0.625rem 0;
+}
+
+.task-markdown :where(ul) {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.task-markdown :where(ol) {
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+.task-markdown :where(li) {
+  margin: 0.25rem 0;
+}
+.task-markdown :where(li)::marker {
+  color: var(--text-3);
+}
+
+.task-markdown :where(a) {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.task-markdown :where(a):hover {
+  opacity: 0.85;
+}
+
+.task-markdown :where(strong) {
+  font-weight: 600;
+}
+.task-markdown :where(del) {
+  color: var(--text-3);
+}
+
+.task-markdown :where(code):not(pre code) {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface-3);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+.task-markdown :where(pre) {
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.task-markdown :where(pre code) {
+  font-family: var(--font-mono);
+}
+
+.task-markdown :where(blockquote) {
+  padding-left: 0.875rem;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-2);
+}
+
+.task-markdown :where(hr) {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Block-level so the table can scroll on its own without pushing the dialog
+   into horizontal scroll on a 375px viewport. */
+.task-markdown :where(table) {
+  display: block;
+  width: 100%;
+  border-collapse: collapse;
+  overflow-x: auto;
+  font-size: 13px;
+}
+.task-markdown :where(th, td) {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.task-markdown :where(th) {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.task-markdown :where(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
 }

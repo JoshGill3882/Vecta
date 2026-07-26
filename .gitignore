@@ -40,3 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vscode/settings.json
+
+# graphify — generated knowledge graph (each dev builds locally)
+graphify-out/
+
+# prisma — generated client (each dev/build generates locally)
+/generated/
+
+# database — local SQLite files and the self-host data volume
+/data/*
+!/data/.gitkeep

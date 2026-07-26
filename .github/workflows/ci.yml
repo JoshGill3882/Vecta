@@ -4,10 +4,20 @@ on:
   pull_request:
     branches: [production, develop]
 
+permissions:
+  contents: read
+
 jobs:
-  ci:
+  # Static checks + build. Runs in parallel with the `test` job below.
+  checks:
     name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
+
+    # resolve-provider.mjs and the build read DATABASE_URL; SQLite is the
+    # committed default, so a file: URL is enough here. The generated Prisma
+    # client lives in /generated/ (gitignored), so it must be generated in CI.
+    env:
+      DATABASE_URL: "file:./data/app.db"
 
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run db:generate
+
       - name: Lint
         run: npm run lint
+
+      - name: Check for Acceptance-Criteria references
+        run: npm run check:ac
 
       - name: Format check
         run: npm run format:check
@@ -31,3 +47,35 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Unit + integration tests, via the reusable workflow the deploy pipelines
+  # will also gate on (Phase 6). Kept separate so tests aren't re-authored there.
+  test:
+    name: Tests
+    uses: ./.github/workflows/_test.yml
+
+  # Packaging config. Needs no Node toolchain, so it is its own job rather than
+  # a step queued behind `npm ci` in `checks`.
+  compose:
+    name: Compose Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Both files declare `env_file: .env`, which is gitignored, and both fail
+      # fast on an unset secret — so on a clean checkout `config` errors before
+      # it parses anything. Copying the template is the first step of the
+      # documented quick-start anyway, which makes this stricter than a syntax
+      # check: it also proves .env.example still carries every variable the
+      # compose files reference.
+      - name: Create .env from the template
+        run: cp .env.example .env
+
+      # Parses, interpolates and validates against the Compose spec without
+      # building or pulling anything. The prod file is not an override of the
+      # base one, so it has to be validated on its own.
+      - name: Validate compose files
+        run: |
+          docker compose config -q
+          docker compose -f docker-compose.prod.yml config -q
