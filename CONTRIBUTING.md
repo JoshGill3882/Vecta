@@ -143,11 +143,23 @@ When you run `graphify claude install` (already committed in `.claude/settings.j
 
 ## Branching strategy
 
-| Branch       | Purpose                                          |
-| ------------ | ------------------------------------------------ |
-| `production` | Stable releases only — protected, no direct push |
-| `develop`    | Integration branch — protected, no direct push   |
-| `feat/*`     | Feature branches, cut from `develop`             |
-| `fix/*`      | Bug fix branches, cut from `develop`             |
+| Branch                  | Purpose                                          |
+| ----------------------- | ------------------------------------------------ |
+| `production`            | Stable releases only — protected, no direct push |
+| `develop`               | Integration branch — protected, no direct push   |
+| `<issue-number>-<slug>` | Work branches, cut from `develop`                |
+
+Work branches are named after the issue they close — `73-tag-the-v010-release`.
+Create the branch from the issue rather than by hand, using **Create a branch**
+in the issue's sidebar or `gh issue develop <number> --base develop`. Either way
+GitHub derives the name and links the branch to the issue, so the issue tracks
+the branch and its eventual pull request without anyone wiring it up.
+
+Then check it out locally:
+
+```bash
+git fetch origin
+git switch <issue-number>-<slug>
+```
 
 All changes go through a pull request into `develop`. Releases are cut from `develop` → `production`.
