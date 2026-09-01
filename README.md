@@ -135,6 +135,12 @@ The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NOD
 
 **SQLite (default).** Everything lives in the `app-data` volume. Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
 
+On the pre-built image path the compose file is not named `docker-compose.yml`, so every `docker compose` command below needs `-f docker-compose.prod.yml`. Without it you get `no configuration file provided: not found`. Set it once for the session:
+
+```bash
+export COMPOSE_FILE=docker-compose.prod.yml   # pre-built image path only
+```
+
 Stop the stack first so no write is in flight:
 
 ```bash
@@ -153,13 +159,25 @@ docker run --rm -v task-management-solution_app-data:/data -v "$PWD":/backup \
 docker compose up -d
 ```
 
-**Postgres.** Use `pg_dump` against the database service and keep the dump wherever you keep your other backups.
+**Postgres.** Dump the database out of the running `db` service:
+
+```bash
+docker compose exec -T db pg_dump -U postgres -d taskmanager > taskmanager-backup.sql
+```
+
+Restore it into an empty database the same way round:
+
+```bash
+docker compose exec -T db psql -U postgres -d taskmanager < taskmanager-backup.sql
+```
 
 Whichever engine you use, test a restore at least once. An untested backup is a hypothesis.
 
 ---
 
 ## Upgrading
+
+If you pinned `TMS_VERSION` in `.env`, edit it to the version you are moving to first. Pulling without changing it re-fetches the version you are already on: the commands below then report `Pulled` and `Started` and leave you where you were, with nothing to indicate the upgrade did not happen.
 
 ```bash
 docker compose -f docker-compose.prod.yml pull
