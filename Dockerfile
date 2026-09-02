@@ -84,8 +84,11 @@ RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 USER nextjs
 EXPOSE 3000
+# ${PORT:-3000} is expanded by the shell at run time, not by the builder, so
+# this follows the port the server actually binds to. Hardcoding 3000 made the
+# container report unhealthy whenever PORT was set, while it served correctly.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+  CMD wget -qO- http://127.0.0.1:${PORT:-3000}/api/health || exit 1
 
 # Image metadata, last so that a changing revision never invalidates the layers
 # above it. CI supplies version/revision per build; the static labels mean a
