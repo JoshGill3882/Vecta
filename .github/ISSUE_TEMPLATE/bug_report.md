@@ -150,11 +150,26 @@ Paste stack trace or log output here
 
 > All boxes must be checked before this issue can be closed.
 
+### Verified by CI
+
+<!-- Maintained automatically. Cleared when a CI run starts and ticked by the
+     job that proves each claim, so this section always describes the commit
+     under test. Edits inside the markers are overwritten. -->
+
+<!-- ci:dod:start -->
+
+- [ ] Lint, typecheck and build pass
+- [ ] Test suite passes — no new regressions
+- [ ] Compose files validate
+
+<!-- ci:dod:end -->
+
+### Requires human judgement
+
 - [ ] Root cause identified and documented in this ticket
 - [ ] All Acceptance Criteria met and verified
 - [ ] Code reviewed and approved (per branch/PR policy)
 - [ ] Automated test added that would have caught this bug (regression test)
-- [ ] Existing test suite passes — no new regressions introduced
 - [ ] Error handling reviewed and improved where the bug originated
 - [ ] Logging / observability confirmed — this failure mode will be visible in future
 - [ ] Documentation updated if behaviour change affects expected usage
