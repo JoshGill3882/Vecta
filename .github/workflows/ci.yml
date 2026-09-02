@@ -79,3 +79,64 @@ jobs:
         run: |
           docker compose config -q
           docker compose -f docker-compose.prod.yml config -q
+
+  # ---------------------------------------------------------------------------
+  # Definition of Done — the CI-owned boxes on whatever issues this PR closes.
+  #
+  # These two jobs bracket the run: `dod-reset` clears the boxes before anything
+  # is proven, `dod-update` ticks the ones that passed. If the run is cancelled
+  # or dies in between, the boxes stay clear — the fail-safe direction is
+  # "unproven", never "passed".
+  #
+  # Both carry the same concurrency group so two runs cannot write at once. That
+  # alone does not prevent a stale write: a job still waiting on its needs is not
+  # yet in the group, so an older run's update can be pending while a newer run
+  # resets. The script therefore re-checks the pull request head before writing
+  # and skips if the run is no longer current.
+  # ---------------------------------------------------------------------------
+
+  dod-reset:
+    name: DoD — clear
+    runs-on: ubuntu-latest
+    # Only this job and dod-update touch the API; the rest of the workflow keeps
+    # the read-only default declared at the top of the file.
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: dod-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clear the CI-owned boxes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/update-dod.mjs --reset
+
+  dod-update:
+    name: DoD — record results
+    runs-on: ubuntu-latest
+    needs: [checks, test, compose, dod-reset]
+    # `always()` so a failing job still gets recorded as a cleared box rather
+    # than leaving whatever the previous run wrote.
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: dod-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record which checks passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/update-dod.mjs \
+            --results=checks:${{ needs.checks.result }},test:${{ needs.test.result }},compose:${{ needs.compose.result }}
