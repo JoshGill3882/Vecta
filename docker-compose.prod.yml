@@ -39,6 +39,12 @@ services:
       # Absolute, and pinned to the volume mount point below. The relative form
       # shipped in .env.example is for running from a source checkout.
       DATABASE_URL: file:/app/data/app.db
+      # Pinned so `env_file` cannot pass a host-side PORT into the container.
+      # Next.js binds to PORT, so letting it through leaves nothing listening on
+      # 3000 for the port mapping and the HEALTHCHECK to reach — the app becomes
+      # unreachable on the very port that was asked for. Values set here take
+      # precedence over env_file, which is what keeps the comment below true.
+      PORT: 3000
       # Re-declared purely to fail fast. env_file does not validate, so a
       # missing secret would otherwise surface as a container that crash-loops
       # on start-up; `:?` makes `docker compose up` refuse with this message.

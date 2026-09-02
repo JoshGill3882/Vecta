@@ -107,7 +107,7 @@ Every variable the app reads. Set them in `.env`, which both compose files load.
 | `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                       |
 | `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.    |
 | `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you. |
-| `PORT`              | no                | `3000`                  | Host port the compose files publish on. The container always listens on 3000.         |
+| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.             |
 | `TMS_VERSION`       | no                | `latest`                | Image tag to run. Pre-built image path only.                                          |
 | `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                      |
 
