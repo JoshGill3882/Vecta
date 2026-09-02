@@ -91,11 +91,26 @@ export function renderBlock(results, sha) {
   return [START, "", ...lines, provenance, "", END].join("\n");
 }
 
+// The markers must stand alone on their own line. An issue that *describes* the
+// mechanism — "delimited by `<!-- ci:dod:start -->`" — mentions them inline, and
+// a plain substring search would treat the first such mention as the real fence
+// and overwrite the surrounding prose. Anchoring to a whole line distinguishes
+// the fence from any discussion of it.
+const START_LINE = /^<!-- ci:dod:start -->[ \t]*$/m;
+const END_LINE = /^<!-- ci:dod:end -->[ \t]*$/m;
+
 export function replaceBlock(body, block) {
-  const start = body.indexOf(START);
-  const end = body.indexOf(END);
-  if (start === -1 || end === -1 || end < start) return null;
-  return body.slice(0, start) + block + body.slice(end + END.length);
+  const start = body.match(START_LINE);
+  if (!start) return null;
+
+  // Search for the closing marker only after the opening one, so a stray END
+  // earlier in the body cannot produce an inverted range.
+  const tail = body.slice(start.index);
+  const end = tail.match(END_LINE);
+  if (!end) return null;
+
+  const endsAt = start.index + end.index + end[0].length;
+  return body.slice(0, start.index) + block + body.slice(endsAt);
 }
 
 export function parseArgs(argv) {

@@ -104,6 +104,52 @@ describe("replaceBlock", () => {
     expect(cleared).toBe(replaceBlock(body, renderBlock({}, null)));
   });
 
+  // An issue that documents the mechanism mentions the markers inline. A plain
+  // substring search treated the first such mention as the fence and overwrote
+  // the surrounding sentence, leaving the real block untouched.
+  it("ignores markers mentioned inline in prose", () => {
+    const documented = [
+      "## Approach",
+      "",
+      "- a fenced section, delimited by `" + START + "` / `" + END + "`, holding",
+      "  only claims a machine can verify",
+      "",
+      "## Definition of Done",
+      "",
+      START,
+      "",
+      "- [ ] Lint, typecheck and build pass",
+      "",
+      END,
+    ].join("\n");
+
+    const updated = replaceBlock(documented, renderBlock({ checks: "success" }, null))!;
+
+    // The prose survives intact...
+    expect(updated).toContain(
+      "- a fenced section, delimited by `" + START + "` / `" + END + "`, holding"
+    );
+    expect(updated).toContain("only claims a machine can verify");
+    // ...and the real block is the one that changed.
+    expect(updated).toContain("- [x] Lint, typecheck and build pass");
+  });
+
+  it("ignores an indented marker that is not a fence of its own", () => {
+    const nested = [
+      "  " + START,
+      "",
+      "## Definition of Done",
+      "",
+      START,
+      "",
+      "- [ ] x",
+      "",
+      END,
+    ].join("\n");
+    const updated = replaceBlock(nested, renderBlock({}, null))!;
+    expect(updated).toContain("  " + START);
+  });
+
   it("returns null when the issue has no CI-owned section", () => {
     expect(replaceBlock("## Definition of Done\n\n- [ ] Something", "x")).toBeNull();
   });
