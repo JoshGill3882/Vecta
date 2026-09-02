@@ -102,6 +102,10 @@ jobs:
     # the read-only default declared at the top of the file.
     permissions:
       contents: read
+      # Resolving which issues a pull request closes reads the pull request
+      # itself; an explicit permissions block replaces the defaults, so this has
+      # to be granted even though nothing here writes to the pull request.
+      pull-requests: read
       issues: write
     concurrency:
       group: dod-${{ github.event.pull_request.number }}
@@ -125,6 +129,10 @@ jobs:
     if: always()
     permissions:
       contents: read
+      # Resolving which issues a pull request closes reads the pull request
+      # itself; an explicit permissions block replaces the defaults, so this has
+      # to be granted even though nothing here writes to the pull request.
+      pull-requests: read
       issues: write
     concurrency:
       group: dod-${{ github.event.pull_request.number }}
