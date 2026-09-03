@@ -24,6 +24,9 @@ refactors that change nothing observable are not listed.
   `taskmanager`. Existing Postgres deployments should leave `POSTGRES_DB` and
   the `DATABASE_URL` database name as they are; the data is keyed to the old
   name
+- The session cookie is named `Vecta-Auth` rather than `Task-Manager-Auth`.
+  Upgrading signs you out once — the old cookie is ignored rather than read,
+  so sign in again and the new one replaces it
 
 ### Upgrading from 0.1.0
 
