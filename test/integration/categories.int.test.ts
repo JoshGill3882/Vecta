@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { prisma } from "@/src/server/db";
+import { CATEGORY_PALETTE } from "@/src/lib/palette";
 import {
   createCategoryAction,
   updateCategoryAction,
@@ -22,6 +23,18 @@ describe("createCategoryAction (integration)", () => {
     const rows = await prisma.category.findMany();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ name: "Work", color: "#6366f1" });
+  });
+
+  it("falls back to a palette colour when none is supplied", async () => {
+    // The schema default is what a category gets when the picker is never
+    // touched, so it has to clear AA as chip text like the offered swatches
+    // do. Asserting membership rather than the literal keeps this test honest
+    // if the chosen swatch changes.
+    const res = await createCategoryAction(null, form({ name: "Unstyled" }));
+
+    expect(res.ok).toBe(true);
+    const row = await prisma.category.findFirstOrThrow({ where: { name: "Unstyled" } });
+    expect(CATEGORY_PALETTE).toContain(row.color);
   });
 
   it("rejects invalid input without writing a row", async () => {

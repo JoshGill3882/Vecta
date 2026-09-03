@@ -3,7 +3,7 @@ import { z } from "zod";
 // Hex colour: # followed by exactly 6 hex digits. Rejects shortened 3-character-codes
 const hexColor = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex colour, e.g. #6366f1");
+  .regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex colour, e.g. #3b9eff");
 
 export const categoryCreateSchema = z.object({
   name: z
@@ -11,7 +11,9 @@ export const categoryCreateSchema = z.object({
     .trim() // strip whitespace BEFORE length checks
     .min(1, "Name is required") // "" and "   " both fail after trim
     .max(60),
-  // Optional on input: when omitted, Prisma's @default("#6366f1") fills it in.
+  // Optional on input: when omitted, the schema's @default fills it in. The
+  // value lives in prisma/schema.prisma alone — repeating it here would give
+  // it a second home to drift from.
   color: hexColor.optional(),
 });
 
