@@ -6,7 +6,7 @@ Vecta is a personal project with a single maintainer. Bug reports, feature reque
 
 **Open an issue before starting substantial work.** A short conversation first costs you nothing and is the only way to find out early that an idea is off the roadmap. Small self-contained fixes — a typo, a broken link, an obvious bug — can go straight to a pull request without one.
 
-**Check the scope first.** [`PLAN.md` § 3](./docs/PLAN.md) lists what is deliberately out of scope, and § 15 lists what is planned and roughly in what order. Something on the out-of-scope list is a "no" by default; making the case for why it should change is a fair opening move, and a better one than a pull request nobody asked for.
+**Check the scope first.** [`ROADMAP.md`](./ROADMAP.md) lists what is planned, what is being considered, and what has been ruled out along with the reasoning. Something under "Not planned" is a "no" by default; making the case against the reason given is a fair opening move, and a better one than a pull request nobody asked for.
 
 ### What gets merged
 
@@ -26,7 +26,7 @@ Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) a
 
 ## Requesting a feature
 
-Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Feature request** template. Check the [roadmap in PLAN.md](./docs/PLAN.md) first — your idea may already be planned.
+Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Feature request** template. Check the [roadmap](./ROADMAP.md) first — your idea may already be planned, or already ruled out with a reason.
 
 ---
 
