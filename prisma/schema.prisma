@@ -33,7 +33,7 @@ model Task {
 model Category {
   id        String   @id @default(cuid())
   name      String   @unique
-  color     String   @default("#6366f1") // hex colour for the category dot / badge
+  color     String   @default("#3b9eff") // CATEGORY_PALETTE[0]; see src/lib/palette.ts
   tasks     Task[]
   createdAt DateTime @default(now())
 }
