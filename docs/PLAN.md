@@ -111,9 +111,9 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 
 ### Definition of Done
 
-- Both devs can clone, install, and run the dev server in under 5 minutes following the README
-- A trivial PR (e.g. add a one-line README change) passes through the full CI pipeline successfully
-- Branch protection prevents direct push to `production` and `develop`
+- [x] Both devs can clone, install, and run the dev server in under 5 minutes following the README — steps in `CONTRIBUTING.md` § Local development setup
+- [x] A trivial PR (e.g. add a one-line README change) passes through the full CI pipeline successfully — `.github/workflows/ci.yml`
+- [ ] Branch protection prevents direct push to `production` and `develop` — the ruleset exists and reads as Active, but rulesets are gated behind a paid plan for private repositories, so it does not enforce while this repository is private (#80)
 
 ### References
 
@@ -166,11 +166,11 @@ model Category {
 
 ### Definition of Done
 
-- `npm prisma migrate dev` from a clean state succeeds and creates the schema
-- `npm prisma studio` opens and shows the empty tables
-- `npm db:seed` populates a few example tasks and categories
-- Switching `DATABASE_URL` from SQLite to a local Postgres instance and re-running migrations succeeds
-- Service layer functions exist and have correct TypeScript signatures (even if bodies just `throw new Error("not implemented")`)
+- [x] `npm run db:migrate` from a clean state succeeds and creates the schema — `prisma/migrations/`
+- [x] `npm run db:studio` opens and shows the empty tables
+- [x] `npm run db:seed` populates a few example tasks and categories — `prisma/seed.ts`
+- [x] Switching `DATABASE_URL` from SQLite to a local Postgres instance and re-running migrations succeeds — `scripts/resolve-provider.mjs`, #66
+- [x] Service layer functions exist and have correct TypeScript signatures (even if bodies just `throw new Error("not implemented")`) — `src/server/services/`
 
 ### References
 
@@ -260,11 +260,11 @@ individual files here only invites drift.
 
 ### Definition of Done
 
-- All service functions have unit tests that pass
-- A test SQLite database is created and torn down between integration test runs
-- Calling a server action with invalid data returns a structured error (never throws to the client)
-- No Prisma client is imported anywhere outside `src/server/`
-- `npm test` runs cleanly in CI
+- [x] All service functions have unit tests that pass — `test/server/services/`
+- [x] A test SQLite database is created and torn down between integration test runs — `test/integration/setup.ts`
+- [x] Calling a server action with invalid data returns a structured error (never throws to the client) — `ActionResult` / `toActionError`, covered in `test/app/`
+- [x] No Prisma client is imported anywhere outside `src/server/` — two type-only exceptions: `src/lib/dtos/` imports the `TaskModel` and `CategoryModel` types, and two service tests import `PrismaClientKnownRequestError` to build the errors they assert are translated. Both erase at compile time and construct no client
+- [x] `npm test` runs cleanly in CI — `.github/workflows/_test.yml`
 
 ### References
 
@@ -320,12 +320,12 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Definition of Done
 
-- A user can create, view, edit, and delete tasks and categories entirely through the UI
-- The list view groups tasks correctly and the collapsible sections persist their open/closed state across reloads (use `localStorage`)
-- Markdown in descriptions renders correctly, including code blocks and links
-- The app is usable on a 375px-wide viewport with no horizontal scroll
-- All forms show inline validation errors
-- All destructive actions have a confirmation step
+- [x] A user can create, view, edit, and delete tasks and categories entirely through the UI — driven end to end through the browser against a scratch database
+- [x] The list view groups tasks correctly and the collapsible sections persist their open/closed state across reloads (use `localStorage`) — `src/hooks/use-collapsed-sections.ts`
+- [x] Markdown in descriptions renders correctly, including code blocks and links — `react-markdown` with `remark-gfm`, sanitised by `rehype-sanitize`
+- [x] The app is usable on a 375px-wide viewport with no horizontal scroll — measured at 375px on `/tasks` and `/categories`: `scrollWidth` equals `clientWidth` on both
+- [x] All forms show inline validation errors — an empty task title is rejected in the dialog rather than on submit
+- [x] All destructive actions have a confirmation step — task and category delete each raise a confirm dialog before committing
 
 ### References
 
@@ -352,7 +352,14 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Definition of Done
 
-- Lighthouse score on the list view: ≥90 accessibility, ≥90 best practices
+- [x] Lighthouse score on the list view: ≥90 accessibility, ≥90 best practices — measured 96 accessibility and 100 best practices against a production build of the list view
+
+The single accessibility deduction is `color-contrast` on category chips. Chip
+text takes its colour from the category, so a dark category colour can fall
+short of AA against the chip background. This is accepted rather than fixed:
+restricting categories to colours that pass on every surface would flatten the
+distinction the colours exist to draw. The curated picker swatches were adjusted
+where that was cheap — see `src/lib/palette.ts`.
 
 ### References
 
@@ -391,7 +398,7 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
   - [`docker/metadata-action`](https://github.com/docker/metadata-action) derives this tag set declaratively
 - [x] [Docker image signing with cosign](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images) — optional but a "industry-standard" nice-to-have
 - [x] Image labels per [OCI annotations spec](https://github.com/opencontainers/image-spec/blob/main/annotations.md): `org.opencontainers.image.source`, `revision`, `version` etc. — populates the GHCR sidebar nicely
-- [ ] Tagged release `v0.1.0-rc1` — the versioned artefact the deployment paths are verified against, so it comes after the pipeline can turn a tag into a published image
+- [x] Tagged release `v0.1.0-rc1` — the versioned artefact the deployment paths are verified against, so it comes after the pipeline can turn a tag into a published image
 - [ ] Manual end-to-end verification:
   - Pull `ghcr.io/<org>/<repo>:v0.1.0-rc1` on a clean machine, run with the documented compose, confirm it works
   - Repeat for the cloned-repo path
@@ -412,13 +419,13 @@ This is the phase where back-end developers tend to underestimate. shadcn/ui mit
 
 ### Definition of Done
 
-- `docker compose up -d` from a fresh clone results in a working app reachable on the configured port
-- `docker run` against the published image works the same way
-- A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README
-- One image serves both engines: given a `postgres://` `DATABASE_URL` it applies the Postgres migration history and reads and writes through the app, and the same image still does so against SQLite
-- The `:unstable` and `:v0.1.0-rc1` tags exist on GHCR and were built by the pipeline (not manually)
-- The image is under ~250MB compressed (sanity check on bloat)
-- Deploying a fresh instance and immediately upgrading to the next published version preserves all data
+- [ ] `docker compose up -d` from a fresh clone results in a working app reachable on the configured port — the clone-and-build path, verified unauthenticated as part of the public release in #80
+- [ ] `docker run` against the published image works the same way — the pre-built-image path, verified unauthenticated as part of the public release in #80
+- [ ] A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README
+- [x] One image serves both engines: given a `postgres://` `DATABASE_URL` it applies the Postgres migration history and reads and writes through the app, and the same image still does so against SQLite — #66, `scripts/resolve-provider.mjs` with `src/server/db.ts`
+- [x] The `:unstable` and `:v0.1.0-rc1` tags exist on GHCR and were built by the pipeline (not manually) — both published under `ghcr.io/j-l-dev-studio/task-management-solution` before the rename, alongside `:v0.1.0` and `:latest`. The pipeline now publishes to `ghcr.io/joshgill3882/vecta`
+- [x] The image is under ~250MB compressed (sanity check on bloat) — `v0.1.0` measures 136.0 MB on amd64 and 136.8 MB on arm64
+- [x] Deploying a fresh instance and immediately upgrading to the next published version preserves all data — #74. The rename moves both the image path and the Compose volume name, so #80 re-establishes this against the release candidate, identified by digest
 
 ### References
 
