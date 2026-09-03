@@ -83,7 +83,7 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* --- J&L design-system extras (see .dark below) --- */
+  /* --- Vecta design-system extras (see .dark below) --- */
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
   --color-border-strong: var(--border-strong);
@@ -98,7 +98,7 @@
 }
 
 /*
- * Dark-only theme, ported from the J&L "Task Manager" Claude Design.
+ * Dark-only theme, ported from the Vecta Claude Design.
  * The app forces `class="dark"` on <html> (see app/layout.tsx), so these
  * values are what actually render. The :root light palette above is the
  * upstream shadcn baseline, kept dormant should a light theme ever be added.
@@ -144,7 +144,7 @@
   --sidebar-border: #242a34;
   --sidebar-ring: #2f88ff;
 
-  /* J&L extras exposed as utilities via @theme inline above */
+  /* Vecta extras exposed as utilities via @theme inline above */
   --surface-2: #171b22;
   --surface-3: #1d222b;
   --border-strong: #323a47;

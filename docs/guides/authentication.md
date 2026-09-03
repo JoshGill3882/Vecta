@@ -53,7 +53,7 @@ getSessionFromRequest(req: NextRequest): Promise<SessionData | null>
 ```
 
 `SessionData` is currently just `{ isLoggedIn: boolean }`. The cookie is named
-`Task-Manager-Auth` and encrypted with `SESSION_SECRET`.
+`Vecta-Auth` and encrypted with `SESSION_SECRET`.
 
 ## How to protect a page (Server Component)
 

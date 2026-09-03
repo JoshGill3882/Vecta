@@ -24,7 +24,7 @@ services:
       args:
         VERSION: dev
         REVISION: local
-    image: task-management-solution:local
+    image: vecta:local
     restart: unless-stopped
 
     # Everything the app reads comes from .env, which is gitignored — no secret
@@ -87,7 +87,7 @@ services:
   # `db-data` volume at the foot of the file, then replace the DATABASE_URL in
   # the app's `environment:` with:
   #
-  #   DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/taskmanager?schema=public
+  #   DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/vecta?schema=public
   #
   # Existing SQLite data does not migrate across on its own — there is no
   # conversion step, so treat this as a decision to make before first run.
@@ -97,14 +97,14 @@ services:
   #   restart: unless-stopped
   #   environment:
   #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-  #     POSTGRES_DB: taskmanager
+  #     POSTGRES_DB: vecta
   #   volumes:
   #     - db-data:/var/lib/postgresql/data
   #   # Without this, the app would start and run `migrate deploy` against a
   #   # Postgres that is still initialising. `depends_on` alone only waits for
   #   # the container to exist, not for the server to accept connections.
   #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres -d taskmanager"]
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d vecta"]
   #     interval: 5s
   #     timeout: 3s
   #     retries: 10

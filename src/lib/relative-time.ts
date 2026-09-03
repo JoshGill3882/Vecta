@@ -1,5 +1,5 @@
 /**
- * Short relative timestamp ("4d ago") for task cards, ported from the J&L
+ * Short relative timestamp ("4d ago") for task cards, ported from the Vecta
  * design. Falls back to an absolute date past ~5 weeks, where "9w ago" stops
  * being easier to read than "12 Jun".
  */
