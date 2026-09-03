@@ -4,6 +4,9 @@
 
 > **Studio MVP** · Self-hosted, open-source, single-user task management
 
+> This document is the delivery plan for v1.0.0 and a record of how it was
+> built. What comes after v1.0.0 is in [`ROADMAP.md`](../ROADMAP.md).
+
 ---
 
 ## 1. Project Overview
@@ -500,23 +503,7 @@ The project ships v1.0.0 when **all** of the following are true:
 
 ---
 
-## 15. Post-MVP Roadmap (Indicative)
-
-Not committed; just so we don't lose them. Order is roughly by user value, not difficulty.
-
-1. Search, filter, sort on the task list
-2. Due dates + overdue indicators
-3. Acceptance criteria field (toggleable)
-4. Sub-categories
-5. Task dependencies + "blocked" status
-6. Drag-and-drop kanban view as an alternative to the list
-7. Rich Markdown editor with preview toolbar
-8. E2E test suite (Playwright)
-9. Multi-user mode (this is the SaaS pivot — significant rework of auth + schema)
-
----
-
-## 16. Reference Index
+## 15. Reference Index
 
 Pulling all the documentation links into one place for convenience:
 
@@ -532,4 +519,6 @@ Pulling all the documentation links into one place for convenience:
 
 ---
 
-_This plan is a living document. Update it (and this line) when scope shifts — better to update once than to drift silently._
+_This plan is frozen at v1.0.0. It records how the MVP was scoped and delivered,
+and is kept as that record rather than maintained against what the project does
+next — which lives in [`ROADMAP.md`](../ROADMAP.md)._

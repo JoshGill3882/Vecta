@@ -218,7 +218,8 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how the codebase is put together and why
 - [`CHANGELOG.md`](./CHANGELOG.md) — what changed in each release
-- [`PLAN.md`](./docs/PLAN.md) — full project plan, phased delivery, definition of done
+- [`ROADMAP.md`](./ROADMAP.md) — what is planned, considered, and ruled out
+- [`PLAN.md`](./docs/PLAN.md) — how v1.0.0 was scoped and delivered, phase by phase
 - [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local development setup, branching
 
@@ -236,13 +237,10 @@ The original sketch for this project listed three goals; they've been refined in
 
 ## Roadmap
 
-The full phased plan lives in [`PLAN.md`](./docs/PLAN.md). At a glance:
+What is planned, what is being considered, and what has been ruled out are all in
+[`ROADMAP.md`](./ROADMAP.md), grouped by likelihood rather than by date.
 
-- [ ] **v1.0.0 (MVP)** — core CRUD, single-admin auth, Docker distribution
-- [ ] **v1.1+** — search, filter, sort; due dates; sub-categories; dependencies
-- [ ] **v2.0** — drag-and-drop kanban view; rich Markdown editor
-
-Major features are tracked as GitHub Issues with the `roadmap` label.
+For how v1.0.0 itself was scoped and delivered, see [`PLAN.md`](./docs/PLAN.md).
 
 ---
 
