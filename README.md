@@ -41,17 +41,6 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 
 ---
 
-## Screenshots
-
-|                                                     |                                                      |
-| --------------------------------------------------- | ---------------------------------------------------- |
-| ![Creating a task](./docs/images/task-dialog.png)   | ![Categories](./docs/images/categories.png)          |
-| Quick capture — a title is the only required field. | Categories are flat, each with an assignable colour. |
-
-<img src="./docs/images/mobile.png" alt="The task list on a phone" width="320">
-
----
-
 ## Self-hosting
 
 > ⚠️ **Not yet released.** Published images begin at the first tagged release. Until then, the clone-and-build path below is the one that works.
