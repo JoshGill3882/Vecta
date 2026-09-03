@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/lib/fonts";
 
-const title = "Task Manager";
+const title = "Vecta";
 const description = "Self-hosted, single-user task management.";
 
 export const metadata: Metadata = {

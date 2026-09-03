@@ -37,7 +37,7 @@ patches the single `provider = "..."` line in `prisma/schema.prisma` to match.
 
 1. Set a Postgres URL in `.env`:
    ```
-   DATABASE_URL="postgresql://user:pass@host:5432/taskmanager?schema=public"
+   DATABASE_URL="postgresql://user:pass@host:5432/vecta?schema=public"
    ```
 2. Apply the Postgres migration history:
    ```bash

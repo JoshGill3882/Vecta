@@ -1,6 +1,6 @@
 <!-- markdownlint-disable -->
 
-# Task Manager — Project Plan
+# Vecta — Project Plan
 
 > **Studio MVP** · Self-hosted, open-source, single-user task management
 

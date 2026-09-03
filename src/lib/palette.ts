@@ -1,6 +1,6 @@
 /**
  * Category colour palette — the swatches offered in the category colour picker,
- * taken from the J&L design. Curated to stay legible on the dark surfaces: a
+ * taken from the Vecta design. Curated to stay legible on the dark surfaces: a
  * category's colour is used as text, border, and background tint on its chip.
  *
  * Categories store an arbitrary hex string (validated by `categoryCreateSchema`),
