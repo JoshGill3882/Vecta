@@ -175,6 +175,15 @@ docker compose -f docker-compose.prod.yml up -d
 
 The container applies any new migrations on start, so no extra step is needed. **Back up first** — migrations are one-way, and downgrading to a previous image after one has run is not supported.
 
+### Coming from v0.1.0
+
+That release was published under the project's previous name, so this one upgrade needs two changes before the commands above do anything:
+
+1. **Replace your `docker-compose.prod.yml` with the current one.** The image moved from `ghcr.io/j-l-dev-studio/task-management-solution` to `ghcr.io/joshgill3882/vecta`. Skip this and `pull` re-fetches the old image and reports success.
+2. **Rename `TMS_VERSION` to `VECTA_VERSION` in `.env`.** The old name is not read by the new compose file, so a pinned version is silently ignored and you get `:latest`.
+
+**Keep your existing directory.** Compose derives the project name from the directory it runs in, and the volume name from the project — so re-cloning into `Vecta/` looks for `vecta_app-data` and creates it empty, while your data stays behind in `task-management-solution_app-data`. The app starts healthy with no tasks in it. If you would rather move, restore into the new volume using the backup steps above.
+
 Tags behave as follows:
 
 | Tag         | Moves                              | Use it if                                         |
