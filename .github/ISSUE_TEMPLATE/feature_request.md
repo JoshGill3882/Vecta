@@ -75,10 +75,25 @@ So that [some reason or benefit].
 
 > All boxes must be checked before this issue can be closed.
 
+### Verified by CI
+
+<!-- Maintained automatically. Cleared when a CI run starts and ticked by the
+     job that proves each claim, so this section always describes the commit
+     under test. Edits inside the markers are overwritten. -->
+
+<!-- ci:dod:start -->
+
+- [ ] Lint, typecheck and build pass
+- [ ] Test suite passes — no new regressions
+- [ ] Compose files validate
+
+<!-- ci:dod:end -->
+
+### Requires human judgement
+
 - [ ] All Acceptance Criteria met and verified
 - [ ] Code reviewed and approved (per branch/PR policy)
-- [ ] Automated tests written and passing (unit / integration / E2E as appropriate)
-- [ ] No regressions introduced (existing test suite passes)
+- [ ] The tests written actually cover this change (unit / integration / E2E as appropriate)
 - [ ] Documentation updated (README, API docs, Confluence, etc.)
 - [ ] Code is appropriately commented — especially non-obvious logic
 - [ ] Suitable error handling and user-facing error messages in place

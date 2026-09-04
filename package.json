@@ -1,6 +1,6 @@
 {
-  "name": "task-management-solution",
-  "version": "0.1.0",
+  "name": "vecta",
+  "version": "1.0.0-rc1",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -10,6 +10,34 @@ refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Changed
+
+- The project is now **Vecta**, hosted at `github.com/JoshGill3882/Vecta`. The
+  old repository URL redirects, but published images move: pull
+  `ghcr.io/joshgill3882/vecta` rather than
+  `ghcr.io/j-l-dev-studio/task-management-solution`. Images already published
+  under the old path are unaffected and stay where they are
+- `TMS_VERSION` is now `VECTA_VERSION`. Rename it in your `.env` before
+  upgrading — an unrecognised variable is ignored silently, which resolves the
+  image to `latest` rather than to the version you pinned
+- The optional Postgres service's database is named `vecta` rather than
+  `taskmanager`. Existing Postgres deployments should leave `POSTGRES_DB` and
+  the `DATABASE_URL` database name as they are; the data is keyed to the old
+  name
+- The session cookie is named `Vecta-Auth` rather than `Task-Manager-Auth`.
+  Upgrading signs you out once — the old cookie is ignored rather than read,
+  so sign in again and the new one replaces it
+
+### Upgrading from 0.1.0
+
+Cloning fresh into `Vecta/` rather than `Task-Management-Solution/` changes the
+Compose project name, and with it the volume Compose looks for — a rename from
+`task-management-solution_app-data` to `vecta_app-data`. The app will come up
+against an empty database while the old volume sits untouched beside it. Either
+keep the old directory name, or pass `-p task-management-solution` to
+`docker compose`, or back up and restore into the new volume following the
+backup instructions in the README.
+
 ## [0.1.0] - 2026-08-30
 
 ### Added
@@ -41,5 +69,5 @@ refactors that change nothing observable are not listed.
   timing-safe
 - The post-login redirect only accepts same-origin absolute paths
 
-[unreleased]: https://github.com/J-L-Dev-Studio/Task-Management-Solution/compare/v0.1.0...develop
-[0.1.0]: https://github.com/J-L-Dev-Studio/Task-Management-Solution/releases/tag/v0.1.0
+[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v0.1.0...develop
+[0.1.0]: https://github.com/JoshGill3882/Vecta/releases/tag/v0.1.0

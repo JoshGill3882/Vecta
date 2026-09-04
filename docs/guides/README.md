@@ -1,6 +1,6 @@
 # Developer guides
 
-Integration how-tos for building on the Task Manager codebase. These are
+Integration how-tos for building on the Vecta codebase. These are
 task-oriented ("how do I protect a route?", "how do I add a model?") and assume
 you already have the app running — see the root [`README.md`](../../README.md)
 for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.

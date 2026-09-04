@@ -1,17 +1,23 @@
 # Contributing
 
-Thanks for your interest in this project.
+Thanks for your interest in Vecta.
 
-J&L Task Manager is maintained by a two-person studio (J&L Dev Studio) and is primarily a showcase project. **We are not actively seeking external code contributions.** If you submit a pull request it may not be reviewed promptly, and there is no guarantee it will be merged.
+Vecta is a personal project with a single maintainer. Bug reports, feature requests, and pull requests are all welcome — but everything is reviewed by one person, and not every change will be merged. The two rules below exist so that nobody spends an evening on something that was never going to land.
 
-What _is_ welcome:
+**Open an issue before starting substantial work.** A short conversation first costs you nothing and is the only way to find out early that an idea is off the roadmap. Small self-contained fixes — a typo, a broken link, an obvious bug — can go straight to a pull request without one.
 
-- **Bug reports** — if something is broken, please tell us
-- **Feature requests** — if there is something you would find useful, open a discussion
+**Check the scope first.** [`ROADMAP.md`](./ROADMAP.md) lists what is planned, what is being considered, and what has been ruled out along with the reasoning. Something under "Not planned" is a "no" by default; making the case against the reason given is a fair opening move, and a better one than a pull request nobody asked for.
+
+### What gets merged
+
+- CI is green — lint, typecheck, and both test suites pass
+- Behaviour changes come with tests (see the [testing guide](./docs/guides/testing.md))
+- The change reads like the code around it rather than introducing a new style
+- The scope matches whatever the issue agreed — unrelated drive-by changes get asked out again
 
 ## Reporting a bug
 
-Open a [GitHub Issue](https://github.com/J-L-Dev-Studio/Task-Management-Solution/issues/new/choose) and select the **Bug report** template. Please include:
+Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Bug report** template. Please include:
 
 - Steps to reproduce
 - What you expected to happen
@@ -20,7 +26,7 @@ Open a [GitHub Issue](https://github.com/J-L-Dev-Studio/Task-Management-Solution
 
 ## Requesting a feature
 
-Open a [GitHub Issue](https://github.com/J-L-Dev-Studio/Task-Management-Solution/issues/new/choose) and select the **Feature request** template. Check the [roadmap in PLAN.md](./docs/PLAN.md) first — your idea may already be planned.
+Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Feature request** template. Check the [roadmap](./ROADMAP.md) first — your idea may already be planned, or already ruled out with a reason.
 
 ---
 
@@ -38,8 +44,8 @@ For running the app itself rather than working on it, self-hosting via Docker is
 
 ```bash
 # Clone the repository
-git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
-cd Task-Management-Solution
+git clone https://github.com/JoshGill3882/Vecta.git
+cd Vecta
 
 # Install dependencies
 npm install

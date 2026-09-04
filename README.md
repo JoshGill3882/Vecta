@@ -1,4 +1,4 @@
-# J&L Task Management Solution
+# Vecta
 
 > A self-hosted, open-source task management web app — built for individuals who want to own their data.
 
@@ -41,17 +41,6 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 
 ---
 
-## Screenshots
-
-|                                                     |                                                      |
-| --------------------------------------------------- | ---------------------------------------------------- |
-| ![Creating a task](./docs/images/task-dialog.png)   | ![Categories](./docs/images/categories.png)          |
-| Quick capture — a title is the only required field. | Categories are flat, each with an assignable colour. |
-
-<img src="./docs/images/mobile.png" alt="The task list on a phone" width="320">
-
----
-
 ## Self-hosting
 
 > ⚠️ **Not yet released.** Published images begin at the first tagged release. Until then, the clone-and-build path below is the one that works.
@@ -74,20 +63,20 @@ Then pick a path.
 No clone required. Download the compose file and the env template next to each other:
 
 ```bash
-curl -O https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/docker-compose.prod.yml
-curl -o .env https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/.env.example
+curl -O https://raw.githubusercontent.com/JoshGill3882/Vecta/production/docker-compose.prod.yml
+curl -o .env https://raw.githubusercontent.com/JoshGill3882/Vecta/production/.env.example
 # edit .env — set ADMIN_PASSWORD and SESSION_SECRET
 
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The app is on <http://localhost:3000>. To pin a version instead of tracking `:latest`, set `TMS_VERSION=v1.0.0` in `.env`.
+The app is on <http://localhost:3000>. To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.0.0` in `.env`.
 
 ### Option 2 — Clone and build
 
 ```bash
-git clone https://github.com/J-L-Dev-Studio/Task-Management-Solution.git
-cd Task-Management-Solution
+git clone https://github.com/JoshGill3882/Vecta.git
+cd Vecta
 cp .env.example .env
 # edit .env — set ADMIN_PASSWORD and SESSION_SECRET
 
@@ -107,8 +96,8 @@ Every variable the app reads. Set them in `.env`, which both compose files load.
 | `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                       |
 | `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.    |
 | `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you. |
-| `PORT`              | no                | `3000`                  | Host port the compose files publish on. The container always listens on 3000.         |
-| `TMS_VERSION`       | no                | `latest`                | Image tag to run. Pre-built image path only.                                          |
+| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.             |
+| `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                          |
 | `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                      |
 
 ### Using PostgreSQL instead of SQLite
@@ -135,12 +124,18 @@ The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NOD
 
 **SQLite (default).** Everything lives in the `app-data` volume. Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
 
+On the pre-built image path the compose file is not named `docker-compose.yml`, so every `docker compose` command below needs `-f docker-compose.prod.yml`. Without it you get `no configuration file provided: not found`. Set it once for the session:
+
+```bash
+export COMPOSE_FILE=docker-compose.prod.yml   # pre-built image path only
+```
+
 Stop the stack first so no write is in flight:
 
 ```bash
 docker compose stop
-docker run --rm -v task-management-solution_app-data:/data -v "$PWD":/backup \
-  alpine tar czf /backup/taskmanager-backup.tar.gz -C /data .
+docker run --rm -v vecta_app-data:/data -v "$PWD":/backup \
+  alpine tar czf /backup/vecta-backup.tar.gz -C /data .
 docker compose start
 ```
 
@@ -148,12 +143,22 @@ Restore by reversing it into an empty volume:
 
 ```bash
 docker compose down
-docker run --rm -v task-management-solution_app-data:/data -v "$PWD":/backup \
-  alpine sh -c "rm -rf /data/* && tar xzf /backup/taskmanager-backup.tar.gz -C /data"
+docker run --rm -v vecta_app-data:/data -v "$PWD":/backup \
+  alpine sh -c "rm -rf /data/* && tar xzf /backup/vecta-backup.tar.gz -C /data"
 docker compose up -d
 ```
 
-**Postgres.** Use `pg_dump` against the database service and keep the dump wherever you keep your other backups.
+**Postgres.** Dump the database out of the running `db` service:
+
+```bash
+docker compose exec -T db pg_dump -U postgres -d vecta > vecta-backup.sql
+```
+
+Restore it into an empty database the same way round:
+
+```bash
+docker compose exec -T db psql -U postgres -d vecta < vecta-backup.sql
+```
 
 Whichever engine you use, test a restore at least once. An untested backup is a hypothesis.
 
@@ -161,12 +166,23 @@ Whichever engine you use, test a restore at least once. An untested backup is a 
 
 ## Upgrading
 
+If you pinned `VECTA_VERSION` in `.env`, edit it to the version you are moving to first. Pulling without changing it re-fetches the version you are already on: the commands below then report `Pulled` and `Started` and leave you where you were, with nothing to indicate the upgrade did not happen.
+
 ```bash
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
 
 The container applies any new migrations on start, so no extra step is needed. **Back up first** — migrations are one-way, and downgrading to a previous image after one has run is not supported.
+
+### Coming from v0.1.0
+
+That release was published under the project's previous name, so this one upgrade needs two changes before the commands above do anything:
+
+1. **Replace your `docker-compose.prod.yml` with the current one.** The image moved from `ghcr.io/j-l-dev-studio/task-management-solution` to `ghcr.io/joshgill3882/vecta`. Skip this and `pull` re-fetches the old image and reports success.
+2. **Rename `TMS_VERSION` to `VECTA_VERSION` in `.env`.** The old name is not read by the new compose file, so a pinned version is silently ignored and you get `:latest`.
+
+**Keep your existing directory.** Compose derives the project name from the directory it runs in, and the volume name from the project — so re-cloning into `Vecta/` looks for `vecta_app-data` and creates it empty, while your data stays behind in `task-management-solution_app-data`. The app starts healthy with no tasks in it. If you would rather move, restore into the new volume using the backup steps above.
 
 Tags behave as follows:
 
@@ -211,7 +227,8 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how the codebase is put together and why
 - [`CHANGELOG.md`](./CHANGELOG.md) — what changed in each release
-- [`PLAN.md`](./docs/PLAN.md) — full project plan, phased delivery, definition of done
+- [`ROADMAP.md`](./ROADMAP.md) — what is planned, considered, and ruled out
+- [`PLAN.md`](./docs/PLAN.md) — how v1.0.0 was scoped and delivered, phase by phase
 - [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local development setup, branching
 
@@ -221,7 +238,7 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 The original sketch for this project listed three goals; they've been refined into the principles below, which guide design decisions throughout development:
 
-- **Capture should be fast.** Adding a new task should take fewer clicks and less time than any existing tool the maintainers use day to day.
+- **Capture should be fast.** Adding a new task should take fewer clicks and less time than any existing tool the maintainer uses day to day.
 - **Be accessible.** The app should be usable on whatever device you reach for first — desktop or mobile.
 - **Don't get in the way.** No required fields beyond a title. Categories, descriptions, and metadata are optional. The tool should adapt to how you work, not impose process.
 
@@ -229,21 +246,18 @@ The original sketch for this project listed three goals; they've been refined in
 
 ## Roadmap
 
-The full phased plan lives in [`PLAN.md`](./docs/PLAN.md). At a glance:
+What is planned, what is being considered, and what has been ruled out are all in
+[`ROADMAP.md`](./ROADMAP.md), grouped by likelihood rather than by date.
 
-- [ ] **v1.0.0 (MVP)** — core CRUD, single-admin auth, Docker distribution
-- [ ] **v1.1+** — search, filter, sort; due dates; sub-categories; dependencies
-- [ ] **v2.0** — drag-and-drop kanban view; rich Markdown editor
-
-Major features are tracked as GitHub Issues with the `roadmap` label.
+For how v1.0.0 itself was scoped and delivered, see [`PLAN.md`](./docs/PLAN.md).
 
 ---
 
 ## Contributing
 
-Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/J-L-Dev-Studio/Task-Management-Solution/issues/new/choose). This project is maintained by a two-person studio and is not actively seeking external code contributions.
+Bug reports, feature requests, and pull requests are welcome via [GitHub Issues](https://github.com/JoshGill3882/Vecta/issues/new/choose). This is a personal project with a single maintainer, so please open an issue before starting substantial work — it is the cheapest way to find out whether an idea fits the roadmap.
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local setup and details.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local setup, the branching model, and what gets merged.
 
 ---
 
@@ -257,6 +271,6 @@ This means you can self-host, modify, and redistribute this software freely. **N
 
 ## Acknowledgements
 
-Built by **J&L Dev Studio**, a two-person studio exploring open-source tooling.
+Built and maintained by [Josh Gill](https://github.com/JoshGill3882).
 
 Influenced by [GitHub Issues](https://github.com/features/issues), [Trello](https://trello.com/), [Linear](https://linear.app/), and the broader self-hosted software community ([r/selfhosted](https://www.reddit.com/r/selfhosted/), [awesome-selfhosted](https://github.com/awesome-selfhosted/awesome-selfhosted)).

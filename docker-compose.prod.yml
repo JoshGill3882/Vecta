@@ -1,8 +1,8 @@
 # Self-host path 2 of 2 — run the published image, no clone required.
 #
 # Quick start:
-#   curl -O https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/docker-compose.prod.yml
-#   curl -o .env https://raw.githubusercontent.com/J-L-Dev-Studio/Task-Management-Solution/production/.env.example
+#   curl -O https://raw.githubusercontent.com/JoshGill3882/Vecta/production/docker-compose.prod.yml
+#   curl -o .env https://raw.githubusercontent.com/JoshGill3882/Vecta/production/.env.example
 #   # edit .env: set ADMIN_PASSWORD and SESSION_SECRET
 #   docker compose -f docker-compose.prod.yml up -d
 #
@@ -29,7 +29,7 @@ services:
     # Upgrading is `docker compose -f docker-compose.prod.yml pull` followed by
     # `up -d`. Migrations are applied by the container on start, so nothing else
     # is required — but back the volume up first, because they are one-way.
-    image: ghcr.io/j-l-dev-studio/task-management-solution:${TMS_VERSION:-latest}
+    image: ghcr.io/joshgill3882/vecta:${VECTA_VERSION:-latest}
     restart: unless-stopped
 
     # Everything the app reads comes from .env, which lives next to this file
@@ -39,6 +39,12 @@ services:
       # Absolute, and pinned to the volume mount point below. The relative form
       # shipped in .env.example is for running from a source checkout.
       DATABASE_URL: file:/app/data/app.db
+      # Pinned so `env_file` cannot pass a host-side PORT into the container.
+      # Next.js binds to PORT, so letting it through leaves nothing listening on
+      # 3000 for the port mapping and the HEALTHCHECK to reach — the app becomes
+      # unreachable on the very port that was asked for. Values set here take
+      # precedence over env_file, which is what keeps the comment below true.
+      PORT: 3000
       # Re-declared purely to fail fast. env_file does not validate, so a
       # missing secret would otherwise surface as a container that crash-loops
       # on start-up; `:?` makes `docker compose up` refuse with this message.
@@ -83,7 +89,7 @@ services:
   # `db-data` volume at the foot of the file, then replace the DATABASE_URL in
   # the app's `environment:` with:
   #
-  #   DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/taskmanager?schema=public
+  #   DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/vecta?schema=public
   #
   # Existing SQLite data does not migrate across on its own — there is no
   # conversion step, so treat this as a decision to make before first run.
@@ -93,14 +99,14 @@ services:
   #   restart: unless-stopped
   #   environment:
   #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-  #     POSTGRES_DB: taskmanager
+  #     POSTGRES_DB: vecta
   #   volumes:
   #     - db-data:/var/lib/postgresql/data
   #   # Without this, the app would start and run `migrate deploy` against a
   #   # Postgres that is still initialising. `depends_on` alone only waits for
   #   # the container to exist, not for the server to accept connections.
   #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres -d taskmanager"]
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d vecta"]
   #     interval: 5s
   #     timeout: 3s
   #     retries: 10

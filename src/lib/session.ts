@@ -13,7 +13,7 @@ interface SessionData {
 // with mismatched options — only cookieName + password matter for decryption.
 const sessionOptions: SessionOptions = {
   password: process.env.SESSION_SECRET || "", // Will never hit a Null error due to pre-load checks
-  cookieName: "Task-Manager-Auth",
+  cookieName: "Vecta-Auth",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production", // dev runs over plain http
   },
