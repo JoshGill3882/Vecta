@@ -169,3 +169,28 @@ git switch <issue-number>-<slug>
 ```
 
 All changes go through a pull request into `develop`. Releases are cut from `develop` → `production`.
+
+### Fixing a released version urgently
+
+A fix that cannot wait for whatever is sitting unreleased on `develop` branches from `production` instead:
+
+```bash
+git fetch origin
+git switch -c <issue-number>-<slug> origin/production
+```
+
+Merge it into `production`, tag the patch release from there, then merge `production` back into `develop` so the fix is not lost at the next release.
+
+Branching from `develop` would be the mistake here: the fix would carry every unreleased change sitting on it, and the patch release would stop being a patch.
+
+---
+
+## Milestones
+
+Milestones are named for the release they target — `v1.1`, `v1.2` — and each one's description says what that release is about. `Phase N` milestones are from before v1.0.0 and are kept as the record of how it was delivered.
+
+Three things worth knowing before you file:
+
+- **Most issues have no milestone, and that is the normal state.** One is assigned when an issue becomes planned for a specific release; until then, no milestone means unscheduled rather than neglected.
+- **Setting one is the maintainer's call.** Please leave it unset on a new issue rather than guessing at a release.
+- **A milestone is a plan, not a promise.** Issues move between them as priorities change, which is the same reason [`ROADMAP.md`](./ROADMAP.md) carries no dates.
