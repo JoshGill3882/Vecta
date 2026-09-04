@@ -191,6 +191,6 @@ Milestones are named for the release they target — `v1.1`, `v1.2` — and each
 
 Three things worth knowing before you file:
 
-- **Most issues have no milestone, and that is the normal state.** It means unscheduled, not neglected.
+- **Most issues have no milestone, and that is the normal state.** One is assigned when an issue becomes planned for a specific release; until then, no milestone means unscheduled rather than neglected.
 - **Setting one is the maintainer's call.** Please leave it unset on a new issue rather than guessing at a release.
 - **A milestone is a plan, not a promise.** Issues move between them as priorities change, which is the same reason [`ROADMAP.md`](./ROADMAP.md) carries no dates.
