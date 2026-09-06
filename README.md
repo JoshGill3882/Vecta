@@ -231,6 +231,7 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 - [`PLAN.md`](./docs/PLAN.md) — how v1.0.0 was scoped and delivered, phase by phase
 - [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local development setup, branching
+- [`SECURITY.md`](./SECURITY.md) — what counts as a vulnerability, and how to report one privately
 
 ---
 
