@@ -1,0 +1,8 @@
+# Every change requests a review from the maintainer.
+#
+# This is belt and braces rather than the enforcement itself: the ruleset on
+# `develop` and `production` is what actually requires a pull request. This
+# only makes the review request automatic, so nothing depends on remembering
+# to add a reviewer.
+
+* @JoshGill3882
