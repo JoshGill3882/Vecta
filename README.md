@@ -2,7 +2,7 @@
 
 > A self-hosted, open-source task management web app — built for individuals who want to own their data.
 
-**Status:** 🚧 In active development. MVP targeted for `v1.0.0`. See [`PLAN.md`](./docs/PLAN.md) for the full roadmap.
+**Status:** v1.0.0 released. See [`ROADMAP.md`](./ROADMAP.md) for what comes next.
 
 ![Task list](./docs/images/task-list.png)
 
@@ -42,8 +42,6 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 ---
 
 ## Self-hosting
-
-> ⚠️ **Not yet released.** Published images begin at the first tagged release. Until then, the clone-and-build path below is the one that works.
 
 Both paths need a `.env` file. Copy the template and fill in the two secrets:
 
