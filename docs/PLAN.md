@@ -402,9 +402,9 @@ where that was cheap — see `src/lib/palette.ts`.
 - [x] [Docker image signing with cosign](https://docs.github.com/en/actions/use-cases-and-examples/publishing-packages/publishing-docker-images) — optional but a "industry-standard" nice-to-have
 - [x] Image labels per [OCI annotations spec](https://github.com/opencontainers/image-spec/blob/main/annotations.md): `org.opencontainers.image.source`, `revision`, `version` etc. — populates the GHCR sidebar nicely
 - [x] Tagged release `v0.1.0-rc1` — the versioned artefact the deployment paths are verified against, so it comes after the pipeline can turn a tag into a published image
-- [ ] Manual end-to-end verification:
-  - Pull `ghcr.io/<org>/<repo>:v0.1.0-rc1` on a clean machine, run with the documented compose, confirm it works
-  - Repeat for the cloned-repo path
+- [x] Manual end-to-end verification, run against `v1.0.0` rather than the candidate:
+  - The pre-built path, unauthenticated: the compose file and env template fetched from `raw.githubusercontent.com`, `:latest` pulled with no registry credentials, container healthy and `/login` served
+  - The cloned-repo path, from a clone made with credential helpers disabled: built locally and healthy in 8m24s
 - [x] `README.md` rewrite covering:
   - What the project is, what it isn't
   - Screenshots
@@ -422,9 +422,9 @@ where that was cheap — see `src/lib/palette.ts`.
 
 ### Definition of Done
 
-- [ ] `docker compose up -d` from a fresh clone results in a working app reachable on the configured port — the clone-and-build path, verified unauthenticated as part of the public release in #80
-- [ ] `docker run` against the published image works the same way — the pre-built-image path, verified unauthenticated as part of the public release in #80
-- [ ] A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README
+- [x] `docker compose up -d` from a fresh clone results in a working app reachable on the configured port — verified against a fresh anonymous clone on `PORT=3101`, healthy with `/login` returning 200
+- [x] `docker run` against the published image works the same way — verified with no registry credentials on `PORT=3100`, running `:latest` at the `v1.0.0` digest
+- [x] A developer who has never seen the project can clone it and have it running locally in under 10 minutes following the README — 8m24s from `git clone` to a healthy container, on native arm64 with the base images already pulled
 - [x] One image serves both engines: given a `postgres://` `DATABASE_URL` it applies the Postgres migration history and reads and writes through the app, and the same image still does so against SQLite — #66, `scripts/resolve-provider.mjs` with `src/server/db.ts`
 - [x] The `:unstable` and `:v0.1.0-rc1` tags exist on GHCR and were built by the pipeline (not manually) — both published under `ghcr.io/j-l-dev-studio/task-management-solution` before the rename, alongside `:v0.1.0` and `:latest`. The pipeline now publishes to `ghcr.io/joshgill3882/vecta`
 - [x] The image is under ~250MB compressed (sanity check on bloat) — `v0.1.0` measures 136.0 MB on amd64 and 136.8 MB on arm64
@@ -494,12 +494,12 @@ With only two devs, every PR should still be reviewed. The review is the safety 
 The project ships v1.0.0 when **all** of the following are true:
 
 - [x] All MVP scope items in §3 are working end-to-end
-- [ ] All Phase Definitions of Done are signed off
-- [ ] CI is green on `production`
-- [ ] Both deployment paths verified manually on a fresh machine
+- [x] All Phase Definitions of Done are signed off — audited against the code in #75, with the Phase 0 and Phase 6 boxes closed since
+- [x] CI is green on `production` — every change reaches it through a pull request, and the required checks run on the merge result; the ruleset makes that the only route
+- [x] Both deployment paths verified manually, unauthenticated, against `v1.0.0`
 - [x] README, ARCHITECTURE, CHANGELOG, LICENSE, CONTRIBUTING all in place
-- [ ] At least one full upgrade path tested (`v0.x` → `v1.0`) preserving data
-- [ ] A tagged release exists on GitHub with release notes
+- [x] At least one full upgrade path tested (`v0.x` → `v1.0`) preserving data — on both SQLite and PostgreSQL
+- [x] A tagged release exists on GitHub with release notes
 
 ---
 
