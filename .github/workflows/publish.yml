@@ -18,6 +18,18 @@ name: Publish
 # event. Deriving the release from an immutable tag rather than a branch push
 # is what stops a second push republishing an already-released version with
 # different bits.
+#
+# ── Why this is three jobs rather than one ───────────────────────────────────
+# Each architecture builds on a runner of its own architecture, and a final job
+# stitches the results into one multi-arch index.
+#
+# The alternative — one runner emulating the other architecture through QEMU —
+# was measurably worse. `better-sqlite3` publishes prebuilt binaries, so amd64
+# installs its dependencies in about thirty seconds; there is no prebuild for
+# arm64 on musl, so Alpine falls through to `node-gyp rebuild` and compiles the
+# SQLite amalgamation from source. Under emulation that took upwards of forty
+# minutes and produced no output while it ran, which is indistinguishable from
+# a hung build. Native runners for both halves remove the emulation entirely.
 on:
   push:
     branches: [develop]
@@ -46,32 +58,30 @@ jobs:
     if: github.event_name != 'workflow_dispatch'
     uses: ./.github/workflows/_test.yml
 
-  publish:
-    name: Build & Publish
+  # ── Tag rules ──────────────────────────────────────────────────────────────
+  # Resolved once, in a job of its own, so both build legs and the merge agree
+  # on the same answer. Recomputing per job would let them drift.
+  meta:
+    name: Resolve tags
     runs-on: ubuntu-latest
-    needs: test
-    # A skipped `needs` skips the dependent job by default, so the dry run has
-    # to opt back in explicitly.
-    if: ${{ !cancelled() && (needs.test.result == 'success' || github.event_name == 'workflow_dispatch') }}
-
-    permissions:
-      contents: read
-      # Push to GHCR with the run's own GITHUB_TOKEN — no registry credential is
-      # stored anywhere.
-      packages: write
-      # Lets the run mint the OIDC token cosign exchanges for a signing
-      # certificate. Without it, keyless signing fails at the Fulcio call.
-      id-token: write
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.ctx.outputs.version }}
+      release: ${{ steps.ctx.outputs.release }}
+      image: ${{ steps.ctx.outputs.image }}
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+      annotations: ${{ steps.meta.outputs.annotations }}
+      meta_version: ${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ── Tag rules ────────────────────────────────────────────────────────────
-      # Resolved in one place, in shell, so the dry run and a real publish share
-      # exactly the same logic. Deriving `latest` from metadata-action's
-      # `flavor: latest=auto` instead would key off the *event* being a tag push,
-      # which a workflow_dispatch never is — the dry run would then take a
-      # different code path from the thing it claims to verify.
+      # Resolved in shell so the dry run and a real publish share exactly the
+      # same logic. Deriving `latest` from metadata-action's `flavor: latest=auto`
+      # instead would key off the *event* being a tag push, which a
+      # workflow_dispatch never is — the dry run would then take a different code
+      # path from the thing it claims to verify.
       #
       # Inputs arrive through env rather than ${{ }} interpolation: a value
       # substituted straight into a run block is pasted in as shell source, so a
@@ -103,7 +113,7 @@ jobs:
             v*) release=true ;;
           esac
 
-          # GHCR rejects uppercase in a repository path, and this org and repo
+          # GHCR rejects uppercase in a repository path, and this owner and repo
           # both carry capitals.
           image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
 
@@ -116,6 +126,12 @@ jobs:
       - name: Compute tags and labels
         id: meta
         uses: docker/metadata-action@v5
+        env:
+          # Annotations are emitted for the index rather than the manifest,
+          # because the merge step below is what applies them and it writes the
+          # index. The GHCR sidebar reads the index, so this is also what makes
+          # the package page show anything.
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ steps.ctx.outputs.image }}
           # `latest` is handled by an explicit rule below instead.
@@ -152,53 +168,156 @@ jobs:
             echo "_Nothing was built or pushed._"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # ── Build and publish ────────────────────────────────────────────────────
-      # QEMU provides the arm64 emulation the cross-build runs under. It is the
-      # slow half of the build by a wide margin: the deps stage compiles
-      # better-sqlite3 from source against musl, and under emulation that takes
-      # far longer than the amd64 leg. A build that looks stuck is usually just
-      # that.
-      - name: Set up QEMU
-        if: github.event_name != 'workflow_dispatch'
-        uses: docker/setup-qemu-action@v3
+  # ── Per-architecture builds ────────────────────────────────────────────────
+  # Each leg pushes by digest with no tags attached. Nothing is publicly
+  # addressable until the merge job creates the index, so a half-finished build
+  # cannot leave a tag pointing at a single-architecture image.
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: [test, meta]
+    if: ${{ !cancelled() && needs.test.result == 'success' && github.event_name != 'workflow_dispatch' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      # Both results are wanted even when one fails: knowing whether the
+      # failure is architecture-specific is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+
+    permissions:
+      contents: read
+      # Push to GHCR with the run's own GITHUB_TOKEN — no registry credential is
+      # stored anywhere. No id-token here: only the merge job signs.
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Buildx
-        if: github.event_name != 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        if: github.event_name != 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push by digest
         id: build
-        if: github.event_name != 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          # Labels land on the per-architecture images; annotations land on the
-          # multi-arch index. The GHCR package page reads the index, so without
-          # the second line the metadata is present but the sidebar looks empty.
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          platforms: ${{ matrix.platform }}
+          # Labels land on the per-architecture images; the index annotations
+          # are applied by the merge job.
+          labels: ${{ needs.meta.outputs.labels }}
           # The Dockerfile declares both with placeholder defaults so a plain
           # `docker build` still produces an attributed image; CI supplies the
           # real values.
           build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
+            VERSION=${{ needs.meta.outputs.meta_version }}
             REVISION=${{ github.sha }}
-          # Without a cache every run recompiles the native module under
-          # emulation. mode=max keeps the intermediate stages too, which is
-          # where that cost actually sits.
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=image,name=${{ needs.meta.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          # Scoped per architecture. A shared scope means the two legs overwrite
+          # each other's entries and neither gets a reliable hit.
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      # The merge job needs both digests. Passing them as empty files named
+      # after the digest keeps the artifact trivially mergeable.
+      - name: Export the digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+
+      - name: Upload the digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Merge, tag and sign ────────────────────────────────────────────────────
+  # The only job that creates something addressable by tag, and therefore the
+  # only one that signs.
+  merge:
+    name: Build & Publish
+    needs: [meta, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' && github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      packages: write
+      # Lets the run mint the OIDC token cosign exchanges for a signing
+      # certificate. Without it, keyless signing fails at the Fulcio call.
+      id-token: write
+
+    steps:
+      - name: Download the digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the multi-arch index
+        id: merge
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ${{ needs.meta.outputs.image }}
+          TAGS: ${{ needs.meta.outputs.tags }}
+          ANNOTATIONS: ${{ needs.meta.outputs.annotations }}
+        run: |
+          set -euo pipefail
+
+          # metadata-action emits one tag and one annotation per line. Build the
+          # argument list from them rather than interpolating, so a value
+          # containing a space cannot split into two arguments.
+          args=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && args+=(--tag "$tag")
+          done <<< "$TAGS"
+          while IFS= read -r ann; do
+            [ -n "$ann" ] && args+=(--annotation "$ann")
+          done <<< "$ANNOTATIONS"
+
+          # Every file in this directory is named after a per-architecture digest.
+          sources=()
+          for f in *; do
+            sources+=("${IMAGE}@sha256:${f}")
+          done
+
+          docker buildx imagetools create "${args[@]}" "${sources[@]}"
+
+          # The tags all point at the same index; read the digest back from the
+          # first of them so the signature covers what was actually published.
+          first_tag=$(printf '%s\n' "$TAGS" | head -n1)
+          digest=$(docker buildx imagetools inspect "$first_tag" --format '{{json .Manifest}}' | jq -r .digest)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       # ── Signing ──────────────────────────────────────────────────────────────
       # Keyless: cosign generates a throwaway keypair, exchanges the run's OIDC
@@ -211,22 +330,19 @@ jobs:
       # The digest is signed, not the tags. Tags move; a digest is the content.
       # Signing the index digest covers the multi-arch manifest as a whole.
       - name: Install cosign
-        if: github.event_name != 'workflow_dispatch'
         uses: sigstore/cosign-installer@v3
 
       - name: Sign the published image
-        if: github.event_name != 'workflow_dispatch'
         env:
-          IMAGE: ${{ steps.ctx.outputs.image }}
-          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ needs.meta.outputs.image }}
+          DIGEST: ${{ steps.merge.outputs.digest }}
         # --yes skips the confirmation prompt; there is no terminal here.
         run: cosign sign --yes "${IMAGE}@${DIGEST}"
 
       - name: Summarise what was published
-        if: github.event_name != 'workflow_dispatch'
         env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ needs.meta.outputs.tags }}
+          DIGEST: ${{ steps.merge.outputs.digest }}
         run: |
           set -euo pipefail
           {

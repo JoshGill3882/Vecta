@@ -116,7 +116,7 @@ A buffer week (Week 9) is recommended before declaring v1.0.0 — for inevitable
 
 - [x] Both devs can clone, install, and run the dev server in under 5 minutes following the README — steps in `CONTRIBUTING.md` § Local development setup
 - [x] A trivial PR (e.g. add a one-line README change) passes through the full CI pipeline successfully — `.github/workflows/ci.yml`
-- [ ] Branch protection prevents direct push to `production` and `develop` — the ruleset exists and reads as Active, but rulesets are gated behind a paid plan for private repositories, so it does not enforce while this repository is private (#80)
+- [x] Branch protection prevents direct push to `production` and `develop` — a ruleset requiring a pull request and three passing status checks, verified by pushing a throwaway commit directly at each branch and having both refused with `GH013: Repository rule violations found`
 
 ### References
 
