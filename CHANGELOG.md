@@ -10,6 +10,8 @@ refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-07
+
 ### Changed
 
 - The project is now **Vecta**, hosted at `github.com/JoshGill3882/Vecta`. The
@@ -27,6 +29,14 @@ refactors that change nothing observable are not listed.
 - The session cookie is named `Vecta-Auth` rather than `Task-Manager-Auth`.
   Upgrading signs you out once — the old cookie is ignored rather than read,
   so sign in again and the new one replaces it
+
+### Fixed
+
+- Setting `PORT` no longer leaves the app unreachable and the container
+  permanently unhealthy. The container always listens on 3000 and `PORT` moves
+  only the host side, which is what the configuration table always described
+- New categories are given a default colour that meets AA contrast as chip
+  text. Categories that already have a colour keep it
 
 ### Upgrading from 0.1.0
 
@@ -69,5 +79,6 @@ backup instructions in the README.
   timing-safe
 - The post-login redirect only accepts same-origin absolute paths
 
-[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v0.1.0...develop
+[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v1.0.0...develop
+[1.0.0]: https://github.com/JoshGill3882/Vecta/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/JoshGill3882/Vecta/releases/tag/v0.1.0
