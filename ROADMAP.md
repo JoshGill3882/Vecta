@@ -17,9 +17,14 @@ Planned, and the most likely candidates for the release after the current one.
 
 - **Search, filter and sort on the task list.** The first thing that stops
   scaling. Status grouping is the only organisation there is today, which is
-  fine at thirty tasks and not at three hundred.
+  fine at thirty tasks and not at three hundred. Split across
+  [#111](https://github.com/JoshGill3882/Vecta/issues/111),
+  [#112](https://github.com/JoshGill3882/Vecta/issues/112) and
+  [#113](https://github.com/JoshGill3882/Vecta/issues/113).
 - **Due dates and overdue indicators.** The most-requested shape of task
-  metadata, and the one the list view has an obvious place to show.
+  metadata, and the one the list view has an obvious place to show. Split across
+  [#114](https://github.com/JoshGill3882/Vecta/issues/114) and
+  [#115](https://github.com/JoshGill3882/Vecta/issues/115).
 
 ## Later
 
