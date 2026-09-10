@@ -143,21 +143,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         </Button>
       </header>
 
-      {TASK_STATUSES.map((status) => (
-        <TaskSection
-          key={status.id}
-          status={status.id}
-          label={status.label}
-          tasks={byStatus.get(status.id) ?? []}
-          categoriesById={categoriesById}
-          collapsed={collapsed[status.id]}
-          onToggle={() => toggle(status.id)}
-          onEdit={openEdit}
-          onDelete={deleteTask}
-        />
-      ))}
-
-      {tasks.length === 0 && (
+      {tasks.length === 0 ? (
         <div className="text-text-2 px-5 py-[60px] text-center">
           <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
             <ListIcon className="size-[26px]" />
@@ -165,6 +151,20 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           <h2 className="mb-1.5 text-[17px]">No tasks yet</h2>
           <p className="text-text-3 text-sm">Create your first task with the New task button.</p>
         </div>
+      ) : (
+        TASK_STATUSES.map((status) => (
+          <TaskSection
+            key={status.id}
+            status={status.id}
+            label={status.label}
+            tasks={byStatus.get(status.id) ?? []}
+            categoriesById={categoriesById}
+            collapsed={collapsed[status.id]}
+            onToggle={() => toggle(status.id)}
+            onEdit={openEdit}
+            onDelete={deleteTask}
+          />
+        ))
       )}
 
       <TaskFormDialog
