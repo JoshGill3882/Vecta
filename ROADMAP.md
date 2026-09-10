@@ -36,6 +36,11 @@ hard they are.
   natural next step once there are enough of them to want grouping.
 - **Task dependencies and a "blocked" status.** These belong together — a
   blocked status without a reason attached is just a fourth column.
+- **Installing to a phone's home screen.** The layout already works on mobile;
+  what is missing is the manifest that lets a browser install it, so it opens in
+  its own window under an icon that looks like the app rather than one a
+  launcher invents for a bookmark.
+  [#117](https://github.com/JoshGill3882/Vecta/issues/117).
 - **A drag-and-drop kanban view**, as an alternative to the list rather than a
   replacement for it.
 - **A richer Markdown editor** with a preview toolbar. The current plain
