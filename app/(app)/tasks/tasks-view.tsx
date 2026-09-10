@@ -15,7 +15,7 @@ import { TASK_STATUSES } from "@/src/lib/task-status";
 import { createCategoryAction } from "../categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
-import { TaskSection, taskSectionHeaderId } from "./task-section";
+import { TaskSection, taskSectionHeaderId, tasksEmptyStateHeadingId } from "./task-section";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -38,7 +38,10 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     const status = pendingSectionFocus.current;
     if (!status) return;
     pendingSectionFocus.current = null;
-    document.getElementById(taskSectionHeaderId(status))?.focus();
+    const target =
+      document.getElementById(taskSectionHeaderId(status)) ??
+      document.getElementById(tasksEmptyStateHeadingId);
+    target?.focus();
   }, [tasks]);
 
   // One dialog serves create and edit; `editing` is what tells them apart —
