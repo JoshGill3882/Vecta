@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/lib/fonts";
+import { FaviconThemeSync } from "@/src/components/shell/favicon-theme-sync";
 
 const title = "Vecta";
 const description = "Self-hosted, single-user task management.";
@@ -51,7 +52,10 @@ export default function RootLayout({
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <FaviconThemeSync />
+        {children}
+      </body>
     </html>
   );
 }
