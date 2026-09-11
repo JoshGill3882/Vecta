@@ -8,7 +8,7 @@ Vecta is a personal project with a single maintainer. Bug reports, feature reque
 
 **Check the scope first.** [`ROADMAP.md`](./ROADMAP.md) lists what is planned, what is being considered, and what has been ruled out along with the reasoning. Something under "Not planned" is a "no" by default; making the case against the reason given is a fair opening move, and a better one than a pull request nobody asked for.
 
-### What gets merged
+## What gets merged
 
 - CI is green — lint, typecheck, and both test suites pass
 - Behaviour changes come with tests (see the [testing guide](./docs/guides/testing.md))

@@ -5,7 +5,7 @@ The app uses **single-admin** auth: one password, supplied via the
 encrypted, signed cookie (via [iron-session](https://github.com/vvo/iron-session));
 there is no server-side session store.
 
-**Key files**
+## Key files
 
 - `src/lib/session.ts` — the session helper API (use this everywhere)
 - `proxy.ts` — the request perimeter

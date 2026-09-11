@@ -5,7 +5,7 @@ All database access flows through two things: a **single Prisma client** and a
 way. For how one schema targets both SQLite and Postgres, see
 [Dual-provider DB & migrations](./dual-provider-migrations.md).
 
-**Key files**
+## Key files
 
 - `src/server/db.ts` — the singleton Prisma client
 - `src/server/services/*.ts` — the service seam (e.g. `tasks.ts`, `categories.ts`)

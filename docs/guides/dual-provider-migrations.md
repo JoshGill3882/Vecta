@@ -5,7 +5,7 @@ from a _single_ Prisma schema. This guide covers how that works and the
 migration workflow. For the runtime client and where queries live, see
 [Database & service layer](./database.md).
 
-**Key files**
+## Key files
 
 - `prisma/schema.prisma` — one set of models, shared by both providers
 - `scripts/db-provider.mjs` — `detectProvider()` + `MIGRATIONS_DIR` (single source of truth)

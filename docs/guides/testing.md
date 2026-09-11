@@ -4,7 +4,7 @@ Tests run on [Vitest](https://vitest.dev) in a Node environment (server-side
 code, no jsdom). This guide covers the project-specific patterns for testing the
 server seams, which mostly come down to mocking the Next.js-only dependencies.
 
-**Key files**
+## Key files
 
 - `vitest.config.ts` — two projects (`unit`, `integration`) + shared module aliases
 - `test/` — mirrors the source tree (`test/lib`, `test/app`, `test/scripts`)
