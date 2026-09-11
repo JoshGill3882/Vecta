@@ -18,6 +18,12 @@ import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection, taskSectionHeaderId } from "./task-section";
 
 /**
+ * Focus target of last resort after a delete: with no tasks left there are no
+ * section headers to return to, so the empty state's heading stands in (#110).
+ */
+const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
+
+/**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
  * route stays thin (auth + data fetching) while this owns the presentation.
  *
@@ -38,7 +44,10 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     const status = pendingSectionFocus.current;
     if (!status) return;
     pendingSectionFocus.current = null;
-    document.getElementById(taskSectionHeaderId(status))?.focus();
+    const target =
+      document.getElementById(taskSectionHeaderId(status)) ??
+      document.getElementById(tasksEmptyStateHeadingId);
+    target?.focus();
   }, [tasks]);
 
   // One dialog serves create and edit; `editing` is what tells them apart —
@@ -143,28 +152,30 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         </Button>
       </header>
 
-      {TASK_STATUSES.map((status) => (
-        <TaskSection
-          key={status.id}
-          status={status.id}
-          label={status.label}
-          tasks={byStatus.get(status.id) ?? []}
-          categoriesById={categoriesById}
-          collapsed={collapsed[status.id]}
-          onToggle={() => toggle(status.id)}
-          onEdit={openEdit}
-          onDelete={deleteTask}
-        />
-      ))}
-
-      {tasks.length === 0 && (
+      {tasks.length === 0 ? (
         <div className="text-text-2 px-5 py-[60px] text-center">
           <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
             <ListIcon className="size-[26px]" />
           </div>
-          <h2 className="mb-1.5 text-[17px]">No tasks yet</h2>
+          <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
+            No tasks yet
+          </h2>
           <p className="text-text-3 text-sm">Create your first task with the New task button.</p>
         </div>
+      ) : (
+        TASK_STATUSES.map((status) => (
+          <TaskSection
+            key={status.id}
+            status={status.id}
+            label={status.label}
+            tasks={byStatus.get(status.id) ?? []}
+            categoriesById={categoriesById}
+            collapsed={collapsed[status.id]}
+            onToggle={() => toggle(status.id)}
+            onEdit={openEdit}
+            onDelete={deleteTask}
+          />
+        ))
       )}
 
       <TaskFormDialog

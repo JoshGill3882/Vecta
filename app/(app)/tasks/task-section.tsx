@@ -23,7 +23,6 @@ import { TaskCard } from "./task-card";
 export function taskSectionHeaderId(status: TaskStatus) {
   return `task-section-${status}`;
 }
-
 /**
  * One collapsible status section: a header carrying the status dot, label and
  * count badge, over the tasks in that status.
