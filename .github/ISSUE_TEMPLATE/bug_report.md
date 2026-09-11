@@ -1,10 +1,11 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ""
-labels: bug
-assignees: ""
+title: ''
+labels: bug, feature
+assignees: ''
 type: Bug
+
 ---
 
 ## Summary
@@ -174,7 +175,6 @@ Paste stack trace or log output here
 - [ ] Logging / observability confirmed — this failure mode will be visible in future
 - [ ] Documentation updated if behaviour change affects expected usage
 - [ ] Fix tested in staging / pre-prod environment
-- [ ] Affected users notified (if applicable)
 
 ---
 
