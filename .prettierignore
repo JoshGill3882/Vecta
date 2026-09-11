@@ -1,0 +1,9 @@
+# GitHub issue and PR templates.
+#
+# These are routinely edited through GitHub's web template editor, which rewrites
+# the YAML frontmatter in a style Prettier rejects — single-quoted strings and a
+# blank line before the closing `---` — so every edit made that way failed CI on
+# formatting alone. Nothing imports these files and GitHub renders them itself,
+# so the round trip is not worth defending.
+.github/ISSUE_TEMPLATE/
+.github/PULL_REQUEST_TEMPLATE.md

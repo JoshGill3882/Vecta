@@ -194,3 +194,43 @@ Three things worth knowing before you file:
 - **Most issues have no milestone, and that is the normal state.** One is assigned when an issue becomes planned for a specific release; until then, no milestone means unscheduled rather than neglected.
 - **Setting one is the maintainer's call.** Please leave it unset on a new issue rather than guessing at a release.
 - **A milestone is a plan, not a promise.** Issues move between them as priorities change, which is the same reason [`ROADMAP.md`](./ROADMAP.md) carries no dates.
+
+---
+
+## Writing documentation
+
+Markdown in this repository is **not** wrapped to a fixed column width, and the
+`MD013/line-length` rule is switched off in
+[`.markdownlint.jsonc`](./.markdownlint.jsonc) to say so — that file carries the
+reasoning for each rule this repository overrides.
+
+Where a document's diffs matter — anything under [`docs/`](./docs/), which gets
+revised far more often than it gets written — prefer **semantic line breaks**
+instead: start a new line at a sentence or clause boundary rather than at a
+character count.
+
+```markdown
+Vecta is a self-hosted task manager.
+It runs on SQLite by default, with Postgres available for larger deployments.
+Sessions are cookie-based and there is no multi-user mode.
+```
+
+Markdown joins consecutive lines into a single paragraph, so that renders
+exactly as one block of prose. The reason to bother is Git: diffs are computed
+per line, so editing the second sentence above changes one line and leaves the
+other two untouched. Rewrite a 300-character paragraph held on a single line and
+the diff reports the whole thing as removed and re-added, which tells a reviewer
+nothing about what actually changed.
+
+A fixed column limit is the older answer to the same problem, and it is worse at
+it: inserting a word near the top of a wrapped paragraph reflows every line below
+it, so a one-word change arrives as eight changed lines. It also has to be held
+in mind while writing, which semantic breaks do not — "new sentence, new line" is
+something you are already thinking about.
+
+None of this is enforced by a tool, and older files do not all follow it.
+`README.md`, `CONTRIBUTING.md` and `SECURITY.md` are written as long unwrapped
+lines; several guides under `docs/` are hand-wrapped near 100 characters. Both
+are fine to leave alone — match whatever the file you are editing already does,
+rather than reformatting it in passing, since a wholesale rewrap buries the
+change you actually came to make.
