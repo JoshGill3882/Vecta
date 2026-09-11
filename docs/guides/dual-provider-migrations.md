@@ -5,7 +5,7 @@ from a _single_ Prisma schema. This guide covers how that works and the
 migration workflow. For the runtime client and where queries live, see
 [Database & service layer](./database.md).
 
-**Key files**
+## Key files
 
 - `prisma/schema.prisma` — one set of models, shared by both providers
 - `scripts/db-provider.mjs` — `detectProvider()` + `MIGRATIONS_DIR` (single source of truth)
@@ -19,7 +19,7 @@ Prisma can't read the datasource `provider` from an env var, so the project
 derives it from the **shape of `DATABASE_URL`** and rewrites the schema before
 each command:
 
-```
+```text
 file:...                         -> sqlite
 postgres://... / postgresql://.. -> postgresql   (detectProvider, db-provider.mjs)
 ```
@@ -36,7 +36,7 @@ patches the single `provider = "..."` line in `prisma/schema.prisma` to match.
 ## How to switch to PostgreSQL
 
 1. Set a Postgres URL in `.env`:
-   ```
+   ```ini
    DATABASE_URL="postgresql://user:pass@host:5432/vecta?schema=public"
    ```
 2. Apply the Postgres migration history:

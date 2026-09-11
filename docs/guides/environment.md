@@ -4,7 +4,7 @@ The app **refuses to start** if its required environment variables are missing
 or invalid, so misconfiguration fails fast and loudly rather than at the first
 request. This guide covers the contract and how to extend it.
 
-**Key files**
+## Key files
 
 - `instrumentation.ts` — boot-time validation (`register()`)
 - `.env.example` — the documented template

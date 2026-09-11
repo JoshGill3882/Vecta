@@ -5,7 +5,7 @@ All database access flows through two things: a **single Prisma client** and a
 way. For how one schema targets both SQLite and Postgres, see
 [Dual-provider DB & migrations](./dual-provider-migrations.md).
 
-**Key files**
+## Key files
 
 - `src/server/db.ts` — the singleton Prisma client
 - `src/server/services/*.ts` — the service seam (e.g. `tasks.ts`, `categories.ts`)
@@ -39,14 +39,14 @@ Component bundle**. Keep DB access on the server:
   time; apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint
   if the Prisma client or the `prisma` singleton is imported anywhere outside
-  `src/server/**`** (tests and the seed script are exempt). Model *types* from
+  `src/server/**`** (tests and the seed script are exempt). Model _types_ from
 `generated/prisma/models` stay allowed — that's how DTOs map rows.
 
 ## The service layer convention
 
 Data access is funnelled through `src/server/services/*`:
 
-```
+```text
 Server Action / route handler  ->  service (src/server/services)  ->  prisma
 ```
 

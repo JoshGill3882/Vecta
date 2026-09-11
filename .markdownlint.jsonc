@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+
+  // Line length. Markdown here is not wrapped to a fixed column width. See
+  // "Writing documentation" in CONTRIBUTING.md for the reasoning, and for the
+  // semantic-line-break convention used in its place. Enforcing a column count
+  // flags ~66 lines across README, CONTRIBUTING and SECURITY, which are written
+  // as long unwrapped lines on purpose.
+  "MD013": false,
+
+  // Inline HTML. Markdown has no syntax for a collapsible section, so the bug
+  // report template uses <details>/<summary>, which GitHub renders natively.
+  // Every other raw HTML tag stays flagged.
+  "MD033": { "allowed_elements": ["details", "summary"] },
+
+  // Blank lines around fenced code blocks. Still enforced in prose, but not
+  // inside list items: the guides attach a fence directly to the step it
+  // belongs to, and inserting the blank lines turns those tight lists loose —
+  // every step gains vertical space, and the code block renders identically
+  // either way (verified against GitHub's renderer).
+  "MD031": { "list_items": false },
+
+  // Emphasis style. Prettier normalises markdown emphasis to _underscores_ and
+  // offers no option to change it, so the default "consistent" setting puts the
+  // two tools in direct conflict — Prettier rewrites on commit whatever this
+  // rule asks for. Prettier wins; markdownlint is told which style to expect.
+  "MD049": "underscore",
+}
