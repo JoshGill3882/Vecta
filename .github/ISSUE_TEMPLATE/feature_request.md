@@ -30,7 +30,7 @@ type: Feature
 
 ## User Story
 
-```
+```text
 As a [type of user],
 I want [some goal or capability],
 So that [some reason or benefit].

@@ -40,7 +40,7 @@ so the shell wraps them but not `/login`. The group's layout
 (`app/(app)/layout.tsx`) renders the top bar, the main content region, and the
 global toaster:
 
-```
+```text
 app/(app)/
   layout.tsx            top bar + <main> + <Toaster/>
   page.tsx              Tasks route (/)   — thin: requireSession() → <TasksView/>

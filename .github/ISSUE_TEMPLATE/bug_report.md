@@ -98,7 +98,7 @@ type: Bug
 <details>
 <summary>Stack Trace / Logs</summary>
 
-```
+```text
 Paste stack trace or log output here
 ```
 

@@ -17,7 +17,7 @@ than restated, so there is only ever one copy to keep true.
 
 ## Directory structure
 
-```
+```text
 app/                      Routes. Next.js App Router.
   (app)/                  Authenticated area — route group, not a URL segment
     tasks/                Task list, and the components used only by it
