@@ -15,7 +15,13 @@ import { TASK_STATUSES } from "@/src/lib/task-status";
 import { createCategoryAction } from "../categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
-import { TaskSection, taskSectionHeaderId, tasksEmptyStateHeadingId } from "./task-section";
+import { TaskSection, taskSectionHeaderId } from "./task-section";
+
+/**
+ * Focus target of last resort after a delete: with no tasks left there are no
+ * section headers to return to, so the empty state's heading stands in (#110).
+ */
+const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -151,7 +157,9 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
             <ListIcon className="size-[26px]" />
           </div>
-          <h2 className="mb-1.5 text-[17px]">No tasks yet</h2>
+          <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
+            No tasks yet
+          </h2>
           <p className="text-text-3 text-sm">Create your first task with the New task button.</p>
         </div>
       ) : (

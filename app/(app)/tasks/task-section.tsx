@@ -23,9 +23,6 @@ import { TaskCard } from "./task-card";
 export function taskSectionHeaderId(status: TaskStatus) {
   return `task-section-${status}`;
 }
-/** Empty State Heading ID */
-export const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
-
 /**
  * One collapsible status section: a header carrying the status dot, label and
  * count badge, over the tasks in that status.
@@ -61,7 +58,7 @@ export function TaskSection({
           title): the section header carries the visuals, but the heading is what
           gives screen readers and Lighthouse a proper outline. Preflight leaves
           headings unstyled, so the wrapper adds no layout of its own. */}
-      <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
+      <h2>
         <CollapsibleTrigger
           id={taskSectionHeaderId(status)}
           className="focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3"
