@@ -75,23 +75,24 @@ them directly — so a fresh clone will not typecheck or build until it has run.
 
 ### Useful commands
 
-| Command                | Description                                     |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Start the development server                    |
-| `npm run build`        | Production build                                |
-| `npm test`             | Run the unit and integration suites once        |
-| `npm run test:watch`   | Run the suites in watch mode                    |
-| `npm run lint`         | Run ESLint                                      |
-| `npm run lint:fix`     | Run ESLint and auto-fix                         |
-| `npm run format`       | Format all files with Prettier                  |
-| `npm run format:check` | Check formatting without writing                |
-| `npm run typecheck`    | TypeScript type check                           |
-| `npm run db:generate`  | Generate the Prisma clients for both providers  |
-| `npm run db:migrate`   | Create and apply a migration (development)      |
-| `npm run db:deploy`    | Apply existing migrations (what the image runs) |
-| `npm run db:seed`      | Load example data — safe to re-run              |
-| `npm run db:reset`     | Drop, re-migrate and re-seed the local database |
-| `npm run db:studio`    | Open Prisma Studio to inspect the database      |
+| Command                  | Description                                                         |
+| ------------------------ | ------------------------------------------------------------------- |
+| `npm run dev`            | Start the development server                                        |
+| `npm run build`          | Production build                                                    |
+| `npm test`               | Run the unit and integration suites once                            |
+| `npm run test:watch`     | Run the suites in watch mode                                        |
+| `npm run lint`           | Run ESLint                                                          |
+| `npm run lint:fix`       | Run ESLint and auto-fix                                             |
+| `npm run format`         | Format all files with Prettier                                      |
+| `npm run format:check`   | Check formatting without writing                                    |
+| `npm run typecheck`      | TypeScript type check                                               |
+| `npm run icons:generate` | Rebuild `app/favicon.ico` and `app/icon.svg` from `public/logo.png` |
+| `npm run db:generate`    | Generate the Prisma clients for both providers                      |
+| `npm run db:migrate`     | Create and apply a migration (development)                          |
+| `npm run db:deploy`      | Apply existing migrations (what the image runs)                     |
+| `npm run db:seed`        | Load example data — safe to re-run                                  |
+| `npm run db:reset`       | Drop, re-migrate and re-seed the local database                     |
+| `npm run db:studio`      | Open Prisma Studio to inspect the database                          |
 
 Every `db:*` command resolves the datasource provider from `DATABASE_URL`
 first, so the same command works whether you are on SQLite or Postgres.
