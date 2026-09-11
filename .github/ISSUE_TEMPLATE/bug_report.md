@@ -1,9 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: bug, feature
-assignees: ''
+title: ""
+labels: bug
+assignees: ""
 type: Bug
 
 ---
@@ -42,22 +42,22 @@ type: Bug
 
 ## Expected vs. Actual Behaviour
 
-|              | Behaviour               |
-| ------------ | ----------------------- |
-| **Expected** | _What should happen_    |
-| **Actual**   | _What actually happens_ |
+| | Behaviour |
+| --- | --- |
+| **Expected** | _What should happen_ |
+| **Actual** | _What actually happens_ |
 
 ---
 
 ## Environment
 
-| Field                    | Detail                             |
-| ------------------------ | ---------------------------------- |
-| **Environment**          | _Production / Staging / Local_     |
-| **Browser / Client**     | _e.g. Chrome 123, iOS 17, Postman_ |
-| **App Version / Commit** | _e.g. v2.4.1 / `abc1234`_          |
-| **OS**                   | _e.g. Windows 11, macOS Sonoma_    |
-| **Reproducibility**      | _Always / Intermittent / Once_     |
+| Field | Detail |
+| --- | --- |
+| **Environment** | _Production / Staging / Local_ |
+| **Browser / Client** | _e.g. Chrome 123, iOS 17, Postman_ |
+| **App Version / Commit** | _e.g. v2.4.1 / `abc1234`_ |
+| **OS** | _e.g. Windows 11, macOS Sonoma_ |
+| **Reproducibility** | _Always / Intermittent / Once_ |
 
 ---
 
@@ -85,8 +85,8 @@ type: Bug
 
 <!-- Anything that must be resolved before this fix can be worked on or deployed. -->
 
-| Dependency              | Type                    | Status           | Link   |
-| ----------------------- | ----------------------- | ---------------- | ------ |
+| Dependency | Type | Status | Link |
+| --- | --- | --- | --- |
 | _e.g. Upstream API bug_ | _Service / PR / Ticket_ | _Pending / Done_ | _#123_ |
 
 ---
