@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-cli2-config-schema.json",
+
+  // Runner configuration for markdownlint-cli2. The *rules* live next door in
+  // .markdownlint.jsonc, with the reasoning for each override beside it; this
+  // file only decides which files the runner is pointed at. Keeping them apart
+  // means an editor extension reading .markdownlint.jsonc still sees the same
+  // rules as CI, whether or not it understands this file.
+
+  // The file set, held here rather than inline in the npm script so that
+  // `npm run lint:md`, `npm run lint:md:fix` and the CI step cannot drift apart.
+  "globs": ["**/*.md"],
+
+  // Exclusions. markdownlint-cli2 does not support .markdownlintignore — it is
+  // listed in the tool's own README among the markdownlint-cli features it
+  // dropped — so the exclusions are expressed by reusing .gitignore instead.
+  //
+  // That is the better answer here anyway: everything that has to be skipped is
+  // generated and therefore already ignored by git — graphify-out/ (the
+  // knowledge graph, whose GRAPH_REPORT.md alone reports hundreds of issues),
+  // .next/ (the standalone build traces vendored README files) and
+  // node_modules/. A separate ignore list would be a second copy of that set,
+  // free to fall out of step with the first.
+  "gitignore": true,
+}

@@ -83,6 +83,8 @@ them directly — so a fresh clone will not typecheck or build until it has run.
 | `npm run test:watch`     | Run the suites in watch mode                                        |
 | `npm run lint`           | Run ESLint                                                          |
 | `npm run lint:fix`       | Run ESLint and auto-fix                                             |
+| `npm run lint:md`        | Lint the Markdown — the same check CI gates on                      |
+| `npm run lint:md:fix`    | Lint the Markdown and auto-fix what can be fixed mechanically       |
 | `npm run format`         | Format all files with Prettier                                      |
 | `npm run format:check`   | Check formatting without writing                                    |
 | `npm run typecheck`      | TypeScript type check                                               |
@@ -205,6 +207,13 @@ Markdown in this repository is **not** wrapped to a fixed column width, and the
 [`.markdownlint.jsonc`](./.markdownlint.jsonc) to say so — that file carries the
 reasoning for each rule this repository overrides.
 
+Those rules are enforced. `npm run lint:md` runs markdownlint over every
+Markdown file git tracks, and the `checks` job in CI runs the same script as a
+blocking step, so a violation fails the build rather than waiting for a reviewer
+to spot it. Most of the rules auto-fix: reach for `npm run lint:md:fix` first
+and only the ones needing a decision from you — which language a fenced block
+is in, which heading a bold line should have been — will be left.
+
 Where a document's diffs matter — anything under [`docs/`](./docs/), which gets
 revised far more often than it gets written — prefer **semantic line breaks**
 instead: start a new line at a sentence or clause boundary rather than at a
@@ -229,7 +238,8 @@ it, so a one-word change arrives as eight changed lines. It also has to be held
 in mind while writing, which semantic breaks do not — "new sentence, new line" is
 something you are already thinking about.
 
-None of this is enforced by a tool, and older files do not all follow it.
+The line-break convention is the part no tool checks, and older files do not all
+follow it.
 `README.md`, `CONTRIBUTING.md` and `SECURITY.md` are written as long unwrapped
 lines; several guides under `docs/` are hand-wrapped near 100 characters. Both
 are fine to leave alone — match whatever the file you are editing already does,
