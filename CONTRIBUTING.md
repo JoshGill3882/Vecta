@@ -105,6 +105,7 @@ the generated clients live in `generated/`, which is gitignored, and the app imp
 | `npm run lint`           | Run ESLint                                                          |
 | `npm run lint:fix`       | Run ESLint and auto-fix                                             |
 | `npm run check:node`     | Check the Node version pins agree across the repo                   |
+| `npm run prune:ghcr`     | Dry-run the GHCR retention job — reports, deletes nothing           |
 | `npm run lint:md`        | Lint the Markdown — the same check CI gates on                      |
 | `npm run lint:md:fix`    | Lint the Markdown and auto-fix what can be fixed mechanically       |
 | `npm run format`         | Format all files with Prettier                                      |
