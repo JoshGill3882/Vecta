@@ -1,0 +1,103 @@
+name: Prune GHCR
+
+# Retention for `develop-<sha>` image versions.
+#
+# GHCR applies no retention to tagged versions, so every merge to develop leaves
+# a version behind for ever — each holding its layers alive and each with a
+# cosign signature entry beside it. `scripts/prune-ghcr-versions.mjs` carries the
+# reasoning for the keep count and for why this is a script rather than
+# `actions/delete-package-versions`; the short version is that the obvious
+# recipe deletes the untagged manifests a multi-arch release is made of.
+#
+# Two triggers:
+#
+#   schedule           -> a real prune, weekly.
+#   workflow_dispatch  -> whatever you ask for, defaulting to a dry run, so the
+#                         selection can be read before anything is destroyed.
+#
+# Deleting a published version is irreversible, which is why the dry run is the
+# default everywhere it can be and why the script refuses to proceed at all if
+# it could not read the whole manifest graph.
+
+on:
+  schedule:
+    # Sundays, 04:00 UTC. Nothing publishes at the weekend, so the prune never
+    # races a build that is midway through pushing an index and its children.
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would be deleted without deleting it"
+        type: boolean
+        default: true
+      keep:
+        description: "How many develop-<sha> builds to keep"
+        type: string
+        default: "10"
+
+permissions:
+  contents: read
+
+# Never two at once: both would read the same version list, and the second would
+# try to delete versions the first had already removed.
+concurrency:
+  group: prune-ghcr
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune develop-<sha> versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # The script uses only built-ins, so there is nothing to install.
+      #
+      # GHCR_PRUNE_TOKEN is a personal access token with `delete:packages`. The
+      # package is owned by a user rather than an organisation, and the version
+      # delete endpoint is under /users/{owner}/, which the run's own
+      # GITHUB_TOKEN may not be accepted for. The fallback is deliberate: a dry
+      # run only reads, so it works either way and will tell you which you have.
+      - name: Prune
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_PRUNE_TOKEN || github.token }}
+          DRY_RUN: ${{ inputs.dry_run == false && 'false' || 'true' }}
+          KEEP: ${{ inputs.keep || '10' }}
+        run: |
+          set -euo pipefail
+
+          # A schedule has no inputs, so it takes the real prune and the default
+          # keep count. A dispatch takes whatever was asked for.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            mode="--delete"
+          elif [ "$DRY_RUN" = "false" ]; then
+            mode="--delete"
+          else
+            mode="--dry-run"
+          fi
+
+          echo "Running with $mode --keep=$KEEP"
+          node scripts/prune-ghcr-versions.mjs "$mode" "--keep=$KEEP" | tee prune.log
+
+      # The run log is the record of what was deleted, and the dry-run output is
+      # what makes an unexpectedly large prune reviewable after the fact.
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### GHCR prune"
+            echo
+            echo '```'
+            tail -n 60 prune.log 2>/dev/null || echo "(no output — the step failed before producing any)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
