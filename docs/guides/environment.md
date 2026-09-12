@@ -1,8 +1,7 @@
 # Environment & boot-time contract
 
-The app **refuses to start** if its required environment variables are missing
-or invalid, so misconfiguration fails fast and loudly rather than at the first
-request. This guide covers the contract and how to extend it.
+The app **refuses to start** if its required environment variables are missing or invalid, so misconfiguration fails fast and loudly rather than at the first request.
+This guide covers the contract and how to extend it.
 
 ## Key files
 
@@ -28,20 +27,17 @@ Copy `.env.example` to `.env` and fill these in before running the app.
 
 ## How boot-time validation works
 
-`instrumentation.ts` exports `register()`, which Next.js runs **once when a
-server instance starts, before any request**. Throwing there aborts startup:
+`instrumentation.ts` exports `register()`, which Next.js runs **once when a server instance starts, before any request**.
+Throwing there aborts startup:
 
 - Missing `ADMIN_PASSWORD` → throws.
 - Missing `SESSION_SECRET` → throws.
 - `SESSION_SECRET` shorter than 32 chars → throws.
 
-It only validates in the **Node.js runtime** (`process.env.NEXT_RUNTIME ===
-"nodejs"`); env-based secrets aren't meaningful on the Edge runtime, so it
-returns early there.
+It only validates in the **Node.js runtime** (`process.env.NEXT_RUNTIME === "nodejs"`);
+env-based secrets aren't meaningful on the Edge runtime, so it returns early there.
 
-`DATABASE_URL` is validated separately at module load in `src/server/db.ts`
-(and its shape is checked by `detectProvider`), so it fails fast too — on first
-DB access if not before.
+`DATABASE_URL` is validated separately at module load in `src/server/db.ts` (and its shape is checked by `detectProvider`), so it fails fast too — on first DB access if not before.
 
 ## How to add a new required env var
 
@@ -56,7 +52,5 @@ DB access if not before.
 
 ## Gotchas
 
-- **Edge runtime skips validation.** Anything that must hold on Edge needs its
-  own guard at point of use.
-- **Keep `.env.example` in step with `register()`.** A required var that isn't
-  in the example is a trap for the next person setting up.
+- **Edge runtime skips validation.** Anything that must hold on Edge needs its own guard at point of use.
+- **Keep `.env.example` in step with `register()`.** A required var that isn't in the example is a trap for the next person setting up.
