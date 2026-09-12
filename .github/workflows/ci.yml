@@ -36,6 +36,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Blocking, not continue-on-error. A check that can fail without
+      # consequence becomes a red X nobody acts on, and real failures then hide
+      # behind the noise — either it gates or it is not worth running.
+      - name: Lint markdown
+        run: npm run lint:md
+
       - name: Check for Acceptance-Criteria references
         run: npm run check:ac
 
