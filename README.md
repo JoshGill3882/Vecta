@@ -2,7 +2,8 @@
 
 > A self-hosted, open-source task management web app — built for individuals who want to own their data.
 
-**Status:** v1.0.0 released. See [`ROADMAP.md`](./ROADMAP.md) for what comes next.
+**Status:** v1.0.0 released.
+See [`ROADMAP.md`](./ROADMAP.md) for what comes next.
 
 ![Task list](./docs/images/task-list.png)
 
@@ -10,7 +11,8 @@
 
 ## Why this exists
 
-Existing task tools fall into two camps: hosted SaaS products that own your data and lock features behind subscriptions, and self-hosted alternatives that are either over-engineered for one person or feel like clones of Trello and Jira.
+Existing task tools fall into two camps:
+hosted SaaS products that own your data and lock features behind subscriptions, and self-hosted alternatives that are either over-engineered for one person or feel like clones of Trello and Jira.
 
 This project aims for a third option:
 
@@ -43,7 +45,8 @@ For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
 
 ## Self-hosting
 
-Both paths need a `.env` file. Copy the template and fill in the two secrets:
+Both paths need a `.env` file.
+Copy the template and fill in the two secrets:
 
 ```bash
 cp .env.example .env
@@ -58,7 +61,8 @@ Then pick a path.
 
 ### Option 1 — Pre-built image
 
-No clone required. Download the compose file and the env template next to each other:
+No clone required.
+Download the compose file and the env template next to each other:
 
 ```bash
 curl -O https://raw.githubusercontent.com/JoshGill3882/Vecta/production/docker-compose.prod.yml
@@ -68,7 +72,8 @@ curl -o .env https://raw.githubusercontent.com/JoshGill3882/Vecta/production/.en
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The app is on <http://localhost:3000>. To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.0.0` in `.env`.
+The app is on <http://localhost:3000>.
+To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.0.0` in `.env`.
 
 ### Option 2 — Clone and build
 
@@ -87,7 +92,8 @@ Either way the container applies database migrations on start, so there is no se
 
 ## Configuration
 
-Every variable the app reads. Set them in `.env`, which both compose files load.
+Every variable the app reads.
+Set them in `.env`, which both compose files load.
 
 | Variable            | Required          | Default                 | Notes                                                                                 |
 | ------------------- | ----------------- | ----------------------- | ------------------------------------------------------------------------------------- |
@@ -100,7 +106,9 @@ Every variable the app reads. Set them in `.env`, which both compose files load.
 
 ### Using PostgreSQL instead of SQLite
 
-SQLite is the default and needs nothing beyond the data volume. Both compose files carry a commented-out Postgres service — uncomment the three marked blocks and point `DATABASE_URL` at it. The same image serves either engine; it picks the driver and the migration history from the URL.
+SQLite is the default and needs nothing beyond the data volume.
+Both compose files carry a commented-out Postgres service — uncomment the three marked blocks and point `DATABASE_URL` at it.
+The same image serves either engine; it picks the driver and the migration history from the URL.
 
 There is no conversion step between the two, so this is a decision to make before first run rather than a switch to flip later.
 
@@ -108,11 +116,15 @@ There is no conversion step between the two, so this is a decision to make befor
 
 ## Security
 
-This app has one password and no user accounts. Three things are your responsibility as the deployer:
+This app has one password and no user accounts.
+Three things are your responsibility as the deployer:
 
-- **Set a real `ADMIN_PASSWORD`.** It is the only thing between the internet and your data. The app will not start without one, but it cannot tell a strong password from a weak one.
-- **Generate `SESSION_SECRET` randomly** (`openssl rand -hex 32`). Reusing the example value from `.env.example` means anyone who has read this repository can forge a session cookie.
-- **Terminate HTTPS yourself.** The container serves plain HTTP. Put a reverse proxy (Caddy, nginx, Traefik) in front of it before exposing it beyond your own network — otherwise the password and session cookie travel in the clear.
+- **Set a real `ADMIN_PASSWORD`.** It is the only thing between the internet and your data.
+  The app will not start without one, but it cannot tell a strong password from a weak one.
+- **Generate `SESSION_SECRET` randomly** (`openssl rand -hex 32`).
+  Reusing the example value from `.env.example` means anyone who has read this repository can forge a session cookie.
+- **Terminate HTTPS yourself.** The container serves plain HTTP.
+  Put a reverse proxy (Caddy, nginx, Traefik) in front of it before exposing it beyond your own network — otherwise the password and session cookie travel in the clear.
 
 The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NODE_ENV=production` (which the image sets), so it will only be sent over HTTPS in a deployed instance.
 
@@ -120,9 +132,12 @@ The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NOD
 
 ## Backup and restore
 
-**SQLite (default).** Everything lives in the `app-data` volume. Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
+**SQLite (default).** Everything lives in the `app-data` volume.
+Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
 
-On the pre-built image path the compose file is not named `docker-compose.yml`, so every `docker compose` command below needs `-f docker-compose.prod.yml`. Without it you get `no configuration file provided: not found`. Set it once for the session:
+On the pre-built image path the compose file is not named `docker-compose.yml`, so every `docker compose` command below needs `-f docker-compose.prod.yml`.
+Without it you get `no configuration file provided: not found`.
+Set it once for the session:
 
 ```bash
 export COMPOSE_FILE=docker-compose.prod.yml   # pre-built image path only
@@ -158,13 +173,16 @@ Restore it into an empty database the same way round:
 docker compose exec -T db psql -U postgres -d vecta < vecta-backup.sql
 ```
 
-Whichever engine you use, test a restore at least once. An untested backup is a hypothesis.
+Whichever engine you use, test a restore at least once.
+An untested backup is a hypothesis.
 
 ---
 
 ## Upgrading
 
-If you pinned `VECTA_VERSION` in `.env`, edit it to the version you are moving to first. Pulling without changing it re-fetches the version you are already on: the commands below then report `Pulled` and `Started` and leave you where you were, with nothing to indicate the upgrade did not happen.
+If you pinned `VECTA_VERSION` in `.env`, edit it to the version you are moving to first.
+Pulling without changing it re-fetches the version you are already on:
+the commands below then report `Pulled` and `Started` and leave you where you were, with nothing to indicate the upgrade did not happen.
 
 ```bash
 docker compose -f docker-compose.prod.yml pull
@@ -177,10 +195,13 @@ The container applies any new migrations on start, so no extra step is needed. *
 
 That release was published under the project's previous name, so this one upgrade needs two changes before the commands above do anything:
 
-1. **Replace your `docker-compose.prod.yml` with the current one.** The image moved from `ghcr.io/j-l-dev-studio/task-management-solution` to `ghcr.io/joshgill3882/vecta`. Skip this and `pull` re-fetches the old image and reports success.
+1. **Replace your `docker-compose.prod.yml` with the current one.** The image moved from `ghcr.io/j-l-dev-studio/task-management-solution` to `ghcr.io/joshgill3882/vecta`.
+   Skip this and `pull` re-fetches the old image and reports success.
 2. **Rename `TMS_VERSION` to `VECTA_VERSION` in `.env`.** The old name is not read by the new compose file, so a pinned version is silently ignored and you get `:latest`.
 
-**Keep your existing directory.** Compose derives the project name from the directory it runs in, and the volume name from the project — so re-cloning into `Vecta/` looks for `vecta_app-data` and creates it empty, while your data stays behind in `task-management-solution_app-data`. The app starts healthy with no tasks in it. If you would rather move, restore into the new volume using the backup steps above.
+**Keep your existing directory.** Compose derives the project name from the directory it runs in, and the volume name from the project — so re-cloning into `Vecta/` looks for `vecta_app-data` and creates it empty, while your data stays behind in `task-management-solution_app-data`.
+The app starts healthy with no tasks in it.
+If you would rather move, restore into the new volume using the backup steps above.
 
 Tags behave as follows:
 
@@ -194,7 +215,8 @@ Tags behave as follows:
 
 ## Health and logs
 
-`GET /api/health` returns `200 {"status":"ok"}` when the server is up. The image already uses it for its Docker `HEALTHCHECK`, so `docker compose ps` reports `healthy` — point your reverse proxy or uptime monitor at the same endpoint.
+`GET /api/health` returns `200 {"status":"ok"}` when the server is up.
+The image already uses it for its Docker `HEALTHCHECK`, so `docker compose ps` reports `healthy` — point your reverse proxy or uptime monitor at the same endpoint.
 
 Logs go to stdout, which is where Docker expects them:
 
@@ -235,18 +257,20 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 
 ## Design principles
 
-The original sketch for this project listed three goals; they've been refined into the principles below, which guide design decisions throughout development:
+The original sketch for this project listed three goals;
+they've been refined into the principles below, which guide design decisions throughout development:
 
 - **Capture should be fast.** Adding a new task should take fewer clicks and less time than any existing tool the maintainer uses day to day.
 - **Be accessible.** The app should be usable on whatever device you reach for first — desktop or mobile.
-- **Don't get in the way.** No required fields beyond a title. Categories, descriptions, and metadata are optional. The tool should adapt to how you work, not impose process.
+- **Don't get in the way.** No required fields beyond a title.
+  Categories, descriptions, and metadata are optional.
+  The tool should adapt to how you work, not impose process.
 
 ---
 
 ## Roadmap
 
-What is planned, what is being considered, and what has been ruled out are all in
-[`ROADMAP.md`](./ROADMAP.md), grouped by likelihood rather than by date.
+What is planned, what is being considered, and what has been ruled out are all in [`ROADMAP.md`](./ROADMAP.md), grouped by likelihood rather than by date.
 
 For how v1.0.0 itself was scoped and delivered, see [`PLAN.md`](./docs/PLAN.md).
 
@@ -254,7 +278,8 @@ For how v1.0.0 itself was scoped and delivered, see [`PLAN.md`](./docs/PLAN.md).
 
 ## Contributing
 
-Bug reports, feature requests, and pull requests are welcome via [GitHub Issues](https://github.com/JoshGill3882/Vecta/issues/new/choose). This is a personal project with a single maintainer, so please open an issue before starting substantial work — it is the cheapest way to find out whether an idea fits the roadmap.
+Bug reports, feature requests, and pull requests are welcome via [GitHub Issues](https://github.com/JoshGill3882/Vecta/issues/new/choose).
+This is a personal project with a single maintainer, so please open an issue before starting substantial work — it is the cheapest way to find out whether an idea fits the roadmap.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local setup, the branching model, and what gets merged.
 
