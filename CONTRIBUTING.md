@@ -253,7 +253,22 @@ A fixed column limit is the older answer to the same problem, and it is worse at
 inserting a word near the top of a wrapped paragraph reflows every line below it, so a one-word change arrives as eight changed lines.
 It also has to be held in mind while writing, which semantic breaks do not — "new sentence, new line" is something you are already thinking about.
 
-The line-break convention is the part no tool checks, and older files do not all follow it.
-`README.md`, `CONTRIBUTING.md` and `SECURITY.md` are written as long unwrapped lines;
-several guides under `docs/` are hand-wrapped near 100 characters.
-Both are fine to leave alone — match whatever the file you are editing already does, rather than reformatting it in passing, since a wholesale rewrap buries the change you actually came to make.
+No tool checks this one, so it is on you when writing.
+Every tracked Markdown file follows it, with three deliberate exceptions:
+
+- **The issue and pull request templates** under [`.github/`](./.github/).
+  They are routinely edited through GitHub's web template editor, which rewrites the file on save, so any convention applied here survives only until the next edit made that way.
+  They are excluded from Prettier for the same reason.
+- **[`docs/PLAN.md`](./docs/PLAN.md).**
+  The delivery plan for v1.0.0 and a record of how it was built, rather than a living document — it opens with a blanket `markdownlint-disable` and has taken one commit since the release it describes.
+  Semantic line breaks exist to make future diffs readable, and a document with no future diffs gains nothing from them.
+
+Do not reformat a file in passing.
+A wholesale rewrap buries the change you actually came to make, which is why the conversion was done once, in its own commits, rather than a file at a time as people happened to touch them.
+
+Those commits are listed in `.git-blame-ignore-revs`, so `git blame` attributes each line to whoever last changed its content rather than to the rewrap.
+GitHub applies this automatically; to get the same locally, once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
