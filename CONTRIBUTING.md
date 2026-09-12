@@ -36,9 +36,30 @@ For running the app itself rather than working on it, self-hosting via Docker is
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24
 - npm 9+
 - Git
+
+### Node version
+
+Node **24** (Krypton), the active LTS line, supported until **April 2028**. That
+is a pin rather than a minimum: four files name a Node version — each stage of
+the `Dockerfile`, `ci.yml`, `_test.yml`, and `engines.node` in `package.json` —
+and they have to agree, because CI is only evidence about the container if both
+run the same major.
+
+They drifted once. CI sat on Node 20 past its end of life while the `Dockerfile`
+tracked `node:lts-alpine`, which became Node 24 on its own when 24 entered LTS —
+so the suite was proven on one major and the image shipped another, four apart,
+with no commit marking the change. The base tag now names a major so it cannot
+move unannounced, and `npm run check:node` fails if the four disagree. In CI it
+runs with `--with-image`, which starts `node -v` inside the base image and
+compares that against the runner, rather than comparing two strings read out of
+two files.
+
+Bumping Node means changing all four together; the check tells you if you miss
+one. Worth doing deliberately before April 2028 rather than discovering it the
+way this one was discovered.
 
 ### Steps
 
@@ -83,6 +104,7 @@ them directly — so a fresh clone will not typecheck or build until it has run.
 | `npm run test:watch`     | Run the suites in watch mode                                        |
 | `npm run lint`           | Run ESLint                                                          |
 | `npm run lint:fix`       | Run ESLint and auto-fix                                             |
+| `npm run check:node`     | Check the Node version pins agree across the repo                   |
 | `npm run lint:md`        | Lint the Markdown — the same check CI gates on                      |
 | `npm run lint:md:fix`    | Lint the Markdown and auto-fix what can be fixed mechanically       |
 | `npm run format`         | Format all files with Prettier                                      |

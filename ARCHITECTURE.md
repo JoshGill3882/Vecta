@@ -236,7 +236,7 @@ serving a broken app.
 
 ## Packaging
 
-A multi-stage build produces a standalone Next.js server on `node:lts-alpine`,
+A multi-stage build produces a standalone Next.js server on `node:24-alpine`,
 running as a non-root user, with the Prisma CLI installed into the image so the
 entrypoint can apply migrations before the server starts. Data lives in
 `/app/data`.
