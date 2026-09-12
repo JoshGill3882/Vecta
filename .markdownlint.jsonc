@@ -24,5 +24,8 @@
   // offers no option to change it, so the default "consistent" setting puts the
   // two tools in direct conflict — Prettier rewrites on commit whatever this
   // rule asks for. Prettier wins; markdownlint is told which style to expect.
-  "MD049": "underscore",
+  // The rule takes an object, not a bare style string: `"MD049": "underscore"`
+  // parses as valid JSON but is not a shape the rule understands, so it is
+  // discarded and the rule silently falls back to its "consistent" default.
+  "MD049": { "style": "underscore" },
 }
