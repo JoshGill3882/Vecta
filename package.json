@@ -11,6 +11,7 @@
     "lint:md": "markdownlint-cli2",
     "lint:md:fix": "markdownlint-cli2 --fix",
     "check:ac": "node scripts/check-no-ac-refs.mjs",
+    "check:node": "node scripts/check-node-versions.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
