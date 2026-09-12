@@ -1,9 +1,16 @@
+# Node 24 (Krypton), the active LTS, in active support until April 2028. Pinned
+# to the major on purpose: `node:lts-alpine` moves on its own, so the image
+# changed major the moment 24 entered LTS, with no commit to point at and CI
+# still proving the suite on Node 20. `npm run check:node` fails if any stage
+# here, either workflow or `engines.node` names a different major — so the next
+# bump is one deliberate change across all four, not a silent drift in one.
+#
 # ── deps ─────────────────────────────────────────────────────────────────────
 # better-sqlite3 is a native module and Alpine is musl, so it compiles from
 # source here — hence the toolchain. Keeping the install in its own stage means
 # python3/make/g++ never reach the final image. Building it under the target
 # platform is also what keeps the binding correct for the multi-arch builds.
-FROM node:lts-alpine AS deps
+FROM node:24-alpine AS deps
 RUN apk add --no-cache python3 make g++ libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -19,7 +26,7 @@ RUN npm ci
 # evaluates every route module while collecting page data, and src/server/db.ts
 # throws at module load when the variable is missing. The real DATABASE_URL is
 # supplied at container start.
-FROM node:lts-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -40,7 +47,7 @@ RUN DATABASE_URL="file:/tmp/build.db" npm run db:generate && \
 # generated. It also makes the image unreproducible — rebuilding the same tag
 # later would pick up a different Prisma. The lockfile holds the exact versions
 # `npm ci` installed, so reading it keeps every stage on one version.
-FROM node:lts-alpine AS migrator
+FROM node:24-alpine AS migrator
 WORKDIR /m
 COPY package-lock.json ./app-package-lock.json
 RUN PRISMA_VERSION="$(node -p "require('./app-package-lock.json').packages['node_modules/prisma'].version")" && \
@@ -51,7 +58,7 @@ RUN PRISMA_VERSION="$(node -p "require('./app-package-lock.json').packages['node
       "prisma@${PRISMA_VERSION}" "dotenv@${DOTENV_VERSION}"
 
 # ── runner ───────────────────────────────────────────────────────────────────
-FROM node:lts-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 # Standalone's server.js binds to $HOSTNAME, and Docker sets that to the
