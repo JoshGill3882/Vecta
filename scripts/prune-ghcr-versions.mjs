@@ -280,13 +280,41 @@ async function main() {
     return;
   }
 
+  // The run log is the only record of what was deleted, so a failure partway
+  // through must not throw away the account of what already succeeded.
+  //
+  // An auth failure stops the run: the token cannot delete, so the remaining
+  // attempts would each fail the same way and bury the one error that matters
+  // under sixty copies. Anything else is treated as possibly transient — the
+  // rest are attempted, and the exit code reports that some did not go.
+  const deleted = [];
+  const failed = [];
   for (const { v, why } of doomed) {
-    await gh(`/users/${OWNER}/packages/container/${PACKAGE}/versions/${v.id}`, {
-      method: "DELETE",
-    });
-    console.log(`  deleted ${describe(v)}  — ${why}`);
+    try {
+      await gh(`/users/${OWNER}/packages/container/${PACKAGE}/versions/${v.id}`, {
+        method: "DELETE",
+      });
+      deleted.push(v);
+      console.log(`  deleted ${describe(v)}  — ${why}`);
+    } catch (err) {
+      failed.push({ v, err });
+      console.error(`  FAILED  ${describe(v)}  — ${err.message}`);
+      if (/→ 40[13]/.test(err.message)) {
+        console.error(
+          `\n✗ Stopping: the token cannot delete package versions. ` +
+            `It needs the \`delete:packages\` and \`read:packages\` scopes.`
+        );
+        break;
+      }
+    }
   }
-  console.log(`\n✓ Deleted ${doomed.length} version(s).`);
+
+  console.log(`\nDeleted ${deleted.length} of ${doomed.length} version(s).`);
+  if (failed.length) {
+    console.error(`${failed.length} deletion(s) failed; nothing else was changed.`);
+    process.exit(1);
+  }
+  console.log(`✓ Done.`);
 }
 
 if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
