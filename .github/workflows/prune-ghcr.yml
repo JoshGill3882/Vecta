@@ -71,6 +71,8 @@ jobs:
       - name: Prune
         env:
           GH_TOKEN: ${{ secrets.GHCR_PRUNE_TOKEN || github.token }}
+          # Whether the secret exists, never its value. Empty when unset.
+          HAS_SECRET: ${{ secrets.GHCR_PRUNE_TOKEN != '' && 'yes' || '' }}
           DRY_RUN: ${{ inputs.dry_run == false && 'false' || 'true' }}
           KEEP: ${{ inputs.keep || '10' }}
         run: |
@@ -84,6 +86,16 @@ jobs:
             mode="--delete"
           else
             mode="--dry-run"
+          fi
+
+          # Which token is in play, without printing it. A 403 from the delete
+          # endpoint means something different depending on the answer — the
+          # workflow token lacking the permission, or a stale secret — and the
+          # run log is the only place that distinction can be recovered from.
+          if [ -n "${HAS_SECRET}" ]; then
+            echo "Token: GHCR_PRUNE_TOKEN secret"
+          else
+            echo "Token: the run's GITHUB_TOKEN (no GHCR_PRUNE_TOKEN secret set)"
           fi
 
           echo "Running with $mode --keep=$KEEP"
