@@ -209,7 +209,15 @@ Data lives in `/app/data`.
 
 Images are published to GHCR for `linux/amd64` and `linux/arm64`, and signed with cosign in keyless mode.
 
-→ [`Dockerfile`](./Dockerfile) · [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) · [self-hosting](./README.md#self-hosting)
+Each push to develop publishes an immutable `develop-<sha>` beside the moving `:unstable`, which is what keeps a dev build pinnable and an `:unstable` regression bisectable.
+GHCR applies no retention to tagged versions, so a weekly job prunes all but the ten most recent, along with their signatures and any manifest nothing references.
+`:unstable`, `:latest` and every `v*` are never touched, nor is anything reachable from them.
+
+That last clause is the whole design.
+A multi-arch tag is an index pointing at per-architecture manifests, and those manifests are untagged — so the usual "delete untagged versions" retention recipe would strip a published release of the images it consists of, leaving the tag listed and unpullable.
+The job marks everything reachable from a protected tag and sweeps only what is left.
+
+→ [`Dockerfile`](./Dockerfile) · [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) · [`.github/workflows/prune-ghcr.yml`](./.github/workflows/prune-ghcr.yml) · [self-hosting](./README.md#self-hosting)
 
 ---
 
