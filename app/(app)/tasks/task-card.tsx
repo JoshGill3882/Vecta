@@ -6,6 +6,7 @@ import { relativeTime } from "@/src/lib/relative-time";
 import { cn } from "@/src/lib/utils";
 
 import { TaskCardMenu } from "./task-card-menu";
+import { Highlight } from "./highlight";
 
 /** One task in the list: title, status, category, age. */
 export function TaskCard({
@@ -13,12 +14,14 @@ export function TaskCard({
   category,
   onEdit,
   onDelete,
+  needle,
 }: {
   task: TaskDTO;
   category?: CategoryDTO;
   onEdit: (task: TaskDTO) => void;
   /** Resolves true when the task was deleted, which closes the confirm dialog. */
   onDelete: (task: TaskDTO) => Promise<boolean>;
+  needle: string;
 }) {
   const closed = task.status === "closed";
 
@@ -57,7 +60,7 @@ export function TaskCard({
             type="button"
             className="focus-visible:ring-ring/50 cursor-pointer rounded-md text-left outline-none select-text focus-visible:ring-3"
           >
-            {task.title}
+            <Highlight text={task.title} needle={needle} />
           </button>
         </h3>
         {/* Radix portals the menu's items out of the card, so only the trigger

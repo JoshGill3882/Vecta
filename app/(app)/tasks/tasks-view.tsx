@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ListIcon, Plus } from "lucide-react";
+import { ListIcon, Plus, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/src/components/ui/button";
@@ -16,6 +16,8 @@ import { createCategoryAction } from "../categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection, taskSectionHeaderId } from "./task-section";
+import { filterTasks, normaliseQuery } from "@/src/lib/task-search";
+import { SearchField } from "./search-field";
 
 /**
  * Focus target of last resort after a delete: with no tasks left there are no
@@ -63,16 +65,31 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     [categories]
   );
 
+  const [query, setQuery] = useState("");
+  const needle = normaliseQuery(query);
+  const searching = needle !== "";
+
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
-  const byStatus = useMemo(() => {
+  const { byStatus, matchCount } = useMemo(() => {
+    const matched = filterTasks(tasks, needle);
     const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
-    for (const task of tasks) buckets.get(task.status)?.push(task);
-    for (const bucket of buckets.values()) {
+    for (const task of matched) buckets.get(task.status)?.push(task);
+    for (const bucket of buckets.values())
       bucket.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    }
-    return buckets;
-  }, [tasks]);
+    return { byStatus: buckets, matchCount: matched.length };
+  }, [tasks, needle]);
+
+  // Collapsing a section during a search is a transient act, so it is held here
+  // rather than written to the persisted map - clearing the query returns every
+  // section to the state the user left it in. Sections start expanded while
+  // narrowing, since a match hidden inside a collapsed `closed` reads as no match.
+  const [searchCollapsed, setSearchCollapsed] = useState<Partial<Record<TaskStatus, boolean>>>({});
+
+  function changeQuery(next: string) {
+    setQuery(next);
+    if (normaliseQuery(next) === "") setSearchCollapsed({});
+  }
 
   async function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
     const result = editing
@@ -141,9 +158,10 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
       <header className="mb-[18px] flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Your tasks</h1>
-          <p className="text-text-3 mt-1 text-[13.5px]">
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} across {categories.length}{" "}
-            {categories.length === 1 ? "category" : "categories"}
+          <p role="status" className="text-text-3 mt-1 text-[13.5px]">
+            {searching
+              ? `${matchCount} of ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`
+              : `${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} across ${categories.length} ${categories.length === 1 ? "category" : "categories"}`}
           </p>
         </div>
         <Button size="lg" onClick={openCreate} className="w-full sm:w-auto">
@@ -151,6 +169,8 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           New task
         </Button>
       </header>
+
+      {tasks.length > 0 && <SearchField value={query} onChange={changeQuery} />}
 
       {tasks.length === 0 ? (
         <div className="text-text-2 px-5 py-[60px] text-center">
@@ -162,20 +182,43 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           </h2>
           <p className="text-text-3 text-sm">Create your first task with the New task button.</p>
         </div>
+      ) : matchCount === 0 ? (
+        <div className="text-text-2 px-5 py-[60px] text-center">
+          <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
+            <SearchIcon className="size-[26px]" />
+          </div>
+          <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
+            No matching tasks
+          </h2>
+          <p className="text-text-3 text-sm">Nothing matches “{query.trim()}”.</p>
+          <Button variant="outline" onClick={() => changeQuery("")} className="mt-4">
+            Clear search
+          </Button>
+        </div>
       ) : (
-        TASK_STATUSES.map((status) => (
-          <TaskSection
-            key={status.id}
-            status={status.id}
-            label={status.label}
-            tasks={byStatus.get(status.id) ?? []}
-            categoriesById={categoriesById}
-            collapsed={collapsed[status.id]}
-            onToggle={() => toggle(status.id)}
-            onEdit={openEdit}
-            onDelete={deleteTask}
-          />
-        ))
+        TASK_STATUSES.map((status) => {
+          const inStatus = byStatus.get(status.id) ?? [];
+          // A status with nothing in it is noise while narrowing - drop it until the query clears
+          if (searching && inStatus.length === 0) return null;
+          return (
+            <TaskSection
+              key={status.id}
+              status={status.id}
+              label={status.label}
+              tasks={byStatus.get(status.id) ?? []}
+              categoriesById={categoriesById}
+              collapsed={searching ? (searchCollapsed[status.id] ?? false) : collapsed[status.id]}
+              onCollapsedChange={(next) =>
+                searching
+                  ? setSearchCollapsed((prev) => ({ ...prev, [status.id]: next }))
+                  : toggle(status.id)
+              }
+              onEdit={openEdit}
+              onDelete={deleteTask}
+              needle={needle}
+            />
+          );
+        })
       )}
 
       <TaskFormDialog
