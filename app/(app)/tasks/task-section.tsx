@@ -36,24 +36,30 @@ export function TaskSection({
   tasks,
   categoriesById,
   collapsed,
-  onToggle,
+  onCollapsedChange,
   onEdit,
   onDelete,
+  needle,
 }: {
   status: TaskStatus;
   label: string;
   tasks: TaskDTO[];
   categoriesById: Map<string, CategoryDTO>;
   collapsed: boolean;
-  onToggle: () => void;
+  onCollapsedChange: (collapsed: boolean) => void;
   onEdit: (task: TaskDTO) => void;
   /** Resolves true when the task was deleted, which closes the confirm dialog. */
   onDelete: (task: TaskDTO) => Promise<boolean>;
+  needle: string;
 }) {
   const accent = STATUS_ACCENT[status];
 
   return (
-    <Collapsible open={!collapsed} onOpenChange={onToggle} className="mb-3.5">
+    <Collapsible
+      open={!collapsed}
+      onOpenChange={(open) => onCollapsedChange(!open)}
+      className="mb-3.5"
+    >
       {/* A real <h2> so the list reads h1 (page) → h2 (status section) → h3 (card
           title): the section header carries the visuals, but the heading is what
           gives screen readers and Lighthouse a proper outline. Preflight leaves
@@ -91,6 +97,7 @@ export function TaskSection({
                 category={task.categoryId ? categoriesById.get(task.categoryId) : undefined}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                needle={needle}
               />
             ))}
           </div>

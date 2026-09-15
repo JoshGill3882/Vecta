@@ -137,3 +137,37 @@ Handle this in the view that _survives_ the delete, not in the dialog:
   A non-interactive landmark like the heading needs `tabIndex={-1}` to be focusable.
 
 `tasks-view.tsx` and `categories-view.tsx` are the reference implementations.
+
+## Narrowing the task list
+
+The task list is narrowed **in the browser, never on the server**.
+`app/(app)/tasks/page.tsx` already fetches every task and hands the array to `TasksView` as props, so filtering it costs no round trip, no service function and no URL state.
+The trigger for revisiting that is the payload of fetching every task becoming a problem — not filtering feeling slow.
+
+**The matching logic lives in `src/lib/task-search.ts`, not in the view.**
+It is a pure module over `TaskDTO[]` — no state, no DOM, no clock.
+That is deliberate: there is no component renderer in the test setup (see the [testing guide](./testing.md)), so logic left inside a component is logic that cannot be tested.
+Anything with an edge case worth pinning down belongs in that module; the component keeps the wiring only.
+
+Five things here are easy to get wrong:
+
+- **A narrowing control reads the stored collapsed state and never writes it.**
+  A match hidden inside a collapsed section reads as no match, so sections are forced open while a query is active.
+  Forcing that through `useCollapsedSections`'s `toggle()` would destroy a preference the user set for an unrelated reason — and because the rendered state and the stored state no longer agree, a `toggle()` that merely flips would write the wrong value.
+  Derive an effective collapsed value instead, and hold any transient override in component state so clearing the query restores what the user left.
+  Every control that narrows the list follows this rule, so none of them can disagree about what happens to the sections.
+- **Collapse handlers take the new value; they do not flip the old one.**
+  `TaskSection` exposes `onCollapsedChange(collapsed: boolean)` and passes Radix's reported state through.
+  A handler that flips assumes the rendered and stored values always agree, which stops being true the moment a section is forced open.
+- **The narrowed count is announced, not just displayed.**
+  The header subtitle carries `role="status"` — an [ARIA live region](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/ARIA_Live_Regions) — so a screen-reader user hears the list narrow instead of the number changing silently.
+  Keep that element mounted with only its text changing: a live region added to the page at the same moment as its content is often missed entirely.
+  `status` is polite, so fast typing coalesces into one announcement rather than one per keystroke.
+- **Match highlighting uses `indexOf`, not a `RegExp`.**
+  The query is user input, so a pattern built from it would need every metacharacter escaped before it could be trusted — a search for `.*` must highlight those two characters rather than the whole title, and an unclosed `[` must not throw.
+  `findMatches` returns index pairs into the original string, which also keeps the title's own casing in the output.
+- **A global key shortcut must not fire mid-typing.**
+  `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
+
+Do **not** debounce the input.
+Filtering an array already in memory is sub-millisecond; a debounce would only add latency the user can feel.

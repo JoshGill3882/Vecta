@@ -108,6 +108,19 @@ Both projects are declared in `vitest.config.ts`, and `npm test` runs both.
 
 Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`).
 
+## Testing UI logic without a DOM
+
+There is no jsdom and no component renderer here, so a React component cannot be mounted in a test.
+The pattern that works is to keep the logic out of the component: extract it into a pure module under `src/lib/` and test that directly.
+
+`src/lib/task-search.ts` is the reference.
+The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]` — trimming and case-folding a query, deciding whether a task matches, locating substrings to highlight — and `test/lib/task-search.test.ts` covers them with no mocks at all.
+`tasks-view.tsx` keeps the wiring: state, memoisation, and what renders.
+
+Draw the line at the edge cases.
+If a rule has one worth pinning down — a literal `.*` that must not behave as a wildcard, a query of pure whitespace, a string whose length changes when lowercased — it belongs in the module.
+What this leaves uncovered is real and worth naming: labelling, focus behaviour, keyboard handling and whether the right branch renders are verified by hand.
+
 ## Where to put tests
 
 Mirror the source path under `test/`: a module at `src/lib/foo.ts` → `test/lib/foo.test.ts`;
