@@ -171,6 +171,18 @@ Five things here are easy to get wrong:
   `findMatches` returns index pairs into the original string, which also keeps the title's own casing in the output.
 - **A global key shortcut must not fire mid-typing.**
   `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
+- **Every narrowing control answers to one predicate.**
+  `isNarrowing` in `src/lib/task-search.ts` is what the rules key off - sections forced open, empty sections dropped, the subtitle switching to "n of m".
+  None of those rules is about search, so none of them should test a query directly.
+  A control that narrows the list adds a criterion to `TaskNarrowing` and the rules follow; a control that tests its own state is a control the other rules do not know about.
+  Uncategorised is `null` in the selected set rather than a sentinel string, because `TaskDTO.categoryId` is already `string | null` and a set holding `null` matches an uncategorised task directly.
+- **The no-results state names and clears whatever is actually narrowing.**
+  A message blaming a search when a filter emptied the list is wrong, and a button that clears one control leaves a list that still looks broken.
+  Both are derived from which controls are active, so adding a control means extending that description rather than leaving it describing the one case it was written for.
+- **The transient collapse resets during render, not in an effect.**
+  `react-hooks/set-state-in-effect` is an error here, so the reset compares the previous narrowing state to the current one in the component body and clears the map on the transition.
+  React applies that before the sections render, so they never see a map left from the last time the list was narrowed.
+  It looks like something that belongs in an effect; moving it there fails lint.
 - **An empty section means different things while browsing and while narrowing.**
   With nothing narrowing the list, a status holding no tasks keeps its header — `In Progress 0` describes the state of your work — but renders no chevron and no body, because a section with no tasks has nothing to collapse (`task-section.tsx`).
   While narrowing, that same section is dropped entirely: zero matches in a status says something about the query, not about what the status contains.
