@@ -1,6 +1,8 @@
 "use client";
 
+import { CategoryFilter } from "./category-filter";
 import { SearchField } from "./search-field";
+import type { CategoryDTO } from "@/src/lib/dtos/categories";
 
 /**
  * The row of controls above the task list.
@@ -16,13 +18,24 @@ import { SearchField } from "./search-field";
 export function TasksToolbar({
   query,
   onQueryChange,
+  categories,
+  selectedCategoryIds,
+  onSelectedCategoryIdsChange,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
+  categories: CategoryDTO[];
+  selectedCategoryIds: ReadonlySet<string | null>;
+  onSelectedCategoryIdsChange: (next: ReadonlySet<string | null>) => void;
 }) {
   return (
     <div className="mb-3.5 flex flex-wrap items-center gap-2">
       <SearchField value={query} onChange={onQueryChange} />
+      <CategoryFilter
+        categories={categories}
+        selected={selectedCategoryIds}
+        onSelectedChange={onSelectedCategoryIdsChange}
+      />
     </div>
   );
 }

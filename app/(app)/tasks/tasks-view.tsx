@@ -31,8 +31,22 @@ import { TasksToolbar } from "./tasks-toolbar";
  */
 const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
 
-/** Stands in until the category control lands; the seam takes criteria already. */
-const NO_CATEGORIES: ReadonlySet<string | null> = new Set();
+/**
+ * Copy for the no-results state. It names the controls actually narrowing the
+ * list, so the message cannot blame a search when a filter is what emptied it,
+ * and the action says exactly what will clear.
+ */
+function describeNoMatches(query: string, byCategory: boolean) {
+  const trimmed = query.trim();
+  if (trimmed && byCategory) {
+    return {
+      detail: `Nothing matches “${trimmed}” in the selected categories.`,
+      action: "Clear search and filters",
+    };
+  }
+  if (trimmed) return { detail: `Nothing matches “${trimmed}”.`, action: "Clear search" };
+  return { detail: `No tasks in the selected categories.`, action: "Clear filters" };
+}
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -77,12 +91,32 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
 
   const [query, setQuery] = useState("");
   const needle = normaliseQuery(query);
+  const [categoryIds, setCategoryIds] = useState<ReadonlySet<string | null>>(() => new Set());
+
+  // A category can be deleted while it is selected, which would otherwise narrow
+  // the list to nothing and leave no way back. Pruning is derived rather than
+  // corrected after the fact: a correction applied afterwards shows the stranded
+  // list for a render first, and races the refresh that removed the category.
+  const selectedCategoryIds = useMemo(() => {
+    const known = new Set<string | null>([null]);
+    for (const category of categories) known.add(category.id);
+    return new Set([...categoryIds].filter((id) => known.has(id)));
+  }, [categoryIds, categories]);
 
   const narrowing = useMemo<TaskNarrowing>(
-    () => ({ needle, categoryIds: NO_CATEGORIES }),
-    [needle]
+    () => ({ needle, categoryIds: selectedCategoryIds }),
+    [needle, selectedCategoryIds]
   );
   const narrowed = isNarrowing(narrowing);
+
+  // Clear all narrowing
+  function clearNarrowing() {
+    setQuery("");
+    setCategoryIds(new Set());
+  }
+
+  // No Matches detail and action strings for current state
+  const noMatches = describeNoMatches(query, selectedCategoryIds.size > 0);
 
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
@@ -101,12 +135,14 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
   // since a match hidden inside a collapsed `closed` reads as no match.
   const [narrowCollapsed, setNarrowCollapsed] = useState<Partial<Record<TaskStatus, boolean>>>({});
 
-  function changeQuery(next: string) {
-    setQuery(next);
-    // The query is the only thing narrowing the list today, so emptying it ends
-    // the narrowing and the transient collapse goes with it. That stops being
-    // true the moment the category filter lands.
-    if (normaliseQuery(next) === "") setNarrowCollapsed({});
+  // Reset the transient collapse when narrowing ends, whichever control ended it.
+  // Adjusted during render rather than after it: React applies this before the
+  // sections render, so they never see a map left over from the last time the
+  // list was narrowed.
+  const [wasNarrowed, setWasNarrowed] = useState(narrowed);
+  if (wasNarrowed !== narrowed) {
+    setWasNarrowed(narrowed);
+    if (!narrowed) setNarrowCollapsed({});
   }
 
   async function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
@@ -188,7 +224,15 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         </Button>
       </header>
 
-      {tasks.length > 0 && <TasksToolbar query={query} onQueryChange={changeQuery} />}
+      {tasks.length > 0 && (
+        <TasksToolbar
+          query={query}
+          onQueryChange={setQuery}
+          categories={categories}
+          selectedCategoryIds={selectedCategoryIds}
+          onSelectedCategoryIdsChange={setCategoryIds}
+        />
+      )}
 
       {tasks.length === 0 ? (
         <div className="text-text-2 px-5 py-[60px] text-center">
@@ -208,9 +252,9 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
             No matching tasks
           </h2>
-          <p className="text-text-3 text-sm">Nothing matches “{query.trim()}”.</p>
-          <Button variant="outline" onClick={() => changeQuery("")} className="mt-4">
-            Clear search
+          <p className="text-text-3 text-sm">{noMatches.detail}.</p>
+          <Button variant="outline" onClick={clearNarrowing} className="mt-4">
+            {noMatches.action}
           </Button>
         </div>
       ) : (
