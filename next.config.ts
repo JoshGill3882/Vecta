@@ -1,10 +1,16 @@
 import type { NextConfig } from "next";
 
+const extraDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "")
+  .split(",")
+  .map((origin: string) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   output: "standalone",
   // DEV ONLY - Specify allowed CORS origins from LAN network for local dev testing
-  // Add other domains to the list if required for your own testing
-  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.local"],
+  // Add other domains to environment variables under "ALLOWED_DEV_ORIGINS" if you
+  // require others for local testing
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.local", ...extraDevOrigins],
 
   async redirects() {
     return [
