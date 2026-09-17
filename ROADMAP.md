@@ -25,6 +25,9 @@ Planned, and the most likely candidates for the release after the current one.
 Intended, but unscheduled.
 Roughly in order of how useful they seem, not how hard they are.
 
+- **Deleting a task from the task view.**
+  Delete is reachable only from the list card's overflow menu, so a task read in full has to be dismissed and found again before it can be removed.
+  [#138](https://github.com/JoshGill3882/Vecta/issues/138).
 - **Acceptance criteria on a task**, as a toggleable checklist.
 - **Sub-categories.** Categories are deliberately flat today;
   nesting is the natural next step once there are enough of them to want grouping.
