@@ -94,6 +94,20 @@ The app runs at `http://localhost:3000`.
 `db:generate` is a required step rather than a convenience:
 the generated clients live in `generated/`, which is gitignored, and the app imports from them directly — so a fresh clone will not typecheck or build until it has run.
 
+### Reaching the dev server from another device
+
+`npm run dev` serves on every interface, but Next blocks cross-origin requests to development assets unless the origin is allowed.
+The LAN ranges are already listed in `next.config.ts`, so a phone or a second machine on the home network works with no setup.
+
+Anything outside that — a tunnel used to reach the dev server while away from the network — goes in `ALLOWED_DEV_ORIGINS` in your `.env`, as a comma-separated list of hostnames:
+
+```bash
+ALLOWED_DEV_ORIGINS="dev.example.com,*.trycloudflare.com"
+```
+
+It is deliberately not a config-file setting: a personal hostname in `next.config.ts` would be committed.
+See [`docs/guides/environment.md`](./docs/guides/environment.md#allowed_dev_origins) for how entries are matched.
+
 ### Useful commands
 
 | Command                  | Description                                                         |
