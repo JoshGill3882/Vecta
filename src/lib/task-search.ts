@@ -17,8 +17,45 @@ export function matchesQuery(task: TaskDTO, needle: string): boolean {
   );
 }
 
-export function filterTasks(tasks: TaskDTO[], needle: string): TaskDTO[] {
-  return needle === "" ? tasks : tasks.filter((task) => matchesQuery(task, needle));
+/**
+ * Everything the list narrows by, in one value. Grouping them is what keeps the
+ * three call sites in `tasks-view.tsx` from each deciding for themselves whether
+ * the list is currently narrowed - they ask here instead.
+ */
+export type TaskNarrowing = {
+  /** Already normalised. Empty means "no query", never "match nothing". */
+  needle: string;
+  /**
+   * Selected category ids, where `null` is the Uncategorised option rather than
+   * a sentinel string: `TaskDTO.categoryId` is `string | null`, so a set holding
+   * `null` matches an uncategorised task directly and no call site has to
+   * translate. Empty means "no category filter" - the same "match everything"
+   * reading `needle` gets.
+   */
+  categoryIds: ReadonlySet<string | null>;
+};
+
+/** `categoryIds` empty is "no filter", matching how an empty needle reads. */
+export function matchesCategory(task: TaskDTO, categoryIds: TaskNarrowing["categoryIds"]): boolean {
+  if (categoryIds.size === 0) return true;
+  return categoryIds.has(task.categoryId);
+}
+
+/**
+ * Whether anything is narrowing the list. The rules that key off this - sections
+ * forced open, empty sections dropped, the subtitle's "n of m" - apply to any
+ * narrowing control, not to search specifically.
+ */
+export function isNarrowing({ needle, categoryIds }: TaskNarrowing): boolean {
+  return needle !== "" || categoryIds.size > 0;
+}
+
+/** One pass producing the narrowed list, not one pass per criterion */
+export function narrowTasks(tasks: TaskDTO[], narrowing: TaskNarrowing): TaskDTO[] {
+  if (!isNarrowing(narrowing)) return tasks;
+  return tasks.filter(
+    (task) => matchesQuery(task, narrowing.needle) && matchesCategory(task, narrowing.categoryIds)
+  );
 }
 
 /**

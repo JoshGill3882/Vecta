@@ -16,7 +16,12 @@ import { createCategoryAction } from "../categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection, taskSectionHeaderId } from "./task-section";
-import { filterTasks, normaliseQuery } from "@/src/lib/task-search";
+import {
+  isNarrowing,
+  narrowTasks,
+  normaliseQuery,
+  type TaskNarrowing,
+} from "@/src/lib/task-search";
 import { SearchField, tasksSearchFieldId } from "./search-field";
 
 /**
@@ -24,6 +29,9 @@ import { SearchField, tasksSearchFieldId } from "./search-field";
  * section headers to return to, so the empty state's heading stands in (#110).
  */
 const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
+
+/** Stands in until the category control lands; the seam takes criteria already. */
+const NO_CATEGORIES: ReadonlySet<string | null> = new Set();
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -68,28 +76,36 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
 
   const [query, setQuery] = useState("");
   const needle = normaliseQuery(query);
-  const searching = needle !== "";
+
+  const narrowing = useMemo<TaskNarrowing>(
+    () => ({ needle, categoryIds: NO_CATEGORIES }),
+    [needle]
+  );
+  const narrowed = isNarrowing(narrowing);
 
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
   const { byStatus, matchCount } = useMemo(() => {
-    const matched = filterTasks(tasks, needle);
+    const matched = narrowTasks(tasks, narrowing);
     const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
     for (const task of matched) buckets.get(task.status)?.push(task);
     for (const bucket of buckets.values())
       bucket.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return { byStatus: buckets, matchCount: matched.length };
-  }, [tasks, needle]);
+  }, [tasks, narrowing]);
 
-  // Collapsing a section during a search is a transient act, so it is held here
-  // rather than written to the persisted map - clearing the query returns every
-  // section to the state the user left it in. Sections start expanded while
-  // narrowing, since a match hidden inside a collapsed `closed` reads as no match.
-  const [searchCollapsed, setSearchCollapsed] = useState<Partial<Record<TaskStatus, boolean>>>({});
+  // Collapsing a section while the list is narrowed is a transient act, so it is held here
+  // rather than written to the persisted map - clearing the narrowing returns every
+  // section to the state the user left it in. Sections start expanded,
+  // since a match hidden inside a collapsed `closed` reads as no match.
+  const [narrowCollapsed, setNarrowCollapsed] = useState<Partial<Record<TaskStatus, boolean>>>({});
 
   function changeQuery(next: string) {
     setQuery(next);
-    if (normaliseQuery(next) === "") setSearchCollapsed({});
+    // The query is the only thing narrowing the list today, so emptying it ends
+    // the narrowing and the transient collapse goes with it. That stops being
+    // true the moment the category filter lands.
+    if (normaliseQuery(next) === "") setNarrowCollapsed({});
   }
 
   async function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
@@ -160,7 +176,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         <div>
           <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Your tasks</h1>
           <p role="status" className="text-text-3 mt-1 text-[13.5px]">
-            {searching
+            {narrowed
               ? `${matchCount} of ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`
               : `${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} across ${categories.length} ${categories.length === 1 ? "category" : "categories"}`}
           </p>
@@ -199,8 +215,8 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
       ) : (
         TASK_STATUSES.map((status) => {
           const inStatus = byStatus.get(status.id) ?? [];
-          // A status with nothing in it is noise while narrowing - drop it until the query clears
-          if (searching && inStatus.length === 0) return null;
+          // A status with nothing in it is noise while narrowing - drop it until the narrowing clears
+          if (narrowed && inStatus.length === 0) return null;
           return (
             <TaskSection
               key={status.id}
@@ -208,10 +224,10 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
               label={status.label}
               tasks={byStatus.get(status.id) ?? []}
               categoriesById={categoriesById}
-              collapsed={searching ? (searchCollapsed[status.id] ?? false) : collapsed[status.id]}
+              collapsed={narrowed ? (narrowCollapsed[status.id] ?? false) : collapsed[status.id]}
               onCollapsedChange={(next) =>
-                searching
-                  ? setSearchCollapsed((prev) => ({ ...prev, [status.id]: next }))
+                narrowed
+                  ? setNarrowCollapsed((prev) => ({ ...prev, [status.id]: next }))
                   : toggle(status.id)
               }
               onEdit={openEdit}
