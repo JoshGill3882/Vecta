@@ -135,6 +135,9 @@ Handle this in the view that _survives_ the delete, not in the dialog:
 - Aim focus at a **stable landmark**:
   the task's status-section header (`taskSectionHeaderId(status)` in `task-section.tsx`) for a task delete, the page heading for a category delete.
   A non-interactive landmark like the heading needs `tabIndex={-1}` to be focusable.
+- **Have a fallback for a landmark that may not exist.**
+  A landmark can vanish in the same delete that needs it: the status section holding the last match is dropped while the list is narrowed, and the empty state that would otherwise stand in is not rendered while other sections still show results.
+  `tasks-view.tsx` resolves the first of three ids actually in the DOM — section header, then empty-state heading, then the search field — rather than assuming the first one is there.
 
 `tasks-view.tsx` and `categories-view.tsx` are the reference implementations.
 
@@ -168,6 +171,10 @@ Five things here are easy to get wrong:
   `findMatches` returns index pairs into the original string, which also keeps the title's own casing in the output.
 - **A global key shortcut must not fire mid-typing.**
   `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
+- **An empty section means different things while browsing and while narrowing.**
+  With nothing narrowing the list, a status holding no tasks keeps its header — `In Progress 0` describes the state of your work — but renders no chevron and no body, because a section with no tasks has nothing to collapse (`task-section.tsx`).
+  While narrowing, that same section is dropped entirely: zero matches in a status says something about the query, not about what the status contains.
+  Neither form touches the stored collapsed state, so a section that empties and refills returns to where the user left it.
 
 Do **not** debounce the input.
 Filtering an array already in memory is sub-millisecond; a debounce would only add latency the user can feel.
