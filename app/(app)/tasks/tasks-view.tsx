@@ -17,7 +17,7 @@ import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions"
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection, taskSectionHeaderId } from "./task-section";
 import { filterTasks, normaliseQuery } from "@/src/lib/task-search";
-import { SearchField } from "./search-field";
+import { SearchField, tasksSearchFieldId } from "./search-field";
 
 /**
  * Focus target of last resort after a delete: with no tasks left there are no
@@ -48,7 +48,8 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     pendingSectionFocus.current = null;
     const target =
       document.getElementById(taskSectionHeaderId(status)) ??
-      document.getElementById(tasksEmptyStateHeadingId);
+      document.getElementById(tasksEmptyStateHeadingId) ??
+      document.getElementById(tasksSearchFieldId);
     target?.focus();
   }, [tasks]);
 
