@@ -22,7 +22,8 @@ import {
   normaliseQuery,
   type TaskNarrowing,
 } from "@/src/lib/task-search";
-import { SearchField, tasksSearchFieldId } from "./search-field";
+import { tasksSearchFieldId } from "./search-field";
+import { TasksToolbar } from "./tasks-toolbar";
 
 /**
  * Focus target of last resort after a delete: with no tasks left there are no
@@ -187,7 +188,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         </Button>
       </header>
 
-      {tasks.length > 0 && <SearchField value={query} onChange={changeQuery} />}
+      {tasks.length > 0 && <TasksToolbar query={query} onQueryChange={changeQuery} />}
 
       {tasks.length === 0 ? (
         <div className="text-text-2 px-5 py-[60px] text-center">

@@ -48,7 +48,7 @@ export function SearchField({
   }, []);
 
   return (
-    <div className="relative mb-3.5 flex-1">
+    <div className="relative min-w-52 flex-1">
       <Search className="text-text-faint pointer-events-none absolute top-1/2 left-3 size-[15px] -translate-y-1/2" />
       <Input
         id={tasksSearchFieldId}
