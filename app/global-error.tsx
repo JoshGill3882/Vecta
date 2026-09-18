@@ -7,7 +7,7 @@ import { TriangleAlert } from "lucide-react";
 // styles apply — this file must bring its own <html>/<body>, the `dark` class,
 // the fonts, and the stylesheet that defines the design tokens.
 import "./globals.css";
-import { geistSans, geistMono } from "@/src/lib/fonts";
+import { geistSans, geistMono } from "@/src/shared/lib/fonts";
 
 /**
  * Last-resort boundary. It catches errors that escape the route boundaries —

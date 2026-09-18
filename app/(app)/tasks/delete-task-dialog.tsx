@@ -13,8 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
-} from "@/src/components/ui/alert-dialog";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+} from "@/src/shared/components/ui/alert-dialog";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 /**
  * Confirmation step in front of a task deletion. Presentational and controlled:

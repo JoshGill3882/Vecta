@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
+import { Button } from "@/src/shared/components/ui/button";
+import { Input } from "@/src/shared/components/ui/input";
 
 /**
  * DOM id of the search input. The last link in the post-delete focus chain:

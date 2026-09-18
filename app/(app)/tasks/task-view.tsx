@@ -1,10 +1,10 @@
 import { Pencil } from "lucide-react";
 
-import { CategoryChip } from "@/src/components/categories/category-chip";
+import { CategoryChip } from "@/src/shared/components/category-chip";
 import { StatusBadge } from "@/src/components/tasks/status-badge";
-import { Button } from "@/src/components/ui/button";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+import { Button } from "@/src/shared/components/ui/button";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { relativeTime } from "@/src/lib/relative-time";
 
 import { TaskDescription } from "./task-description";

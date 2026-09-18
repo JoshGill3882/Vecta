@@ -1,4 +1,4 @@
-import type { TaskStatus } from "@/src/lib/dtos/tasks";
+import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
 
 /**
  * The three status sections, in the order the list view renders them. The DTO's

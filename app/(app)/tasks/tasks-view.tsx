@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { ListIcon, Plus, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/src/shared/components/ui/button";
 import { useCollapsedSections } from "@/src/hooks/use-collapsed-sections";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO, TaskStatus } from "@/src/lib/dtos/tasks";
-import { suggestCategoryColor } from "@/src/lib/palette";
-import { TASK_STATUSES } from "@/src/lib/task-status";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
+import { suggestCategoryColor } from "@/src/shared/lib/palette";
+import { TASK_STATUSES } from "@/src/shared/lib/task-status";
 
-import { createCategoryAction } from "../categories/actions";
+import { createCategoryAction } from "@/app/(app)/categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
 import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
 import { TaskSection, taskSectionHeaderId } from "./task-section";

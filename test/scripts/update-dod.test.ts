@@ -10,7 +10,7 @@ import {
   replaceBlock,
   parseArgs,
   isSuperseded,
-} from "../../scripts/update-dod.mjs";
+} from "@/scripts/update-dod.mjs";
 
 // An issue body shaped like the templates: a CI-owned fence, with human
 // judgement boxes on both sides of it.

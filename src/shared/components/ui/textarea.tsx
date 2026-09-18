@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 /** `pointer-fine:text-sm` replaces shadcn's `md:text-sm` — see Input for why. */
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {

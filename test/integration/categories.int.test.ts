@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { prisma } from "@/src/server/db";
-import { CATEGORY_PALETTE } from "@/src/lib/palette";
+import { CATEGORY_PALETTE } from "@/src/shared/lib/palette";
 import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-} from "../../app/(app)/categories/actions";
+} from "@/app/(app)/categories/actions";
 
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
 

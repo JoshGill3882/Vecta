@@ -2,7 +2,7 @@
 
 import { CategoryFilter } from "./category-filter";
 import { SearchField } from "./search-field";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
 /**
  * The row of controls above the task list.

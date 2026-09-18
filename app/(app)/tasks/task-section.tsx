@@ -6,11 +6,11 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/src/components/ui/collapsible";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO, TaskStatus } from "@/src/lib/dtos/tasks";
-import { STATUS_ACCENT } from "@/src/lib/task-status";
-import { cn } from "@/src/lib/utils";
+} from "@/src/shared/components/ui/collapsible";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
+import { STATUS_ACCENT } from "@/src/shared/lib/task-status";
+import { cn } from "@/src/shared/lib/utils";
 
 import { TaskCard } from "./task-card";
 

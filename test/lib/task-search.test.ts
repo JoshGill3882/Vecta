@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { TaskDTO } from "../../src/lib/dtos/tasks";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import {
   normaliseQuery,
   matchesQuery,
@@ -7,7 +7,7 @@ import {
   isNarrowing,
   narrowTasks,
   findMatches,
-} from "../../src/lib/task-search";
+} from "@/src/lib/task-search";
 
 // Only the fields the search reads carry meaning here; the rest are filler so
 // the fixtures are real TaskDTOs rather than partials cast into place.

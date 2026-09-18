@@ -1,4 +1,4 @@
-import { Skeleton } from "@/src/components/ui/skeleton";
+import { Skeleton } from "@/src/shared/components/ui/skeleton";
 
 /**
  * Suspense fallback for the categories route. Like the tasks fallback, this sits

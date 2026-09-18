@@ -1,4 +1,4 @@
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 /**
  * A single shimmering placeholder block. The shadcn `skeleton` primitive,

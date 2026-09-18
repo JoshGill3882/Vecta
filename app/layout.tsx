@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { geistSans, geistMono } from "@/src/lib/fonts";
-import { FaviconThemeSync } from "@/src/components/shell/favicon-theme-sync";
+import { geistSans, geistMono } from "@/src/shared/lib/fonts";
+import { FaviconThemeSync } from "@/src/shared/components/shell/favicon-theme-sync";
 
 const title = "Vecta";
 const description = "Self-hosted, single-user task management.";

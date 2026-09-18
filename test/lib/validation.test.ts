@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { validate } from "../../src/lib/validation";
+import { validate } from "@/src/shared/lib/validation";
 
 // A small throwaway schema keeps these tests about `validate`'s contract, not
 // about any particular task/category rule (those are covered in schemas/*).

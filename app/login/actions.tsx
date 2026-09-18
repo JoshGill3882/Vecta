@@ -2,7 +2,7 @@
 
 import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createSession } from "@/src/lib/session";
+import { createSession } from "@/src/shared/lib/session";
 import { redirect } from "next/navigation";
 
 export interface LoginState {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { CategoryChip } from "@/src/components/categories/category-chip";
+import { CategoryChip } from "@/src/shared/components/category-chip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,9 +15,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/src/components/ui/alert-dialog";
-import { Button } from "@/src/components/ui/button";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
+} from "@/src/shared/components/ui/alert-dialog";
+import { Button } from "@/src/shared/components/ui/button";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
 import { deleteCategoryAction } from "./actions";
 

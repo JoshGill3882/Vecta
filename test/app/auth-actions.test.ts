@@ -9,7 +9,7 @@ vi.mock("@/src/lib/rate-limit", () => ({
   recordFailure: vi.fn(),
 }));
 
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   createSession: vi.fn(),
   destroySession: vi.fn(),
 }));
@@ -22,10 +22,10 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-import { loginAction } from "../../app/login/actions";
-import { logoutAction } from "../../app/logout/actions";
+import { loginAction } from "@/app/login/actions";
+import { logoutAction } from "@/app/logout/actions";
 import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
-import { createSession, destroySession } from "@/src/lib/session";
+import { createSession, destroySession } from "@/src/shared/lib/session";
 import { redirect } from "next/navigation";
 
 const mockIsRateLimited = vi.mocked(isRateLimited);

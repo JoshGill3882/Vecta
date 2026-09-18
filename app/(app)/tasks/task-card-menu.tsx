@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/src/shared/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+} from "@/src/shared/components/ui/dropdown-menu";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 import { DeleteTaskDialog } from "./delete-task-dialog";
 

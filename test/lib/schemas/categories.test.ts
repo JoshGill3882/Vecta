@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { categoryCreateSchema, categoryUpdateSchema } from "../../../src/lib/schemas/categories";
+import { categoryCreateSchema, categoryUpdateSchema } from "@/src/shared/lib/schemas/categories";
 
 const validCategory = {
   name: "Work",

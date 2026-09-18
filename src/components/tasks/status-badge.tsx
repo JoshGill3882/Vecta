@@ -1,6 +1,6 @@
-import type { TaskStatus } from "@/src/lib/dtos/tasks";
-import { STATUS_ACCENT, TASK_STATUSES } from "@/src/lib/task-status";
-import { cn } from "@/src/lib/utils";
+import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
+import { STATUS_ACCENT, TASK_STATUSES } from "@/src/shared/lib/task-status";
+import { cn } from "@/src/shared/lib/utils";
 
 /**
  * A task's status as a tinted pill with a leading dot — the "badge" status

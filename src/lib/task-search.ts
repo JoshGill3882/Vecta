@@ -1,4 +1,4 @@
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 /**
  * A query reduced to the form every matcher compares against: trimmed

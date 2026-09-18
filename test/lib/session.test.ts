@@ -31,7 +31,7 @@ import {
   createSession,
   destroySession,
   getSessionFromRequest,
-} from "../../src/lib/session";
+} from "@/src/shared/lib/session";
 import type { NextRequest } from "next/server";
 import { getIronSession } from "iron-session";
 import { redirect } from "next/navigation";

@@ -5,7 +5,7 @@ import { ConflictError, NotFoundError } from "@/src/server/errors";
 // and the real src/lib/cache helper; faked auth + service + next/cache updateTag.
 // Categories additionally bust the "tasks" tag (a task row renders its category).
 
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   getSession: vi.fn(async () => ({ isLoggedIn: true })),
 }));
 
@@ -23,8 +23,8 @@ import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-} from "../../app/(app)/categories/actions";
-import { getSession } from "@/src/lib/session";
+} from "@/app/(app)/categories/actions";
+import { getSession } from "@/src/shared/lib/session";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
 import { updateTag } from "next/cache";
 

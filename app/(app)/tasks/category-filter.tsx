@@ -2,7 +2,7 @@
 
 import { ChevronDownIcon, TagIcon } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/src/shared/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -10,8 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
+} from "@/src/shared/components/ui/dropdown-menu";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
 /** `null` is the Uncategorised option, matching how a task stores its absence. */
 type Selection = ReadonlySet<string | null>;

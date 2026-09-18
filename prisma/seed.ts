@@ -11,9 +11,9 @@ import "dotenv/config";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient as SqliteClient } from "../generated/prisma-sqlite/client";
-import { PrismaClient as PostgresClient } from "../generated/prisma-postgresql/client";
-import { detectProvider } from "../scripts/db-provider.mjs";
+import { PrismaClient as SqliteClient } from "@/generated/prisma-sqlite/client";
+import { PrismaClient as PostgresClient } from "@/generated/prisma-postgresql/client";
+import { detectProvider } from "@/scripts/db-provider.mjs";
 
 // the SQLite file path comes from DATABASE_URL; fall back to the project
 // default so the seed works out of the box even without a .env file.

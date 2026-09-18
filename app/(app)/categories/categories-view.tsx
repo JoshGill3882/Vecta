@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import { suggestCategoryColor } from "@/src/lib/palette";
+import { Button } from "@/src/shared/components/ui/button";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { suggestCategoryColor } from "@/src/shared/lib/palette";
 
 import { CategoryEditor } from "./category-editor";
 import { CategoryRow } from "./category-row";

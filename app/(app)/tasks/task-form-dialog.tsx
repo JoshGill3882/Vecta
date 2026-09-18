@@ -6,15 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FileText, Pencil, Plus, X } from "lucide-react";
 import type { z } from "zod";
 
-import { Button } from "@/src/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/src/components/ui/dialog";
-import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
-import { Textarea } from "@/src/components/ui/textarea";
+import { Button } from "@/src/shared/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/src/shared/components/ui/dialog";
+import { Input } from "@/src/shared/components/ui/input";
+import { Label } from "@/src/shared/components/ui/label";
+import { Textarea } from "@/src/shared/components/ui/textarea";
 import { useVisibleViewport } from "@/src/hooks/use-visible-viewport";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
-import { taskCreateSchema } from "@/src/lib/schemas/tasks";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
+import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 
 import { CategorySelect } from "./category-select";
 import { StatusPicker } from "./status-picker";

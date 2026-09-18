@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/src/components/ui/popover";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import { cn } from "@/src/lib/utils";
+import { Button } from "@/src/shared/components/ui/button";
+import { Input } from "@/src/shared/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/src/shared/components/ui/popover";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { cn } from "@/src/shared/lib/utils";
 
 const ITEM_CLASS =
   "hover:bg-surface-3 flex w-full items-center gap-[9px] rounded-[7px] px-2.5 py-[9px] text-left text-[13.5px] text-text-2 transition-colors outline-none hover:text-foreground focus-visible:bg-surface-3 focus-visible:text-foreground";

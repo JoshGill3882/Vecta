@@ -1,12 +1,12 @@
 "use server";
 
-import { ActionResult, toActionError, FormState } from "@/src/lib/result";
-import { CategoryDTO } from "@/src/lib/dtos/categories";
+import { ActionResult, toActionError, FormState } from "@/src/shared/lib/result";
+import { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
-import { revalidateCategories } from "@/src/lib/cache";
-import { validate } from "@/src/lib/validation";
-import { categoryCreateSchema, categoryUpdateSchema } from "@/src/lib/schemas/categories";
-import { getSession } from "@/src/lib/session";
+import { revalidateCategories } from "@/src/shared/lib/cache";
+import { validate } from "@/src/shared/lib/validation";
+import { categoryCreateSchema, categoryUpdateSchema } from "@/src/shared/lib/schemas/categories";
+import { getSession } from "@/src/shared/lib/session";
 
 /** Server Action for creating a Category
  *

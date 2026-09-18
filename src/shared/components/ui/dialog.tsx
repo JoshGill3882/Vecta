@@ -3,9 +3,9 @@
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
-import { cn } from "@/src/lib/utils";
-import { Button } from "@/src/components/ui/button";
-import { useRestoreFocus } from "@/src/components/ui/use-restore-focus";
+import { cn } from "@/src/shared/lib/utils";
+import { Button } from "./button";
+import { useRestoreFocus } from "./use-restore-focus";
 import { XIcon } from "lucide-react";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {

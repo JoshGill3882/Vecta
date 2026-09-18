@@ -12,7 +12,7 @@ import {
   majorOf,
   checkAgreement,
   workflowFiles,
-} from "../../scripts/check-node-versions.mjs";
+} from "@/scripts/check-node-versions.mjs";
 
 const dockerfile = [
   "# Node 24 (Krypton), the active LTS.",

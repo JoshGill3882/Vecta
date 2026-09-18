@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 
-import { CategoryChip } from "@/src/components/categories/category-chip";
-import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import { CATEGORY_PALETTE } from "@/src/lib/palette";
-import type { FormState } from "@/src/lib/result";
-import { cn } from "@/src/lib/utils";
+import { CategoryChip } from "@/src/shared/components/category-chip";
+import { Button } from "@/src/shared/components/ui/button";
+import { Input } from "@/src/shared/components/ui/input";
+import { Label } from "@/src/shared/components/ui/label";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { CATEGORY_PALETTE } from "@/src/shared/lib/palette";
+import type { FormState } from "@/src/shared/lib/result";
+import { cn } from "@/src/shared/lib/utils";
 
 import { createCategoryAction, updateCategoryAction } from "./actions";
 

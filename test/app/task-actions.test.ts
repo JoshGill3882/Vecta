@@ -9,7 +9,7 @@ import { NotFoundError } from "@/src/server/errors";
 // effects are faked: auth (getSession), the service, and next/cache's updateTag
 // (the primitive src/lib/cache calls under the hood).
 
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   // The action calls getSession() first; a truthy value = "signed in", null = not.
   getSession: vi.fn(async () => ({ isLoggedIn: true })),
 }));
@@ -26,12 +26,8 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
-import {
-  createTaskAction,
-  updateTaskAction,
-  deleteTaskAction,
-} from "../../app/(app)/tasks/actions";
-import { getSession } from "@/src/lib/session";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/app/(app)/tasks/actions";
+import { getSession } from "@/src/shared/lib/session";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
 import { updateTag } from "next/cache";
 

@@ -3,12 +3,12 @@ import { NextRequest } from "next/server";
 
 // The proxy delegates the actual cookie read/decrypt to getSessionFromRequest;
 // mock it so we can drive the four perimeter outcomes directly.
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   getSessionFromRequest: vi.fn(),
 }));
 
-import proxy from "../../proxy";
-import { getSessionFromRequest } from "@/src/lib/session";
+import proxy from "@/proxy";
+import { getSessionFromRequest } from "@/src/shared/lib/session";
 
 const mockGetSession = vi.mocked(getSessionFromRequest);
 

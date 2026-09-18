@@ -15,24 +15,24 @@ afterEach(() => {
 
 describe("isRateLimited / recordFailure", () => {
   it("is not rate limited with a clean history", async () => {
-    const { isRateLimited } = await import("../../src/lib/rate-limit");
+    const { isRateLimited } = await import("@/src/lib/rate-limit");
     expect(isRateLimited()).toBe(false);
   });
 
   it("stays unlocked at 4 failures (below the limit of 5)", async () => {
-    const { isRateLimited, recordFailure } = await import("../../src/lib/rate-limit");
+    const { isRateLimited, recordFailure } = await import("@/src/lib/rate-limit");
     for (let i = 0; i < 4; i++) recordFailure();
     expect(isRateLimited()).toBe(false);
   });
 
   it("locks out once 5 failures land inside the window", async () => {
-    const { isRateLimited, recordFailure } = await import("../../src/lib/rate-limit");
+    const { isRateLimited, recordFailure } = await import("@/src/lib/rate-limit");
     for (let i = 0; i < 5; i++) recordFailure();
     expect(isRateLimited()).toBe(true);
   });
 
   it("prunes failures older than the 60s window, then unlocks", async () => {
-    const { isRateLimited, recordFailure } = await import("../../src/lib/rate-limit");
+    const { isRateLimited, recordFailure } = await import("@/src/lib/rate-limit");
     for (let i = 0; i < 5; i++) recordFailure();
     expect(isRateLimited()).toBe(true);
 
@@ -43,7 +43,7 @@ describe("isRateLimited / recordFailure", () => {
   });
 
   it("keeps counting failures that are still within the window", async () => {
-    const { isRateLimited, recordFailure } = await import("../../src/lib/rate-limit");
+    const { isRateLimited, recordFailure } = await import("@/src/lib/rate-limit");
     for (let i = 0; i < 3; i++) recordFailure();
     vi.advanceTimersByTime(30_000); // half the window later
     for (let i = 0; i < 2; i++) recordFailure();

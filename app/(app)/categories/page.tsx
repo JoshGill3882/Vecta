@@ -1,4 +1,4 @@
-import { requireSession } from "@/src/lib/session";
+import { requireSession } from "@/src/shared/lib/session";
 import { getCategories } from "@/src/server/services/categories";
 import { getTasks } from "@/src/server/services/tasks";
 

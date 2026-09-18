@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 /**
  * Deviates from the shadcn default, which shrinks the text at `md:` — restore

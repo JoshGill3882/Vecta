@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-import type { TaskStatus } from "@/src/lib/dtos/tasks";
+import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
 
 type CollapsedMap = Record<TaskStatus, boolean>;
 

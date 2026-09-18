@@ -1,9 +1,9 @@
-import { CategoryChip } from "@/src/components/categories/category-chip";
+import { CategoryChip } from "@/src/shared/components/category-chip";
 import { StatusBadge } from "@/src/components/tasks/status-badge";
-import type { CategoryDTO } from "@/src/lib/dtos/categories";
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { relativeTime } from "@/src/lib/relative-time";
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 import { TaskCardMenu } from "./task-card-menu";
 import { Highlight } from "./highlight";

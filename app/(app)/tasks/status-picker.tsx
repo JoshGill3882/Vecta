@@ -1,8 +1,8 @@
 "use client";
 
-import type { TaskStatus } from "@/src/lib/dtos/tasks";
-import { STATUS_ACCENT, TASK_STATUSES } from "@/src/lib/task-status";
-import { cn } from "@/src/lib/utils";
+import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
+import { STATUS_ACCENT, TASK_STATUSES } from "@/src/shared/lib/task-status";
+import { cn } from "@/src/shared/lib/utils";
 
 /**
  * The segmented status control from the design: three equal-width buttons, the

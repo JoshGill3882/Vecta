@@ -1,4 +1,4 @@
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 /**
  * A category rendered as a GitHub-style label: coloured dot, name, and a tinted

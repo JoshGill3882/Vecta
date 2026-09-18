@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { List, Tag, type LucideIcon } from "lucide-react";
 
-import { cn } from "@/src/lib/utils";
+import { cn } from "@/src/shared/lib/utils";
 
 type Tab = { href: string; label: string; Icon: LucideIcon };
 

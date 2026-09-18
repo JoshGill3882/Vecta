@@ -1,12 +1,12 @@
 "use server";
 
-import { ActionResult, toActionError } from "@/src/lib/result";
-import { TaskDTO } from "@/src/lib/dtos/tasks";
+import { ActionResult, toActionError } from "@/src/shared/lib/result";
+import { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
-import { revalidateTasks } from "@/src/lib/cache";
-import { validate } from "@/src/lib/validation";
-import { taskCreateSchema, taskUpdateSchema } from "@/src/lib/schemas/tasks";
-import { getSession } from "@/src/lib/session";
+import { revalidateTasks } from "@/src/shared/lib/cache";
+import { validate } from "@/src/shared/lib/validation";
+import { taskCreateSchema, taskUpdateSchema } from "@/src/shared/lib/schemas/tasks";
+import { getSession } from "@/src/shared/lib/session";
 
 /*
  * These take a plain object, not FormData. A Server Action is an ordinary async

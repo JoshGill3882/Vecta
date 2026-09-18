@@ -1,6 +1,6 @@
 "use server";
 
-import { destroySession } from "@/src/lib/session";
+import { destroySession } from "@/src/shared/lib/session";
 import { redirect } from "next/navigation";
 
 export async function logoutAction(): Promise<void> {

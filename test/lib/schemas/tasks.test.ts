@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { taskCreateSchema, taskUpdateSchema, TASK_STATUSES } from "../../../src/lib/schemas/tasks";
+import { taskCreateSchema, taskUpdateSchema, TASK_STATUSES } from "@/src/shared/lib/schemas/tasks";
 
 // A known-good payload. Each test clones this and breaks exactly one field, so a
 // failure can only be caused by the rule under test (not an unrelated invalid field).
