@@ -1,5 +1,5 @@
-import { CategoryDTO, toCategoryDTO } from "@/src/lib/dtos/categories";
-import { categoryCreateSchema, categoryUpdateSchema } from "@/src/lib/schemas/categories";
+import { CategoryDTO, toCategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { categoryCreateSchema, categoryUpdateSchema } from "@/src/shared/lib/schemas/categories";
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { ConflictError, NotFoundError } from "@/src/server/errors";

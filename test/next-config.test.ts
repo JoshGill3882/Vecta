@@ -7,7 +7,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 async function loadDevOrigins(value?: string) {
   vi.stubEnv("ALLOWED_DEV_ORIGINS", value);
   vi.resetModules();
-  const config = (await import("../next.config")).default;
+  const config = (await import("@/next.config")).default;
   return config.allowedDevOrigins;
 }
 

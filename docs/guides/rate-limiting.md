@@ -3,7 +3,7 @@
 A tiny in-memory limiter deters brute-force password guessing.
 It's used by the login action and is reusable on other Server Actions.
 
-**Key file:** `src/lib/rate-limit.ts` (used in `app/login/actions.tsx`)
+**Key file:** `src/features/auth/lib/rate-limit.ts` (used in `src/features/auth/login-actions.tsx`)
 
 ## API
 
@@ -20,7 +20,7 @@ Defaults (constants at the top of the module): **5 failures per 60-second slidin
 
 ## How it's used
 
-`app/login/actions.tsx` checks the limiter before doing any work and records a failure only on a wrong password:
+`src/features/auth/login-actions.tsx` checks the limiter before doing any work and records a failure only on a wrong password:
 
 ```ts
 if (isRateLimited()) return { error: "Too many attempts. Retry in a minute" };
@@ -35,7 +35,7 @@ if (!ok) {
 
 ```ts
 "use server";
-import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
+import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
 
 export async function sensitiveAction() {
   if (isRateLimited()) return { error: "Too many attempts. Try again shortly." };

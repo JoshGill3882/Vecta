@@ -3,12 +3,12 @@ import { describe, it, expect, vi } from "vitest";
 // proxy.ts imports the session module for its cookie read; this spec only wants
 // the exported `config`, so stub the dependency rather than pulling iron-session
 // and next/headers into a plain node environment.
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   getSessionFromRequest: vi.fn(),
 }));
 
 import { GET } from "@/app/api/health/route";
-import { config } from "../../proxy";
+import { config } from "@/proxy";
 
 describe("GET /api/health", () => {
   it("returns 200 with an ok status", async () => {

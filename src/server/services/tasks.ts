@@ -1,5 +1,5 @@
-import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/lib/dtos/tasks";
-import { taskCreateSchema, taskUpdateSchema } from "@/src/lib/schemas/tasks";
+import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/shared/lib/dtos/tasks";
+import { taskCreateSchema, taskUpdateSchema } from "@/src/shared/lib/schemas/tasks";
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { NotFoundError } from "@/src/server/errors";

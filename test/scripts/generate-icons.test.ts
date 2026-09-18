@@ -14,7 +14,7 @@ import {
   parseIco,
   squareTrimBox,
   toHex,
-} from "../../scripts/generate-icons.mjs";
+} from "@/scripts/generate-icons.mjs";
 
 const icoPath = new URL("../../app/favicon.ico", import.meta.url);
 const svgPath = new URL("../../app/icon.svg", import.meta.url);

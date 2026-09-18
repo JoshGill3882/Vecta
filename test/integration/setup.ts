@@ -9,7 +9,7 @@ import { join } from "node:path";
 // because they can't run outside a request: auth (`getSession`, which pulls in
 // server-only/iron-session/next/headers) and the cache primitive (`updateTag`).
 // The database and the service layer are the real thing.
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   getSession: vi.fn(async () => ({ isLoggedIn: true })),
 }));
 vi.mock("next/cache", () => ({

@@ -7,25 +7,21 @@ Task-oriented — for the overall feature roadmap see [`docs/PLAN.md`](../PLAN.m
 ## Toolkit
 
 - **[shadcn/ui](https://ui.shadcn.com/)** (radix base, `radix-nova` style) — we own the component source;
-  it lives in `src/components/ui`.
+  it lives in `src/shared/components/ui`.
   Config is in [`components.json`](../../components.json); its aliases point at `src/`.
 - **[Tailwind CSS v4](https://tailwindcss.com/)** — configured in CSS (`app/globals.css`), no `tailwind.config.js`.
 - **[lucide-react](https://lucide.dev/)** for icons.
 - **[`sonner`](https://ui.shadcn.com/docs/components/sonner)** for toasts (the replacement for shadcn's deprecated `toast`).
-- `cn()` in `src/lib/utils.ts` merges class names (`clsx` + `tailwind-merge`); every component uses it.
+- `cn()` in `src/shared/lib/utils.ts` merges class names (`clsx` + `tailwind-merge`); every component uses it.
 
 ## Where components live
 
-One rule decides the folder:
+[Directory structure](../../ARCHITECTURE.md#directory-structure) in the architecture document is the
+single description of the layout — for components and for everything else.
 
-| Component is…                             | Lives in…                                | Example                            |
-| ----------------------------------------- | ---------------------------------------- | ---------------------------------- |
-| A reusable primitive (shadcn or your own) | `src/components/ui/`                     | `button.tsx`, `dialog.tsx`         |
-| Shared across **more than one route**     | `src/components/<area>/`                 | `src/components/shell/top-bar.tsx` |
-| Owned by **one route** (a page's view)    | co-located in `app/…` next to `page.tsx` | `app/(app)/tasks-view.tsx`         |
-
-In short: **shared → `src/components/`;
-one-off page code → a view file beside its route.** This mirrors how the login route is laid out — `page.tsx`, `login-form.tsx`, and `actions.tsx` sitting together — and the [server-action co-location](./server-actions.md) decision.
+This guide deliberately does not repeat it.
+Two copies of the rule is how the previous one came to cite, as its example of a component shared
+across routes, a component with exactly one consumer.
 
 ## The app shell
 
@@ -44,9 +40,9 @@ app/(app)/
     actions.tsx
 ```
 
-The top bar (`src/components/shell/top-bar.tsx`) is a Server Component.
+The top bar (`src/shared/components/shell/top-bar.tsx`) is a Server Component.
 Its logout is a plain `<form action={logoutAction}>` — no client JS needed.
-The Tasks/Categories tabs (`src/components/shell/nav-tabs.tsx`) are the one client island in the shell:
+The Tasks/Categories tabs (`src/shared/components/shell/nav-tabs.tsx`) are the one client island in the shell:
 they read `usePathname()` to highlight the active route, and collapse to a segmented row on narrow viewports.
 
 ## How to add a page
@@ -55,7 +51,7 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
    Keep it thin — auth-gate and render the view:
 
    ```tsx
-   import { requireSession } from "@/src/lib/session";
+   import { requireSession } from "@/src/shared/lib/session";
    import { WidgetsView } from "./widgets-view";
 
    export default async function WidgetsPage() {
@@ -66,7 +62,7 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
 
 2. Put the markup in a co-located view file (`app/(app)/<route>/widgets-view.tsx`).
    Keep it a Server Component; push only interactive bits into `"use client"` children beside it.
-3. If it needs a nav tab, add an entry to the `TABS` array in `src/components/shell/nav-tabs.tsx`.
+3. If it needs a nav tab, add an entry to the `TABS` array in `src/shared/components/shell/nav-tabs.tsx`.
 4. Server actions for the route go in a co-located `actions.tsx` — see the [Server Actions guide](./server-actions.md).
 
 ## Theming
@@ -103,7 +99,7 @@ Every destructive action gets a confirmation step (a project rule — see [`docs
 Use the shadcn **`AlertDialog`** primitive, not `Dialog`:
 it's the modal-confirm variant, and it can't be dismissed by clicking the overlay.
 Name the thing being destroyed in the description so the prompt is unambiguous.
-The task delete flow (`app/(app)/tasks/delete-task-dialog.tsx`) is the reference;
+The task delete flow (`src/features/tasks/components/list/delete-task-dialog.tsx`) is the reference;
 the categories delete reuses the same shape.
 
 Three things are easy to get wrong:
@@ -122,7 +118,7 @@ Three things are easy to get wrong:
 Every dialog here is **controlled** — opened from an `open` prop, with no `DialogTrigger`.
 Radix's modal close behaviour restores focus to that trigger;
 with no trigger the restore is a no-op and focus falls to `<body>`, stranding a keyboard or screen-reader user at the top of the page.
-The shared `DialogContent` and `AlertDialogContent` wrappers close this gap with `useRestoreFocus` (`src/components/ui/use-restore-focus.ts`):
+The shared `DialogContent` and `AlertDialogContent` wrappers close this gap with `useRestoreFocus` (`src/shared/components/ui/use-restore-focus.ts`):
 it records the element that had focus when the dialog opened and returns focus to it on close, however the dialog is dismissed (Esc, the close button, Cancel, the overlay).
 This is automatic — a new dialog inherits it with no per-dialog wiring.
 To opt a dialog out (custom close focus), pass your own `onCloseAutoFocus` and call `preventDefault()`.
@@ -147,7 +143,7 @@ The task list is narrowed **in the browser, never on the server**.
 `app/(app)/tasks/page.tsx` already fetches every task and hands the array to `TasksView` as props, so filtering it costs no round trip, no service function and no URL state.
 The trigger for revisiting that is the payload of fetching every task becoming a problem — not filtering feeling slow.
 
-**The matching logic lives in `src/lib/task-search.ts`, not in the view.**
+**The matching logic lives in `src/features/tasks/lib/task-search.ts`, not in the view.**
 It is a pure module over `TaskDTO[]` — no state, no DOM, no clock.
 That is deliberate: there is no component renderer in the test setup (see the [testing guide](./testing.md)), so logic left inside a component is logic that cannot be tested.
 Anything with an edge case worth pinning down belongs in that module; the component keeps the wiring only.
@@ -172,7 +168,7 @@ Five things here are easy to get wrong:
 - **A global key shortcut must not fire mid-typing.**
   `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
 - **Every narrowing control answers to one predicate.**
-  `isNarrowing` in `src/lib/task-search.ts` is what the rules key off - sections forced open, empty sections dropped, the subtitle switching to "n of m".
+  `isNarrowing` in `src/features/tasks/lib/task-search.ts` is what the rules key off - sections forced open, empty sections dropped, the subtitle switching to "n of m".
   None of those rules is about search, so none of them should test a query directly.
   A control that narrows the list adds a criterion to `TaskNarrowing` and the rules follow; a control that tests its own state is a control the other rules do not know about.
   Uncategorised is `null` in the selected set rather than a sentinel string, because `TaskDTO.categoryId` is already `string | null` and a set holding `null` matches an uncategorised task directly.

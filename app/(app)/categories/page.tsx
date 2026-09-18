@@ -1,8 +1,8 @@
-import { requireSession } from "@/src/lib/session";
+import { requireSession } from "@/src/shared/lib/session";
 import { getCategories } from "@/src/server/services/categories";
 import { getTasks } from "@/src/server/services/tasks";
 
-import { CategoriesView } from "./categories-view";
+import { CategoriesView } from "@/src/features/categories/components/categories-view";
 
 export default async function CategoriesPage() {
   await requireSession();

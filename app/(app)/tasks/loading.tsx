@@ -1,5 +1,5 @@
-import { Skeleton } from "@/src/components/ui/skeleton";
-import { TASK_STATUSES } from "@/src/lib/task-status";
+import { Skeleton } from "@/src/shared/components/ui/skeleton";
+import { TASK_STATUSES } from "@/src/shared/lib/task-status";
 
 /**
  * Suspense fallback for the tasks route. Next wraps `page.tsx` in a boundary

@@ -11,7 +11,7 @@ import {
   DEVELOP_TAG_PATTERN,
   SIGNATURE_TAG_PATTERN,
   DEFAULT_KEEP,
-} from "../../scripts/prune-ghcr-versions.mjs";
+} from "@/scripts/prune-ghcr-versions.mjs";
 
 type Version = {
   id: number;

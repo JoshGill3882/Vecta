@@ -9,7 +9,7 @@ For how one schema targets both SQLite and Postgres, see [Dual-provider DB & mig
 - `src/server/db.ts` — the singleton Prisma client
 - `src/server/services/*.ts` — the service seam (e.g. `tasks.ts`, `categories.ts`)
 - `src/server/errors.ts` — domain error types (`NotFoundError`, `ConflictError`)
-- `src/lib/dtos/*.ts` — DTO shapes + `toXDTO()` mappers (client-safe, no Prisma client)
+- `src/shared/lib/dtos/*.ts` — DTO shapes + `toXDTO()` mappers (client-safe, no Prisma client)
 - `generated/prisma/*` — the generated client + model types (`npm run db:generate`)
 
 ## The Prisma singleton
@@ -32,7 +32,7 @@ Keep DB access on the server:
 
 - Call services from Server Components, Server Actions, or route handlers.
 - Do not import `db.ts` or a service into a `"use client"` file.
-- `src/lib/session.ts` uses the `server-only` package to enforce this at build time;
+- `src/shared/lib/session.ts` uses the `server-only` package to enforce this at build time;
   apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint if the Prisma client or the `prisma` singleton is imported anywhere outside `src/server/**`** (tests and the seed script are exempt).
 Model _types_ from `generated/prisma/models` stay allowed — that's how DTOs map rows.
@@ -55,7 +55,7 @@ That keeps query logic out of UI code and keeps callers decoupled from the datab
 `src/server/services/tasks.ts` — every function returns a **DTO** (never a raw Prisma model), and lookups **throw** rather than return `null`:
 
 ```ts
-import type { TaskDTO } from "@/src/lib/dtos/tasks";
+import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 interface CreateTaskInput { title: string; description?: string; status: TaskStatus; categoryId?: string | null; }
 interface UpdateTaskInput { title?: string; description?: string; status?: TaskStatus; categoryId?: string | null; }
@@ -72,7 +72,7 @@ Its `createCategory` / `updateCategory` additionally throw **`ConflictError`** w
 
 ## DTOs
 
-Services return **DTOs** — plain, JSON-safe shapes in `src/lib/dtos/` — not Prisma models, so callers (and the eventual UI / JSON API) never couple to the schema.
+Services return **DTOs** — plain, JSON-safe shapes in `src/shared/lib/dtos/` — not Prisma models, so callers (and the eventual UI / JSON API) never couple to the schema.
 The mappers enforce two conversions:
 
 - **`Date` → ISO string.** `createdAt` / `updatedAt` go through `.toISOString()`, so a DTO can be handed straight to a Client Component.
@@ -83,7 +83,7 @@ they `import type` the model (types erase at compile time), so importing a `Task
 The mapper lives here too, but only the server calls it.
 
 ```ts
-// src/lib/dtos/tasks.ts
+// src/shared/lib/dtos/tasks.ts
 export interface TaskDTO {
   id: string;
   title: string;
@@ -133,7 +133,7 @@ It throws a `ZodError` — a programmer-error signal, not a user-facing one.
 
 ## How to add a DB-backed feature
 
-1. **Add a DTO + mapper** in `src/lib/dtos/` for the shape callers should see (`import type` the model so the file stays client-safe).
+1. **Add a DTO + mapper** in `src/shared/lib/dtos/` for the shape callers should see (`import type` the model so the file stays client-safe).
 2. **Add/extend a service** under `src/server/services/`:
    import `{ prisma }` from `@/src/server/db`, run the query, map the row with your `toXDTO()`, and translate the anticipated Prisma errors into domain errors (see the table above).
 3. **Call it from a Server Action** (guarded with `requireSession()` — see [Authentication](./authentication.md)), or from a Server Component for reads.

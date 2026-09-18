@@ -1,8 +1,8 @@
-import { requireSession } from "@/src/lib/session";
+import { requireSession } from "@/src/shared/lib/session";
 import { getTasks } from "@/src/server/services/tasks";
 import { getCategories } from "@/src/server/services/categories";
 
-import { TasksView } from "./tasks-view";
+import { TasksView } from "@/src/features/tasks/components/tasks-view";
 
 export default async function TasksPage() {
   await requireSession();
