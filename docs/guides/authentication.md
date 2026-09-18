@@ -6,10 +6,10 @@ there is no server-side session store.
 
 ## Key files
 
-- `src/lib/session.ts` — the session helper API (use this everywhere)
+- `src/shared/lib/session.ts` — the session helper API (use this everywhere)
 - `proxy.ts` — the request perimeter
-- `app/login/actions.tsx`, `app/logout/actions.tsx` — the auth Server Actions
-- `app/login/login-form.tsx` — the client form pattern
+- `src/features/auth/login-actions.tsx`, `src/features/auth/logout-actions.tsx` — the auth Server Actions
+- `src/features/auth/components/login-form.tsx` — the client form pattern
 
 ## The two-layer model (read this first)
 
@@ -27,7 +27,7 @@ The in-component `requireSession()` call is what actually keeps a route private.
 > **Rule of thumb:** never let the proxy be the _only_ thing standing between a request and protected data.
 > Guard in the page/action too.
 
-## Session helper API (`src/lib/session.ts`)
+## Session helper API (`src/shared/lib/session.ts`)
 
 ```ts
 // Returns the session, or null if there is no logged-in session.
@@ -54,7 +54,7 @@ The cookie is named `Vecta-Auth` and encrypted with `SESSION_SECRET`.
 ## How to protect a page (Server Component)
 
 ```tsx
-import { requireSession } from "@/src/lib/session";
+import { requireSession } from "@/src/shared/lib/session";
 
 export default async function SettingsPage() {
   await requireSession(); // redirects to /login if not authenticated
@@ -70,7 +70,7 @@ The proxy does not reliably cover Server Functions (see above), so guard explici
 
 ```tsx
 "use server";
-import { requireSession } from "@/src/lib/session";
+import { requireSession } from "@/src/shared/lib/session";
 
 export async function deleteEverything() {
   await requireSession(); // throws (redirects) if not logged in
@@ -88,9 +88,9 @@ if (await getSession()) redirect("/");
 
 ## The login/logout flow
 
-- **Login** (`app/login/actions.tsx`) is a Server Action that rate-limits attempts (see [Rate limiting](./rate-limiting.md)), compares the submitted password against `ADMIN_PASSWORD` via `passwordMatches` (SHA-256 digests + `crypto.timingSafeEqual`), calls `createSession()`, then redirects to the post-login destination — the `next` form field validated by `safeRedirectTarget`, falling back to `/`.
-- **Logout** (`app/logout/actions.tsx`) calls `destroySession()` then `redirect("/login")`.
-- The form (`app/login/login-form.tsx`) is the reference pattern for any action-backed form:
+- **Login** (`src/features/auth/login-actions.tsx`) is a Server Action that rate-limits attempts (see [Rate limiting](./rate-limiting.md)), compares the submitted password against `ADMIN_PASSWORD` via `passwordMatches` (SHA-256 digests + `crypto.timingSafeEqual`), calls `createSession()`, then redirects to the post-login destination — the `next` form field validated by `safeRedirectTarget`, falling back to `/`.
+- **Logout** (`src/features/auth/logout-actions.tsx`) calls `destroySession()` then `redirect("/login")`.
+- The form (`src/features/auth/components/login-form.tsx`) is the reference pattern for any action-backed form:
   `useActionState(action, initialState)` drives the returned error state and a `pending` flag, and the action's return type (`LoginState = { error?: string }`) is the error shape rendered inline.
   Note `redirect()` throws to unwind, so it must be the **last** statement on the success path.
 

@@ -5,9 +5,9 @@ A schema is the single source of truth for both **run-time validation** and the 
 
 **Key files:**
 
-- `src/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
-- `src/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
-- `src/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
+- `src/shared/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
+- `src/shared/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
+- `src/shared/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
 
 > **Zod 4.** Some APIs differ from older tutorials:
 > id/string formats like `z.cuid()` are **top-level** (not `z.string().cuid()`), and error flattening is `z.flattenError(err)` (the old `err.flatten()` is deprecated).
@@ -42,7 +42,7 @@ Two conventions worth knowing:
 The inferred types are exported alongside each schema — import these instead of hand-writing input interfaces:
 
 ```ts
-import type { TaskCreateInput, CategoryCreateInput } from "@/src/lib/schemas/tasks";
+import type { TaskCreateInput, CategoryCreateInput } from "@/src/shared/lib/schemas/tasks";
 ```
 
 ## The `validate()` helper
@@ -77,8 +77,8 @@ See [Database & service layer](./database.md#defensive-validation-at-the-seam).
 
 ```ts
 "use server";
-import { validate } from "@/src/lib/validation";
-import { taskCreateSchema } from "@/src/lib/schemas/tasks";
+import { validate } from "@/src/shared/lib/validation";
+import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 
 export async function createTaskAction(_prev: unknown, formData: FormData) {
   const result = validate(taskCreateSchema, Object.fromEntries(formData));
@@ -102,9 +102,9 @@ export async function createTaskAction(_prev: unknown, formData: FormData) {
 
 The schemas and helper are unit-tested with Vitest:
 
-- `test/lib/schemas/tasks.test.ts`, `test/lib/schemas/categories.test.ts` — one valid baseline per model, then one broken field per test;
+- `test/shared/lib/schemas/tasks.test.ts`, `test/shared/lib/schemas/categories.test.ts` — one valid baseline per model, then one broken field per test;
   `it.each` tables drive the status enum and the valid/invalid colour cases.
-- `test/lib/validation.test.ts` — the `validate()` contract:
+- `test/shared/lib/validation.test.ts` — the `validate()` contract:
   typed data on success, field-keyed errors on failure, absent keys for valid fields, and `formErrors` for cross-field `.refine()` issues.
 
 For the suite's broader patterns, see [Testing patterns](./testing.md).

@@ -6,10 +6,10 @@ they authenticate, [validate](./validation.md) untrusted input, call one service
 
 **Key files:**
 
-- `app/(app)/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
-- `app/(app)/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
-- `src/lib/result.ts` — the `ActionResult<T>` / `FormState<T>` types + `toActionError()` translator
-- `src/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
+- `src/features/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
+- `src/features/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
+- `src/shared/lib/result.ts` — the `ActionResult<T>` / `FormState<T>` types + `toActionError()` translator
+- `src/shared/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
 
 > **`"use server"`.** The directive at the top of each file is what turns every exported function into a Server Action.
 > It must be the first line — actions are co-located with the routes they serve (`app/(app)/`, `app/(app)/categories/`) rather than in a shared folder.
@@ -96,7 +96,7 @@ The hook feeds each action whatever it returned last time; on first render that'
 Its type is:
 
 ```ts
-// src/lib/result.ts
+// src/shared/lib/result.ts
 export type FormState<T> = ActionResult<T> | null; // null = idle / not yet submitted
 ```
 
@@ -149,10 +149,10 @@ See [Database & service layer](./database.md).
 ## Revalidation
 
 After a successful write, the action invalidates the caches that write made stale.
-This is centralised in `src/lib/cache.ts` so the actions never hardcode a tag or path — they call one intent-named helper, and the caching strategy lives in a single place:
+This is centralised in `src/shared/lib/cache.ts` so the actions never hardcode a tag or path — they call one intent-named helper, and the caching strategy lives in a single place:
 
 ```ts
-// src/lib/cache.ts
+// src/shared/lib/cache.ts
 import { updateTag } from "next/cache";
 
 const tags = {
@@ -196,8 +196,8 @@ You don't invalidate _what you changed_, you invalidate _what's now stale becaus
 
 ## Tests
 
-The actions are unit-tested in `test/app/task-actions.test.ts` and `test/app/category-actions.test.ts`.
-The tests keep `validate()`, the Zod schemas, **and the real `src/lib/cache.ts` helper** in play (so the validation gate and the exact tag logic are genuinely exercised) and fake only the true side effects — `getSession`, the service module, and `next/cache`'s `updateTag` — via `vi.mock`.
+The actions are unit-tested in `test/features/tasks/actions.test.ts` and `test/features/categories/actions.test.ts`.
+The tests keep `validate()`, the Zod schemas, **and the real `src/shared/lib/cache.ts` helper** in play (so the validation gate and the exact tag logic are genuinely exercised) and fake only the true side effects — `getSession`, the service module, and `next/cache`'s `updateTag` — via `vi.mock`.
 They cover the full contract:
 
 - **Wrapping** — a valid call invokes the matching service function exactly once.

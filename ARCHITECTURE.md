@@ -16,19 +16,28 @@ Anything the guides already explain is linked to here rather than restated, so t
 ## Directory structure
 
 ```text
-app/                      Routes. Next.js App Router.
+app/                      Routes, and nothing else. Next.js App Router.
   (app)/                  Authenticated area — route group, not a URL segment
-    tasks/                Task list, and the components used only by it
-    categories/           Category management, likewise
+    tasks/                page.tsx, loading.tsx
+    categories/           page.tsx, loading.tsx
   api/health/             Liveness endpoint for Docker and reverse proxies
-  login/  logout/         Session entry and exit
+  login/                  Session entry
 src/
-  components/             Components shared across more than one route
-    ui/                   shadcn/ui primitives — we own this source
-  lib/                    Framework-agnostic helpers
-    dtos/                 Prisma model -> plain serialisable object
-    schemas/              Zod input schemas
-    session.ts            The session API
+  features/               One per feature — the unit most changes touch
+    tasks/
+      actions.tsx         This feature's Server Actions
+      components/         Sliced by surface once past one list
+        list/ toolbar/ dialog/
+      hooks/  lib/
+    categories/           Components only; too small to need slices
+    auth/                 Login and logout actions, the form, rate limiting
+  shared/                 Used by more than one feature, or owned by none
+    components/
+      ui/                 shadcn/ui primitives — we own this source
+    lib/
+      dtos/               Prisma model -> plain serialisable object
+      schemas/            Zod input schemas
+      session.ts          The session API
   server/                 Server-only. Never imported from a Client Component
     db.ts                 Prisma singleton and adapter selection
     services/             The data-access seam — all DB access lives here
@@ -38,13 +47,29 @@ prisma/
   migrations/sqlite/      Two histories, because the SQL differs per engine
   migrations/postgres/
 scripts/                  Build- and boot-time tooling (provider resolution)
-test/                     Vitest unit and integration projects
+test/                     Mirrors the source tree; unit and integration projects
 docs/guides/              How-to guides for working on the code
 ```
 
-Route-local components live beside their route (`app/(app)/tasks/task-card.tsx`);
-they move to `src/components/` only once a second route needs them.
-This keeps the shared surface small and makes it obvious what a route actually owns.
+### Where a file goes
+
+Two questions, in order, and neither of them is about what kind of file it is.
+
+1. **Does it belong to one feature?** It lives in that feature's folder — component, hook, module or
+   action alike.
+2. **Is it used by more than one feature, or owned by none?** It lives in `src/shared/`.
+
+Sorting by kind instead grows every folder with the whole application, and scatters one feature's
+parts across as many folders as it has kinds of file.
+
+A feature's components subdivide into **slices** named for what they build — for tasks, `list`,
+`toolbar` and `dialog` — taken from that feature's own dependency graph rather than invented. A
+component used by more than one slice sits above them, which is the same rule that sends a component
+used by more than one feature up to `src/shared/`.
+
+`src/server/` is the exception and stays layered. It is a boundary the ESLint configuration enforces
+by path, and folding services into feature folders would put server-only code in a tree that Client
+Components import from. Vecta is feature-first on the client and layered on the server.
 
 ---
 
@@ -113,7 +138,7 @@ Treating it as the only check is the standard way this pattern goes wrong.
 The session itself is an encrypted, `httpOnly` cookie via [iron-session](https://github.com/vvo/iron-session) — the payload is `{ isLoggedIn: true }` and nothing else.
 `SESSION_SECRET` is the encryption key, which is why rotating it logs everyone out.
 
-Three details in `app/login/actions.tsx` are deliberate and worth not undoing: the password comparison hashes both sides to equal length before `timingSafeEqual`, so neither the password nor its length leaks through timing;
+Three details in `src/features/auth/login-actions.tsx` are deliberate and worth not undoing: the password comparison hashes both sides to equal length before `timingSafeEqual`, so neither the password nor its length leaks through timing;
 the `?next=` redirect target is rejected unless it is a same-origin absolute path, closing an open-redirect vector;
 and failed attempts are rate-limited in memory.
 
@@ -182,7 +207,7 @@ This is why `prisma/` is the one directory the app user needs write access to.
 ## Caching
 
 Reads are cached by tag and invalidated explicitly.
-`src/lib/cache.ts` owns the tag vocabulary;
+`src/shared/lib/cache.ts` owns the tag vocabulary;
 actions call `revalidateTasks()` / `revalidateCategories()` after a successful mutation.
 
 Note that `revalidateCategories()` also invalidates the tasks tag.

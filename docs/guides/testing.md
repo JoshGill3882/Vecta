@@ -29,7 +29,7 @@ Two aliases make server modules loadable outside a Next build:
 ## Mocking the Next.js / iron-session boundary
 
 `vi.mock` is hoisted above imports, so declare the fakes, then import the code under test.
-Patterns used in `test/lib/session.test.ts` and `test/app/auth-actions.test.ts`:
+Patterns used in `test/shared/lib/session.test.ts` and `test/features/auth/actions.test.ts`:
 
 ```ts
 // cookies() just needs to hand *something* to getIronSession.
@@ -56,7 +56,7 @@ expect(mockCreateSession).toHaveBeenCalledOnce();
 
 ## Resetting module-level state
 
-`src/lib/rate-limit.ts` keeps its failure log in module memory, so isolate tests by dropping the module cache and re-importing, paired with fake timers to drive the sliding window (`test/lib/rate-limit.test.ts`):
+`src/features/auth/lib/rate-limit.ts` keeps its failure log in module memory, so isolate tests by dropping the module cache and re-importing, paired with fake timers to drive the sliding window (`test/features/auth/rate-limit.test.ts`):
 
 ```ts
 beforeEach(() => {
@@ -66,7 +66,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 it("...", async () => {
-  const { isRateLimited, recordFailure } = await import("../../src/lib/rate-limit");
+  const { isRateLimited, recordFailure } = await import("../../src/features/auth/lib/rate-limit");
   // ...
   vi.advanceTimersByTime(60_000); // expire the window deterministically
 });
@@ -75,11 +75,11 @@ it("...", async () => {
 ## Testing the proxy
 
 `next/server` works under the Node test environment, so the proxy can be tested as a plain function:
-construct a `NextRequest`, mock the session read, and assert on the returned `NextResponse` (`test/app/proxy.test.ts`).
+construct a `NextRequest`, mock the session read, and assert on the returned `NextResponse` (`test/proxy.test.ts`).
 
 ```ts
 import { NextRequest } from "next/server";
-vi.mock("@/src/lib/session", () => ({ getSessionFromRequest: vi.fn() }));
+vi.mock("@/src/shared/lib/session", () => ({ getSessionFromRequest: vi.fn() }));
 import proxy from "../../proxy";
 
 const res = await proxy(new NextRequest(new URL("/tasks", "http://localhost")));
@@ -111,10 +111,10 @@ Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`).
 ## Testing UI logic without a DOM
 
 There is no jsdom and no component renderer here, so a React component cannot be mounted in a test.
-The pattern that works is to keep the logic out of the component: extract it into a pure module under `src/lib/` and test that directly.
+The pattern that works is to keep the logic out of the component: extract it into a pure module — the feature's own `lib/`, or `src/shared/lib/` where more than one feature needs it — and test that directly.
 
-`src/lib/task-search.ts` is the reference.
-The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]` — trimming and case-folding a query, deciding whether a task matches, locating substrings to highlight — and `test/lib/task-search.test.ts` covers them with no mocks at all.
+`src/features/tasks/lib/task-search.ts` is the reference.
+The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]` — trimming and case-folding a query, deciding whether a task matches, locating substrings to highlight — and `test/features/tasks/task-search.test.ts` covers them with no mocks at all.
 `tasks-view.tsx` keeps the wiring: state, memoisation, and what renders.
 
 Draw the line at the edge cases.
@@ -123,7 +123,10 @@ What this leaves uncovered is real and worth naming: labelling, focus behaviour,
 
 ## Where to put tests
 
-Mirror the source path under `test/`: a module at `src/lib/foo.ts` → `test/lib/foo.test.ts`;
-a Server Action under `app/` → `test/app/`.
+Mirror the source path under `test/`: `src/shared/lib/session.ts` → `test/shared/lib/session.test.ts`.
+Inside a feature the mirror stops at the feature — `src/features/tasks/lib/task-search.ts` →
+`test/features/tasks/task-search.test.ts` — because a feature has few enough specs that repeating its
+internal folders would leave directories holding one file.
+Sources at the repository root are mirrored at the top of `test/`.
 Pure helpers (no Next/DB deps) need no mocks — see `test/scripts/db-provider.test.ts`.
 Integration specs (real DB) go in `test/integration/` as `*.int.test.ts`.
