@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getSession } from "@/src/shared/lib/session";
-import { LoginForm } from "./login-form";
+import { LoginForm } from "@/src/features/auth/components/login-form";
 
 export const metadata: Metadata = { title: "Sign in · Vecta" };
 

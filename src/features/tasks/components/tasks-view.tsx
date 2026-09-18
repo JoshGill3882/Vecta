@@ -12,7 +12,7 @@ import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
 import { suggestCategoryColor } from "@/src/shared/lib/palette";
 import { TASK_STATUSES } from "@/src/shared/lib/task-status";
 
-import { createCategoryAction } from "@/app/(app)/categories/actions";
+import { createCategoryAction } from "@/src/features/categories/actions";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/src/features/tasks/actions";
 import {
   TaskFormDialog,

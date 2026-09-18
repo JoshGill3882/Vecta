@@ -19,7 +19,7 @@ import {
 import { Button } from "@/src/shared/components/ui/button";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
-import { deleteCategoryAction } from "./actions";
+import { deleteCategoryAction } from "@/src/features/categories/actions";
 
 /** One row of the category list: chip, task count, and the edit/delete controls. */
 export function CategoryRow({

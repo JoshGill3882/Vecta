@@ -14,7 +14,7 @@ import { CATEGORY_PALETTE } from "@/src/shared/lib/palette";
 import type { FormState } from "@/src/shared/lib/result";
 import { cn } from "@/src/shared/lib/utils";
 
-import { createCategoryAction, updateCategoryAction } from "./actions";
+import { createCategoryAction, updateCategoryAction } from "@/src/features/categories/actions";
 
 /**
  * The create/edit form — one component for both, as in the design. Passing a

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { ArrowRight, Lock, X } from "lucide-react";
-import { loginAction, type LoginState } from "./actions";
+import { loginAction, type LoginState } from "@/src/features/auth/login-actions";
 
 const initialState: LoginState = {}; // matches the { error?, fieldErrors? } shape
 

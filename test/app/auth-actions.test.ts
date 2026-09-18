@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // vi.mock is hoisted above the imports, so these stand in before the actions
 // (and the modules they pull in) are loaded.
 
-vi.mock("@/src/lib/rate-limit", () => ({
+vi.mock("@/src/features/auth/lib/rate-limit", () => ({
   isRateLimited: vi.fn(() => false),
   recordFailure: vi.fn(),
 }));
@@ -22,9 +22,9 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-import { loginAction } from "@/app/login/actions";
-import { logoutAction } from "@/app/logout/actions";
-import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
+import { loginAction } from "@/src/features/auth/login-actions";
+import { logoutAction } from "@/src/features/auth/logout-actions";
+import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
 import { createSession, destroySession } from "@/src/shared/lib/session";
 import { redirect } from "next/navigation";
 

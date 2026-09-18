@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 
-import { logoutAction } from "@/app/logout/actions";
+import { logoutAction } from "@/src/features/auth/logout-actions";
 import { Button } from "@/src/shared/components/ui/button";
 
 import { AppNav, AppNavMobile } from "./nav-tabs";

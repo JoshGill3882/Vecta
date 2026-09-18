@@ -5,7 +5,7 @@ import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-} from "@/app/(app)/categories/actions";
+} from "@/src/features/categories/actions";
 
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
 

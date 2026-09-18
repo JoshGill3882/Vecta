@@ -1,6 +1,6 @@
 "use server"; // ← THIS is what turns every export below into a Server Action
 
-import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
+import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createSession } from "@/src/shared/lib/session";
 import { redirect } from "next/navigation";
