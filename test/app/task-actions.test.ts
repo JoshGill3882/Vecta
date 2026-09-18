@@ -26,7 +26,7 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
-import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/app/(app)/tasks/actions";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/src/features/tasks/actions";
 import { getSession } from "@/src/shared/lib/session";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
 import { updateTag } from "next/cache";

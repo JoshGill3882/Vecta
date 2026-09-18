@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { TaskDescription } from "@/app/(app)/tasks/task-description";
+import { TaskDescription } from "@/src/features/tasks/components/dialog/task-description";
 
 /**
  * The renderer is the app's primary XSS surface (issue #24), so these tests

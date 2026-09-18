@@ -11,7 +11,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/src/shared/co
 import { Input } from "@/src/shared/components/ui/input";
 import { Label } from "@/src/shared/components/ui/label";
 import { Textarea } from "@/src/shared/components/ui/textarea";
-import { useVisibleViewport } from "@/src/hooks/use-visible-viewport";
+import { useVisibleViewport } from "@/src/features/tasks/hooks/use-visible-viewport";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";

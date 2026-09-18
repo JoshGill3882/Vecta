@@ -1,8 +1,8 @@
 import { CategoryChip } from "@/src/shared/components/category-chip";
-import { StatusBadge } from "@/src/components/tasks/status-badge";
+import { StatusBadge } from "@/src/features/tasks/components/status-badge";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
-import { relativeTime } from "@/src/lib/relative-time";
+import { relativeTime } from "@/src/features/tasks/lib/relative-time";
 import { cn } from "@/src/shared/lib/utils";
 
 import { TaskCardMenu } from "./task-card-menu";

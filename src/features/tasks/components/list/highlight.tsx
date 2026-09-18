@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 
-import { findMatches } from "@/src/lib/task-search";
+import { findMatches } from "@/src/features/tasks/lib/task-search";
 
 /**
  * Wraps each occurrence of `needle` in `text` in a <mark>. Purely presentational:

@@ -6,24 +6,30 @@ import { ListIcon, Plus, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/src/shared/components/ui/button";
-import { useCollapsedSections } from "@/src/hooks/use-collapsed-sections";
+import { useCollapsedSections } from "@/src/features/tasks/hooks/use-collapsed-sections";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
 import { suggestCategoryColor } from "@/src/shared/lib/palette";
 import { TASK_STATUSES } from "@/src/shared/lib/task-status";
 
 import { createCategoryAction } from "@/app/(app)/categories/actions";
-import { createTaskAction, updateTaskAction, deleteTaskAction } from "./actions";
-import { TaskFormDialog, type TaskFormValues } from "./task-form-dialog";
-import { TaskSection, taskSectionHeaderId } from "./task-section";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/src/features/tasks/actions";
+import {
+  TaskFormDialog,
+  type TaskFormValues,
+} from "@/src/features/tasks/components/dialog/task-form-dialog";
+import {
+  TaskSection,
+  taskSectionHeaderId,
+} from "@/src/features/tasks/components/list/task-section";
 import {
   isNarrowing,
   narrowTasks,
   normaliseQuery,
   type TaskNarrowing,
-} from "@/src/lib/task-search";
-import { tasksSearchFieldId } from "./search-field";
-import { TasksToolbar } from "./tasks-toolbar";
+} from "@/src/features/tasks/lib/task-search";
+import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
+import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 
 /**
  * Focus target of last resort after a delete: with no tasks left there are no
