@@ -17,4 +17,5 @@ These are task-oriented ("how do I protect a route?", "how do I add a model?") a
 | [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation       |
 | [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming   |
 | [Rate limiting](./rate-limiting.md)                            | Applying the in-memory attempt limiter to an action                                 |
+| [Comments & documentation](./comments.md)                      | What earns a comment, the doc-block shape, which JSDoc tags earn their place        |
 | [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                       |
