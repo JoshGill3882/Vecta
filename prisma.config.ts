@@ -4,7 +4,7 @@
 // the matching migration history. See scripts/db-provider.mjs.
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
-import { detectProvider, MIGRATIONS_DIR } from "@/scripts/db-provider.mjs";
+import { detectProvider, MIGRATIONS_DIR } from "./scripts/db-provider.mjs";
 
 const url = process.env["DATABASE_URL"];
 // Provider-less commands (e.g. `generate` during a Docker build) may run with
