@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/src/shared/components
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { cn } from "@/src/shared/lib/utils";
 
+/** Shared layout for every row in the menu, so they line up. */
 const ITEM_CLASS =
   "hover:bg-surface-3 flex w-full items-center gap-[9px] rounded-[7px] px-2.5 py-[9px] text-left text-[13.5px] text-text-2 transition-colors outline-none hover:text-foreground focus-visible:bg-surface-3 focus-visible:text-foreground";
 
@@ -60,11 +61,13 @@ export function CategorySelect({
 
   const selected = options.find((category) => category.id === value);
 
+  /** Returns the control to its closed, non-creating state. */
   function reset() {
     setCreating(false);
     setNewName("");
   }
 
+  /** Creates the typed category and selects it, unless it is blank or in flight. */
   async function create() {
     const name = newName.trim();
     if (!name || pending) return;

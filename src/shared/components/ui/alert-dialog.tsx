@@ -47,7 +47,7 @@ function AlertDialogContent({
   size?: "default" | "sm";
 }) {
   // Return focus to the opener on close — Radix's own restore is a no-op for the
-  // trigger-less, controlled dialogs used here (#50).
+  // trigger-less, controlled dialogs used here.
   const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
 
   return (

@@ -21,9 +21,12 @@ import { StatusPicker } from "@/src/features/tasks/components/dialog/status-pick
  * edit form still shows every field, so it still has to enforce every rule.
  */
 export type TaskFormValues = z.output<typeof taskCreateSchema>;
+/** The form values before Zod parses them, which is what the resolver sees. */
 type TaskFormInput = z.input<typeof taskCreateSchema>;
 
+/** Shared styling for every field label in the form. */
 const LABEL_CLASS = "text-text-2 mb-[7px] text-[12.5px] font-medium";
+/** Shared styling for the keyboard-shortcut hints in the footer. */
 const KBD_CLASS =
   "bg-surface-3 border-border-strong text-text-2 rounded-[5px] border border-b-2 px-1.5 py-px font-mono text-[11px] leading-[1.4]";
 

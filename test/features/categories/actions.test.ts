@@ -41,6 +41,11 @@ const categoryDTO = {
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 
+/** Builds form data from plain fields.
+ *
+ * @param fields Field names and values.
+ * @returns Form data ready to submit.
+ */
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.set(k, v);

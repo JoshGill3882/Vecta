@@ -8,8 +8,8 @@ import * as React from "react";
  * Radix's modal content hard-restores focus to its `<DialogTrigger>`, cancelling
  * FocusScope's own restore first (`@radix-ui/react-dialog` index.mjs:148-151).
  * Every dialog in this app is controlled by an `open` prop with no trigger, so
- * `triggerRef` is null, nothing gets focused, and focus falls to `<body>` — the
- * WCAG 2.4.3 (Focus Order) failure tracked in #50. This captures the opener when
+ * `triggerRef` is null, nothing gets focused, and focus falls to `<body>` — a
+ * WCAG 2.4.3 (Focus Order) failure. This captures the opener when
  * the dialog opens and puts focus back when it closes, taking over from Radix's
  * no-op.
  *
@@ -33,7 +33,7 @@ export function useRestoreFocus(
     onOpenAutoFocus: (event: Event) => {
       // FocusScope has not moved focus into the dialog yet, so activeElement is
       // still the opener. Capture it before the caller's handler runs — that
-      // handler may move focus itself (e.g. priming a field per #48).
+      // handler may move focus itself, such as priming a field.
       openerRef.current = document.activeElement as HTMLElement | null;
       onOpenAutoFocus?.(event);
     },

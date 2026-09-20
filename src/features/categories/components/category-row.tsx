@@ -33,7 +33,7 @@ export function CategoryRow({
   /**
    * Fired after a successful delete. The row (and the Delete button that opened
    * the confirm dialog) unmounts on refresh, so the parent restores focus to a
-   * landmark that survives rather than letting it fall to `<body>` (#50).
+   * landmark that survives rather than letting it fall to `<body>`.
    */
   onDeleted: () => void;
 }) {
@@ -43,6 +43,7 @@ export function CategoryRow({
 
   // `deleteCategoryAction` takes a bare id — it isn't driven by useActionState,
   // so it's called directly inside a transition to get a pending flag.
+  /** Deletes the category, closes the confirmation and tells the list. */
   function confirmDelete() {
     startTransition(async () => {
       await runAction(deleteCategoryAction(category.id), {

@@ -10,20 +10,24 @@ Prose that only restates the code earns nothing, and a comment that stops being 
 
 Three things, and the rule is structural rather than a judgement about whether a name is self-explanatory.
 
-**Every named function.**
+**Every named function or class.**
 Exported or not, at module scope or defined inside a component.
-A named function is an interface — it has parameters, a result and a contract — and something somewhere calls it.
+Either is an interface — it has parameters, a result and a contract — and something somewhere calls it.
 
 **Every module-scope binding.**
 Constants and types declared at the top level of a file, exported or not.
 
 **Every member of a type.**
-A type's members are its interface in the same way a function's parameters are.
+Its members are its interface, in the same way a function’s parameters are.
+Exported or not, for the reason the block rule admits no exceptions: one that appears only sometimes cannot be told apart from one that was missed.
 
-Two things carry nothing:
+Three things carry nothing:
 
 **Inline and anonymous callbacks.**
 An arrow function handed straight to a prop or a handler is part of the expression it sits in, and a block above it would break the line it belongs to.
+
+**Anything at module scope in a spec.**
+No spec imports another, so its constants and fixtures are local to their file whatever scope they sit in, and a line restating the name of a `vi.mocked` alias is the noise this guide warns about elsewhere. Helper functions in a spec still carry blocks.
 
 **Local values inside a function body.**
 A local has one scope, no callers, and its definition is the expression beside it.
@@ -149,10 +153,34 @@ export async function getTaskById(id: string): Promise<TaskDTO> {
 }
 ```
 
-### Components take no tags
+### A destructured parameter is documented by its type
 
-A React component's only parameter is its props object, so `@param props` documents nothing, and enumerating the destructured properties restates the props type a line at a time.
-Give a component a summary and prose; its props type is the parameter documentation, and the members of that type are documented where the type is declared.
+A parameter written as a destructuring pattern has no name to put in a `@param`.
+Listing its properties one at a time restates the type it already has, and the type is where those members are documented — they carry blocks of their own.
+
+So a function taking one destructured argument documents its summary and its return, and leaves the argument to its type:
+
+```ts
+/** Everything the task list narrows by, in one value. */
+export interface TaskNarrowing {
+  /** Already normalised. Empty means "no query", never "match nothing". */
+  needle: string;
+  /** Selected category ids, where `null` is the Uncategorised option. */
+  categoryIds: ReadonlySet<string | null>;
+}
+
+/** Whether any control is currently narrowing the list.
+ *
+ * @returns True when a query or a category selection is in force.
+ */
+export function isNarrowing({ needle, categoryIds }: TaskNarrowing): boolean {
+  // ...
+}
+```
+
+**A React component is the commonest case rather than a special one.**
+Its single parameter is a props object, so it takes no `@param`, and it takes no `@returns` either — every component returns markup, and saying so documents the framework rather than the component.
+Give it a summary and prose; its props type carries the rest.
 
 ```tsx
 /** The row of controls above the task list.

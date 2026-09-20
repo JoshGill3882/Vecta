@@ -4,6 +4,7 @@ import { getCategories } from "@/src/server/services/categories";
 
 import { TasksView } from "@/src/features/tasks/components/tasks-view";
 
+/** The task list route: authenticates, fetches, and hands off to the view. */
 export default async function TasksPage() {
   await requireSession();
 

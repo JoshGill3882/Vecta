@@ -1,11 +1,13 @@
-// Domain Error Definitions
-
-// Base error for others to extend
+/** Base class for errors the application raises deliberately.
+ *
+ * A caller can tell one of these from an unexpected failure, which is what
+ * decides whether its message is safe to show the user.
+ */
 export abstract class DomainError extends Error {
   abstract readonly code: string;
 }
 
-// Not Found Error
+/** Raised when a record the caller named does not exist. */
 export class NotFoundError extends DomainError {
   readonly code = "NOT_FOUND" as const;
   constructor(entity: string, id: string) {
@@ -14,7 +16,7 @@ export class NotFoundError extends DomainError {
   }
 }
 
-// Conflict Error
+/** Raised when a write would break a uniqueness rule. */
 export class ConflictError extends DomainError {
   readonly code = "CONFLICT" as const;
   constructor(message: string) {

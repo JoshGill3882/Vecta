@@ -9,7 +9,7 @@
 export const CATEGORY_PALETTE = [
   "#3b9eff", // blue
   "#5aa3ff",
-  "#3b7bee", // deep blue (lightened from #2f6fe0 to clear AA as chip text — #26)
+  "#3b7bee", // deep blue (lightened from #2f6fe0 to clear AA as chip text)
   "#9b87f5", // violet
   "#b06bd6",
   "#3fbf8f", // green / teal
@@ -23,9 +23,13 @@ export const CATEGORY_PALETTE = [
   "#5b8a72",
 ] as const;
 
-/**
- * Colour to pre-select for a new category. Walking the palette by the current
- * category count means back-to-back creates don't all land on the same blue.
+/** Colour to pre-select for a new category.
+ *
+ * Walking the palette by the current category count means back-to-back creates
+ * do not all land on the same blue.
+ *
+ * @param existingCount How many categories there already are.
+ * @returns A hex colour from the palette.
  */
 export function suggestCategoryColor(existingCount: number): string {
   return CATEGORY_PALETTE[existingCount % CATEGORY_PALETTE.length];

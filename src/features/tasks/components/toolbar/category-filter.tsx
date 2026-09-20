@@ -34,6 +34,10 @@ export function CategoryFilter({
   selected: Selection;
   onSelectedChange: (next: Selection) => void;
 }) {
+  /** Adds the category to the selection, or removes it when already there.
+   *
+   * @param id The category, or null for the Uncategorised option.
+   */
   function toggle(id: string | null) {
     const next = new Set(selected);
     // delete reports whether it removed anything, so one call covers both ways.

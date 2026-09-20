@@ -11,6 +11,13 @@ import {
 
 // Only the fields the search reads carry meaning here; the rest are filler so
 // the fixtures are real TaskDTOs rather than partials cast into place.
+/** Builds a task fixture.
+ *
+ * @param overrides Fields that matter to the case; the id is required so two
+ *   fixtures can be told apart in an assertion.
+ * @returns A complete task, filler included, so the fixture is a real DTO
+ *   rather than a partial cast into place.
+ */
 function task(overrides: Partial<TaskDTO> & Pick<TaskDTO, "id">): TaskDTO {
   return {
     title: "",

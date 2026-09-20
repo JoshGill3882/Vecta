@@ -33,7 +33,7 @@ export function CategoriesView({
 
   // A deleted row unmounts the Delete button that opened the confirm dialog, so
   // its focus has nowhere to return. Once the refreshed list has rendered, move
-  // focus to the page heading rather than leaving the user at `<body>` (#50).
+  // focus to the page heading rather than leaving the user at `<body>`.
   const headingRef = useRef<HTMLHeadingElement>(null);
   const pendingHeadingFocus = useRef(false);
   const handleDeleted = useCallback(() => {

@@ -47,7 +47,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
   // A successful delete unmounts the card that opened the confirm dialog, so its
   // focus has nowhere to return — the shared restore lands on `<body>`. Record
   // the deleted task's status and, once the refreshed list has rendered, move
-  // focus to that section's header instead of leaving the user at the top (#50).
+  // focus to that section's header instead of leaving the user at the top.
   const pendingSectionFocus = useRef<TaskStatus | null>(null);
   useEffect(() => {
     const status = pendingSectionFocus.current;

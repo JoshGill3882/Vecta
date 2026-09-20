@@ -13,9 +13,11 @@ import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 export interface TaskNarrowingState {
   /** The query as typed, before normalising. */
   query: string;
+  /** Replaces the query. */
   setQuery: (query: string) => void;
   /** Selected category ids, pruned to those that still exist. */
   categoryIds: ReadonlySet<string | null>;
+  /** Replaces the selection. Ids of categories that no longer exist are dropped. */
   setCategoryIds: (categoryIds: ReadonlySet<string | null>) => void;
   /** The criteria to narrow a task list by. */
   narrowing: TaskNarrowing;

@@ -8,13 +8,14 @@ import { useEffect } from "react";
  * raster is produced. Switching theme leaves the stale icon in the tab until a
  * hard refresh; re-pointing the link at a fresh URL forces a new one.
  *
- * Progressive enhancement only - without JS the icon is still correct for whatever theme was active when the page loaded.
+ * Progressive enhancement only: without JavaScript the icon is still correct
+ * for whichever theme was active when the page loaded.
  */
-
 export function FaviconThemeSync() {
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
 
+    /** Swaps the icon link for an identical one at a theme-tagged URL. */
     function repaint() {
       const link = document.querySelector<HTMLLinkElement>(
         'link[rel="icon"][type="image/svg+xml"]'

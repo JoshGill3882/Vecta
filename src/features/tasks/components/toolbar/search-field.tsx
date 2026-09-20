@@ -14,6 +14,7 @@ import { Input } from "@/src/shared/components/ui/input";
  */
 export const tasksSearchFieldId = "tasks-search-field";
 
+/** The task list's search box, focusable from anywhere with the slash key. */
 export function SearchField({
   value,
   onChange,
@@ -24,6 +25,10 @@ export function SearchField({
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    /** Focuses the field on a bare slash, without stealing a typed one.
+     *
+     * @param event The key event, whose target says whether typing is underway.
+     */
     function onKeyDown(event: KeyboardEvent) {
       // Never steal a keystroke that is part of typing: not from another field,
       // not from a shortcut, and not from a half-composed IME character, where

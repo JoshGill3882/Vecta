@@ -1,9 +1,14 @@
 import { z } from "zod";
 
-// Single source of truth for statuses — reuse in the enum AND anywhere
-// the UI needs the list (dropdowns, etc.). `as const` makes it a readonly tuple.
+/** The three task statuses, in display order.
+ *
+ * Single source of truth: the Zod enum below and anywhere the UI needs the
+ * list both read from here. `as const` makes it a readonly tuple, so the enum
+ * takes its literal members rather than `string`.
+ */
 export const TASK_STATUSES = ["open", "in_progress", "closed"] as const;
 
+/** Validates a task as submitted for creation. */
 export const taskCreateSchema = z.object({
   title: z
     .string()
@@ -18,8 +23,10 @@ export const taskCreateSchema = z.object({
   categoryId: z.cuid().nullable().optional(), // matches Prisma @default(cuid()) ids
 });
 
-// update = "same shape, everything optional"
+/** Validates a task update: the same shape, every field optional. */
 export const taskUpdateSchema = taskCreateSchema.partial();
 
+/** A validated task ready to be created. */
 export type TaskCreateInput = z.infer<typeof taskCreateSchema>;
+/** A validated set of changes to an existing task. */
 export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>;

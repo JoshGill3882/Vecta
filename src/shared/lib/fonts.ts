@@ -9,11 +9,14 @@ import { Geist, Geist_Mono } from "next/font/google";
  * those variables — it imports these same instances and re-applies them, which
  * is why they live here rather than inline in the layout.
  */
+
+/** The body face, exposed as `--font-geist-sans`. */
 export const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
+/** The monospace face, exposed as `--font-geist-mono`. */
 export const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],

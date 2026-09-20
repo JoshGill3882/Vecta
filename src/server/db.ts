@@ -24,16 +24,28 @@ import { detectProvider } from "@/scripts/db-provider.mjs";
  * never reach a Client Component bundle.
  */
 
+/** The configured database URL, which decides the engine and the adapter. */
 const url = process.env.DATABASE_URL;
 if (!url) {
   throw new Error('DATABASE_URL is not set. Set it in .env (default: "file:./data/app.db").');
 }
 
+/** The client type the app codes against.
+ *
+ * Both engines generate structurally compatible clients, so one of them stands
+ * for either and callers need not know which is running.
+ */
 type AppPrismaClient = SqliteClient;
 
-// Takes the URL as a parameter rather than closing over it: the guard above
-// narrows `url` to a string at module scope, but that narrowing does not reach
-// inside a function body, so a captured `url` widens back to `string | undefined`.
+/** Builds a Prisma client with the adapter the URL calls for.
+ *
+ * Takes the URL as a parameter rather than closing over it: the guard above
+ * narrows it to a string at module scope, and that narrowing does not reach
+ * inside a function body, so a captured one widens back to `string | undefined`.
+ *
+ * @param databaseUrl The connection string, which decides the engine.
+ * @returns A client for whichever engine that is.
+ */
 function createClient(databaseUrl: string): AppPrismaClient {
   return detectProvider(databaseUrl) === "postgresql"
     ? (new PostgresClient({
@@ -42,7 +54,9 @@ function createClient(databaseUrl: string): AppPrismaClient {
     : new SqliteClient({ adapter: new PrismaBetterSqlite3({ url: databaseUrl }) });
 }
 
+/** Globals, where the client survives the module reloads dev does on every edit. */
 const globalForPrisma = globalThis as unknown as { prisma?: AppPrismaClient };
+/** The one Prisma client. Server-only: never import this from a Client Component. */
 export const prisma = globalForPrisma.prisma ?? createClient(url);
 
 if (process.env.NODE_ENV !== "production") {

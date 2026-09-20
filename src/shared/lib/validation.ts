@@ -1,18 +1,25 @@
 import { z } from "zod";
 
-// The app-wide "structured errors" contract: a discriminated union so
-// callers narrow on `success` and TypeScript hands them either `data` or the
-// error buckets — never both.
-//
-//   fieldErrors — keyed by field name, e.g. { title: ["Title is required"] }
-//   formErrors  — cross-field / non-field issues (from .refine() on the object)
+/** The app-wide structured-errors contract.
+ *
+ * A discriminated union so callers narrow on `success` and are handed either
+ * `data` or the error buckets, never both. `fieldErrors` is keyed by field
+ * name; `formErrors` holds cross-field issues, which come from a `.refine()`
+ * on the object rather than on any one field.
+ */
 export type ValidationResult<T> =
   | { success: true; data: T }
   | { success: false; fieldErrors: Record<string, string[]>; formErrors: string[] };
 
-// Validate `input` against any Zod schema and flatten failures into the shape
-// above. Define it once; every server action / route handler reuses it so the
-// error shape stays uniform across the app.
+/** Validates input against a Zod schema, flattening any failure.
+ *
+ * Defined once and reused by every Server Action and route handler, so the
+ * error shape a caller has to handle is the same everywhere.
+ *
+ * @param schema The schema to validate against.
+ * @param input Untrusted input, of unknown shape until this has vouched for it.
+ * @returns The parsed data, or the failures keyed by field.
+ */
 export function validate<T>(schema: z.ZodType<T>, input: unknown): ValidationResult<T> {
   const result = schema.safeParse(input);
   if (result.success) return { success: true, data: result.data };

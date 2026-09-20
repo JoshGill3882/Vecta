@@ -40,6 +40,7 @@ export function DeleteTaskDialog({
 }) {
   const [pending, setPending] = useState(false);
 
+  /** Runs the delete and closes the dialog only if it succeeded. */
   async function confirm() {
     setPending(true);
     try {

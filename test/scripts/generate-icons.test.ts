@@ -19,7 +19,13 @@ import {
 const icoPath = new URL("../../app/favicon.ico", import.meta.url);
 const svgPath = new URL("../../app/icon.svg", import.meta.url);
 
-/** An RGBA buffer with one opaque rectangle on a transparent field. */
+/** An RGBA buffer with one opaque rectangle on a transparent field.
+ *
+ * @param width Buffer width in pixels.
+ * @param height Buffer height in pixels.
+ * @param opaque The rectangle, as x0, y0, x1, y1 inclusive.
+ * @returns The pixel data.
+ */
 function canvas(width: number, height: number, opaque: [number, number, number, number]) {
   const data = new Uint8Array(width * height * 4);
   const [x0, y0, x1, y1] = opaque;
@@ -104,10 +110,10 @@ describe("toHex", () => {
   });
 });
 
-// The regression guard. "The icon is legible" is a human judgement, but the
-// property that caused #118 is not: the shipped mark was ~93% semi-transparent
-// glow, so on a light tab strip almost nothing was left to read. Asserting the
-// .ico is fully opaque would have caught that, and catches it coming back.
+// The regression guard. "The icon is legible" is a human judgement; the
+// property underneath it is not. A mark that is almost entirely semi-transparent
+// glow leaves nothing to read on a light tab strip, so this asserts the .ico is
+// fully opaque.
 describe("the shipped app/favicon.ico", () => {
   const entries = parseIco(readFileSync(icoPath));
 

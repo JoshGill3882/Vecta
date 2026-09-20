@@ -21,6 +21,13 @@ type Version = {
 };
 
 let nextId = 1;
+/** Builds a GHCR package version fixture.
+ *
+ * @param name The version name, which the API reports as the digest.
+ * @param tags Tags pointing at it; an untagged version is a prune candidate.
+ * @param created_at When it was pushed, which the age cutoff reads.
+ * @returns One version as the API would return it.
+ */
 function version(name: string, tags: string[], created_at = "2026-09-01T00:00:00Z"): Version {
   return { id: nextId++, name, created_at, metadata: { container: { tags } } };
 }

@@ -4,6 +4,7 @@ import { getTasks } from "@/src/server/services/tasks";
 
 import { CategoriesView } from "@/src/features/categories/components/categories-view";
 
+/** The categories route: authenticates, fetches, and hands off to the view. */
 export default async function CategoriesPage() {
   await requireSession();
 
