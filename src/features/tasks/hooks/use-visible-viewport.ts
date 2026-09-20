@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 
 /** The slice of the page actually on screen, in CSS pixels. */
-export type VisibleViewport = { height: number; offsetTop: number };
+export type VisibleViewport = {
+  /** How tall the visible area is. */
+  height: number;
+  /** How far the visible area has been panned down the page. */
+  offsetTop: number;
+};
 
 /**
  * Tracks the visual viewport on touch devices — the part of the page left over
@@ -24,6 +29,9 @@ export type VisibleViewport = { height: number; offsetTop: number };
  * `offsetTop` matters because iOS scrolls the visual viewport within the layout
  * viewport rather than resizing it, which shifts where a fixed element must sit
  * to look anchored.
+ *
+ * @returns The visible area while a keyboard is up, or null on a pointer device
+ *   where the viewport is the window.
  */
 export function useVisibleViewport(): VisibleViewport | null {
   const [visible, setVisible] = useState<VisibleViewport | null>(null);

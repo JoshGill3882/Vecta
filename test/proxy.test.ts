@@ -12,6 +12,11 @@ import { getSessionFromRequest } from "@/src/shared/lib/session";
 
 const mockGetSession = vi.mocked(getSessionFromRequest);
 
+/** Builds a request for a path, as the proxy would receive it.
+ *
+ * @param path The path being requested.
+ * @returns A request the proxy can be called with.
+ */
 function requestFor(path: string): NextRequest {
   return new NextRequest(new URL(path, "http://localhost"));
 }

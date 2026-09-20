@@ -32,6 +32,11 @@ const categoryRow = {
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
 };
 
+/** Builds the Prisma error a failing query would throw.
+ *
+ * @param code The Prisma error code the service branches on.
+ * @returns An error of the type the service catches.
+ */
 function prismaError(code: string): PrismaClientKnownRequestError {
   return new PrismaClientKnownRequestError("mock prisma failure", {
     code,

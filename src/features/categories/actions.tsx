@@ -10,6 +10,7 @@ import { getSession } from "@/src/shared/lib/session";
 
 /** Server Action for creating a Category
  *
+ * @param _prev The previous form state, which this replaces.
  * @param formData Form data from the page
  * @returns ActionResult with new CategoryDTO or Error
  */
@@ -36,7 +37,8 @@ export async function createCategoryAction(
 /** Server Action for updating a Category
  *
  * @param id ID of the Category being deleted
- * @param formData Form Data from the Page
+ * @param _prev The previous form state, which this replaces.
+ * @param formData Form data from the page
  * @returns ActionResult with new CategoryDTO or Error
  */
 export async function updateCategoryAction(

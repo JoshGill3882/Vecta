@@ -18,7 +18,10 @@ import { TaskCard } from "./task-card";
  * DOM id of a section's header button. It's the focus landmark a successful
  * delete lands on: the card that opened the confirm dialog is gone by then, so
  * focus returns to the header of the status it lived under rather than to
- * `<body>` (#50).
+ * `<body>`.
+ *
+ * @param status The status whose section header is wanted.
+ * @returns The DOM id of that section's header.
  */
 export function taskSectionHeaderId(status: TaskStatus) {
   return `task-section-${status}`;

@@ -33,6 +33,10 @@ if (!url.includes(":memory:")) {
 // separate process, so it would create (and discard) its own in-memory DB rather
 // than populating the one the tests connect to. Replaying the real migration
 // files gives the identical schema without that cross-process problem.
+/** Reads the SQLite migrations as statements to apply to a fresh database.
+ *
+ * @returns Every statement, in migration order.
+ */
 function migrationStatements(): string[] {
   const dir = fileURLToPath(new URL("../../prisma/migrations/sqlite", import.meta.url));
   const migrations = readdirSync(dir, { withFileTypes: true })

@@ -36,6 +36,12 @@ const mockRedirect = vi.mocked(redirect);
 
 const PASSWORD = "correct-horse-battery-staple";
 
+/** Builds the form data the login action expects.
+ *
+ * @param password The password field.
+ * @param next Where to return to after signing in, when present.
+ * @returns Form data ready to submit.
+ */
 function form(password: string, next?: string): FormData {
   const fd = new FormData();
   fd.set("password", password);

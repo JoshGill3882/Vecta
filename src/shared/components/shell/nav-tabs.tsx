@@ -7,7 +7,14 @@ import { List, Tag, type LucideIcon } from "lucide-react";
 import { cn } from "@/src/shared/lib/utils";
 
 /** One destination in the app navigation. */
-type Tab = { href: string; label: string; Icon: LucideIcon };
+type Tab = {
+  /** Where the tab links to. */
+  href: string;
+  /** Text shown in the tab. */
+  label: string;
+  /** Icon shown before the label. */
+  Icon: LucideIcon;
+};
 
 /** The app's destinations, in the order both navigations show them. */
 const TABS: Tab[] = [

@@ -4,17 +4,22 @@ import { useCallback, useSyncExternalStore } from "react";
 
 import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
 
+/** Whether each status section is collapsed. */
 type CollapsedMap = Record<TaskStatus, boolean>;
 
+/** localStorage key the preference is written under. */
 const STORAGE_KEY = "jl_collapsed";
 
 /** Closed work is the least interesting on arrival, so it starts folded away. */
 const DEFAULTS: CollapsedMap = { open: false, in_progress: false, closed: true };
 
-/**
- * localStorage is user-editable and survives across deploys, so a stored value
- * is untrusted input: anything that isn't a boolean for a known status falls
- * back to the default rather than propagating `undefined` into `open`.
+/** Reads the stored preference, treating it as untrusted input.
+ *
+ * localStorage is user-editable and survives across deploys, so anything that
+ * is not a boolean for a known status falls back to the default rather than
+ * propagating `undefined` into `open`.
+ *
+ * @returns The stored map, or the defaults where a value is missing or unusable.
  */
 function readStored(): CollapsedMap {
   try {
@@ -37,44 +42,62 @@ function readStored(): CollapsedMap {
   }
 }
 
-/*
- * The collapsed map is a single global preference, so the store lives at module
- * scope rather than per-hook-instance.
+/** The read source of truth, rather than localStorage itself.
  *
- * `cache` — not localStorage — is the read source of truth: useSyncExternalStore
- * requires getSnapshot to return a stable reference (a fresh object each call is
- * an infinite render loop), and keeping the value in memory also means the UI
- * still works when storage is blocked and the write below silently fails.
+ * The collapsed map is one global preference, so the store lives at module
+ * scope rather than per hook instance. `useSyncExternalStore` needs
+ * `getSnapshot` to return a stable reference — a fresh object each call is an
+ * infinite render loop — and holding the value in memory also keeps the UI
+ * working when storage is blocked and the write silently fails.
  */
 let cache: CollapsedMap | null = null;
+
+/** Subscribers to notify when the preference changes. */
 const listeners = new Set<() => void>();
 
+/** Notifies every subscriber that the preference changed. */
 function emit() {
   for (const listener of listeners) listener();
 }
 
+/** The current preference, reading storage once and caching it.
+ *
+ * @returns A stable reference, which `useSyncExternalStore` requires.
+ */
 function getSnapshot(): CollapsedMap {
   cache ??= readStored();
   return cache;
 }
 
-/**
- * The server has no localStorage, so it always renders the defaults. React uses
- * this snapshot for SSR *and* for the hydration render, then re-renders with the
- * client snapshot — which is what keeps a user whose stored state differs from
- * DEFAULTS from tripping a hydration mismatch. The cost is a one-frame flash for
- * those users; avoiding it entirely would need a blocking inline script, which
- * is a steep price for a section that starts folded.
+/** The preference as the server sees it, which is always the defaults.
+ *
+ * React uses this for the server render and the hydration render both, then
+ * re-renders from the client snapshot. That is what keeps a user whose stored
+ * state differs from the defaults from tripping a hydration mismatch. The cost
+ * is a one-frame flash for those users; avoiding it would need a blocking
+ * inline script, which is steep for a section that starts folded.
+ *
+ * @returns The defaults.
  */
 function getServerSnapshot(): CollapsedMap {
   return DEFAULTS;
 }
 
+/** Subscribes to preference changes, including those from another tab.
+ *
+ * @param listener Called whenever the preference changes.
+ * @returns An unsubscribe function.
+ */
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
 
-  // Keeps two tabs of the app in agreement. `storage` only fires in *other*
-  // documents, so same-tab updates rely on the explicit emit() in toggle().
+  /** Re-reads the preference when another tab changes it.
+   *
+   * `storage` only fires in other documents, so a change made in this tab
+   * relies on the explicit notify in the setter instead.
+   *
+   * @param event The storage event, which names the key that changed.
+   */
   function onStorage(event: StorageEvent) {
     if (event.key !== null && event.key !== STORAGE_KEY) return;
     cache = readStored();

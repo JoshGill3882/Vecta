@@ -17,11 +17,11 @@ Either is an interface — it has parameters, a result and a contract — and so
 **Every module-scope binding.**
 Constants and types declared at the top level of a file, exported or not.
 
-**Every member of an exported type.**
-Its members are its interface, read by people who never open the file it is declared in.
-A type that is not exported is read beside the code using it, so its members are documented only where they need it.
+**Every member of a type.**
+Its members are its interface, in the same way a function’s parameters are.
+Exported or not, for the reason the block rule admits no exceptions: one that appears only sometimes cannot be told apart from one that was missed.
 
-Two things carry nothing:
+Three things carry nothing:
 
 **Inline and anonymous callbacks.**
 An arrow function handed straight to a prop or a handler is part of the expression it sits in, and a block above it would break the line it belongs to.

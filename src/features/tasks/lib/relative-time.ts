@@ -1,7 +1,11 @@
-/**
- * Short relative timestamp ("4d ago") for task cards, ported from the Vecta
- * design. Falls back to an absolute date past ~5 weeks, where "9w ago" stops
+/** Short relative timestamp for a task card, such as "4d ago".
+ *
+ * Falls back to an absolute date past roughly five weeks, where "9w ago" stops
  * being easier to read than "12 Jun".
+ *
+ * @param iso An ISO 8601 timestamp.
+ * @returns The relative phrase, or an empty string when the timestamp cannot
+ *   be parsed.
  */
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();

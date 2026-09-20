@@ -25,6 +25,7 @@ export function TaskCard({
 }) {
   const closed = task.status === "closed";
 
+  /** Opens the task, ignoring clicks that landed on a control inside the card. */
   function openFromCard() {
     // A drag to select text finishes with a click on the card. Opening the
     // dialog then would tear the selection away mid-gesture.

@@ -4,6 +4,14 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 // case re-imports the module against a stubbed environment rather than calling a
 // function. `resetModules` is what makes that re-evaluation happen — without it
 // the first import is cached and every later case sees the first one's list.
+/** Loads the Next config with a given environment and reads the dev origins.
+ *
+ * The list is assembled once when the module evaluates, so the module registry
+ * is reset and the config re-imported for each case.
+ *
+ * @param value The environment variable, or undefined to leave it unset.
+ * @returns The assembled list of allowed dev origins.
+ */
 async function loadDevOrigins(value?: string) {
   vi.stubEnv("ALLOWED_DEV_ORIGINS", value);
   vi.resetModules();

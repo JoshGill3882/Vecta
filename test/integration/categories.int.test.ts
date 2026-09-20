@@ -9,6 +9,11 @@ import {
 
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
 
+/** Builds form data from plain fields.
+ *
+ * @param fields Field names and values.
+ * @returns Form data ready to submit.
+ */
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.set(k, v);

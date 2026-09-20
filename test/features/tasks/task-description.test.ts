@@ -4,10 +4,14 @@ import { describe, expect, it } from "vitest";
 
 import { TaskDescription } from "@/src/features/tasks/components/dialog/task-description";
 
-/**
- * The renderer is the app's primary XSS surface (issue #24), so these tests
- * pin the safety contract as much as the formatting. react-markdown renders
- * synchronously, so static markup is enough — no DOM required.
+/** Renders the description component to static markup.
+ *
+ * The renderer is the application's primary XSS surface, so these cases pin
+ * the safety contract as much as the formatting. react-markdown renders
+ * synchronously, so static markup is enough and no DOM is required.
+ *
+ * @param markdown The description to render.
+ * @returns The rendered HTML, as a string to assert against.
  */
 function render(markdown: string): string {
   return renderToStaticMarkup(createElement(TaskDescription, { markdown }));

@@ -4,8 +4,10 @@ import { useActionState, useState } from "react";
 import { ArrowRight, Lock, X } from "lucide-react";
 import { loginAction, type LoginState } from "@/src/features/auth/login-actions";
 
+/** Idle state: no error and no field errors until something is submitted. */
 const initialState: LoginState = {}; // matches the { error?, fieldErrors? } shape
 
+/** The sign-in form, reporting the server's own validation against the field. */
 export function LoginForm({ next }: { next?: string }) {
   // useActionState binds a server action to form state.
   // - `state` is whatever your action RETURNS (errors render from here)
