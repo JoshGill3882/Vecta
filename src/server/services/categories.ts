@@ -6,14 +6,22 @@ import { ConflictError, NotFoundError } from "@/src/server/errors";
 
 // Category service — the seam all category DB access flows through.
 
+/** The fields needed to create a category. */
 export interface CreateCategoryInput {
+  /** Display name. Required, and unique across categories. */
   name: string;
-  // Hex colour for the category dot / badge. Defaults to the schema default.
+  /** Hex colour for the dot and the chip. Omitted takes the schema default. */
   color?: string;
 }
 
+/** The fields that may be changed on an existing category.
+ *
+ * Every one is optional: an omitted field is left as it was.
+ */
 export interface UpdateCategoryInput {
+  /** Display name. */
   name?: string;
+  /** Hex colour for the dot and the chip. */
   color?: string;
 }
 

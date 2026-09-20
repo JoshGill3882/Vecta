@@ -10,9 +10,9 @@ Prose that only restates the code earns nothing, and a comment that stops being 
 
 Three things, and the rule is structural rather than a judgement about whether a name is self-explanatory.
 
-**Every named function.**
+**Every named function or class.**
 Exported or not, at module scope or defined inside a component.
-A named function is an interface — it has parameters, a result and a contract — and something somewhere calls it.
+Either is an interface — it has parameters, a result and a contract — and something somewhere calls it.
 
 **Every module-scope binding.**
 Constants and types declared at the top level of a file, exported or not.
