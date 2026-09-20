@@ -52,6 +52,9 @@ jobs:
       - name: Check for Acceptance-Criteria references
         run: npm run check:ac
 
+      - name: Check for issue references in comments
+        run: npm run check:comments
+
       - name: Format check
         run: npm run format:check
 

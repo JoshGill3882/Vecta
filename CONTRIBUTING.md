@@ -119,6 +119,8 @@ See [`docs/guides/environment.md`](./docs/guides/environment.md#allowed_dev_orig
 | `npm run lint`           | Run ESLint                                                          |
 | `npm run lint:fix`       | Run ESLint and auto-fix                                             |
 | `npm run check:node`     | Check the Node version pins agree across the repo                   |
+| `npm run check:ac`       | Fail if Acceptance-Criteria labels reached code, tests or docs      |
+| `npm run check:comments` | Fail if a comment references an issue number                        |
 | `npm run prune:ghcr`     | Dry-run the GHCR retention job — reports, deletes nothing           |
 | `npm run lint:md`        | Lint the Markdown — the same check CI gates on                      |
 | `npm run lint:md:fix`    | Lint the Markdown and auto-fix what can be fixed mechanically       |
