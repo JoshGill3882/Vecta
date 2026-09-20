@@ -26,6 +26,9 @@ Two things carry nothing:
 **Inline and anonymous callbacks.**
 An arrow function handed straight to a prop or a handler is part of the expression it sits in, and a block above it would break the line it belongs to.
 
+**Anything at module scope in a spec.**
+No spec imports another, so its constants and fixtures are local to their file whatever scope they sit in, and a line restating the name of a `vi.mocked` alias is the noise this guide warns about elsewhere. Helper functions in a spec still carry blocks.
+
 **Local values inside a function body.**
 A local has one scope, no callers, and its definition is the expression beside it.
 `const narrowed = isNarrowing(narrowing)` is not improved by a line above it explaining that it is whether anything is narrowing.
