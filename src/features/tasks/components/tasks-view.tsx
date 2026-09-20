@@ -5,7 +5,6 @@ import { ListIcon, Plus, SearchIcon } from "lucide-react";
 
 import { Button } from "@/src/shared/components/ui/button";
 import { useServerAction } from "@/src/shared/hooks/use-server-action";
-import { useCollapsedSections } from "@/src/features/tasks/hooks/use-collapsed-sections";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
 import { suggestCategoryColor } from "@/src/shared/lib/palette";
@@ -22,36 +21,15 @@ import {
   taskSectionHeaderId,
 } from "@/src/features/tasks/components/list/task-section";
 import {
-  isNarrowing,
-  narrowTasks,
-  normaliseQuery,
-  type TaskNarrowing,
-} from "@/src/features/tasks/lib/task-search";
+  describeNoMatches,
+  TasksEmptyState,
+  tasksEmptyStateHeadingId,
+} from "@/src/features/tasks/components/tasks-empty-state";
 import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
 import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
-
-/**
- * Focus target of last resort after a delete: with no tasks left there are no
- * section headers to return to, so the empty state's heading stands in (#110).
- */
-const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
-
-/**
- * Copy for the no-results state. It names the controls actually narrowing the
- * list, so the message cannot blame a search when a filter is what emptied it,
- * and the action says exactly what will clear.
- */
-function describeNoMatches(query: string, byCategory: boolean) {
-  const trimmed = query.trim();
-  if (trimmed && byCategory) {
-    return {
-      detail: `Nothing matches “${trimmed}” in the selected categories.`,
-      action: "Clear search and filters",
-    };
-  }
-  if (trimmed) return { detail: `Nothing matches “${trimmed}”.`, action: "Clear search" };
-  return { detail: `No tasks in the selected categories.`, action: "Clear filters" };
-}
+import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
+import { useTaskNarrowing } from "@/src/features/tasks/hooks/use-task-narrowing";
+import { narrowTasks } from "@/src/features/tasks/lib/task-search";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -62,8 +40,9 @@ function describeNoMatches(query: string, byCategory: boolean) {
  * state. Reads still happen on the server; the data arrives as props.
  */
 export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories: CategoryDTO[] }) {
-  const { collapsed, toggle } = useCollapsedSections();
   const runAction = useServerAction();
+  const narrowing = useTaskNarrowing(categories);
+  const sections = useSectionCollapse(narrowing.narrowed);
 
   // A successful delete unmounts the card that opened the confirm dialog, so its
   // focus has nowhere to return — the shared restore lands on `<body>`. Record
@@ -94,61 +73,16 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     [categories]
   );
 
-  const [query, setQuery] = useState("");
-  const needle = normaliseQuery(query);
-  const [categoryIds, setCategoryIds] = useState<ReadonlySet<string | null>>(() => new Set());
-
-  // A category can be deleted while it is selected, which would otherwise narrow
-  // the list to nothing and leave no way back. Pruning is derived rather than
-  // corrected after the fact: a correction applied afterwards shows the stranded
-  // list for a render first, and races the refresh that removed the category.
-  const selectedCategoryIds = useMemo(() => {
-    const known = new Set<string | null>([null]);
-    for (const category of categories) known.add(category.id);
-    return new Set([...categoryIds].filter((id) => known.has(id)));
-  }, [categoryIds, categories]);
-
-  const narrowing = useMemo<TaskNarrowing>(
-    () => ({ needle, categoryIds: selectedCategoryIds }),
-    [needle, selectedCategoryIds]
-  );
-  const narrowed = isNarrowing(narrowing);
-
-  // Clear all narrowing
-  function clearNarrowing() {
-    setQuery("");
-    setCategoryIds(new Set());
-  }
-
-  // No Matches detail and action strings for current state
-  const noMatches = describeNoMatches(query, selectedCategoryIds.size > 0);
-
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
   const { byStatus, matchCount } = useMemo(() => {
-    const matched = narrowTasks(tasks, narrowing);
+    const matched = narrowTasks(tasks, narrowing.narrowing);
     const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
     for (const task of matched) buckets.get(task.status)?.push(task);
     for (const bucket of buckets.values())
       bucket.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return { byStatus: buckets, matchCount: matched.length };
-  }, [tasks, narrowing]);
-
-  // Collapsing a section while the list is narrowed is a transient act, so it is held here
-  // rather than written to the persisted map - clearing the narrowing returns every
-  // section to the state the user left it in. Sections start expanded,
-  // since a match hidden inside a collapsed `closed` reads as no match.
-  const [narrowCollapsed, setNarrowCollapsed] = useState<Partial<Record<TaskStatus, boolean>>>({});
-
-  // Reset the transient collapse when narrowing ends, whichever control ended it.
-  // Adjusted during render rather than after it: React applies this before the
-  // sections render, so they never see a map left over from the last time the
-  // list was narrowed.
-  const [wasNarrowed, setWasNarrowed] = useState(narrowed);
-  if (wasNarrowed !== narrowed) {
-    setWasNarrowed(narrowed);
-    if (!narrowed) setNarrowCollapsed({});
-  }
+  }, [tasks, narrowing.narrowing]);
 
   /** Creates or updates a task, depending on whether one is being edited.
    *
@@ -191,15 +125,22 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     return runAction(createCategoryAction(null, formData), { success: "Category created" });
   }
 
+  /** Opens the task dialog with no task loaded, ready to create one. */
   function openCreate() {
     setEditing(undefined);
     setFormOpen(true);
   }
 
+  /** Opens the task dialog on an existing task.
+   *
+   * @param task The task to show.
+   */
   function openEdit(task: TaskDTO) {
     setEditing(task);
     setFormOpen(true);
   }
+
+  const noMatches = describeNoMatches(narrowing.query, narrowing.categoryIds.size > 0);
 
   return (
     <section>
@@ -212,7 +153,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
         <div>
           <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Your tasks</h1>
           <p role="status" className="text-text-3 mt-1 text-[13.5px]">
-            {narrowed
+            {narrowing.narrowed
               ? `${matchCount} of ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`
               : `${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} across ${categories.length} ${categories.length === 1 ? "category" : "categories"}`}
           </p>
@@ -225,58 +166,43 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
 
       {tasks.length > 0 && (
         <TasksToolbar
-          query={query}
-          onQueryChange={setQuery}
+          query={narrowing.query}
+          onQueryChange={narrowing.setQuery}
           categories={categories}
-          selectedCategoryIds={selectedCategoryIds}
-          onSelectedCategoryIdsChange={setCategoryIds}
+          selectedCategoryIds={narrowing.categoryIds}
+          onSelectedCategoryIdsChange={narrowing.setCategoryIds}
         />
       )}
 
       {tasks.length === 0 ? (
-        <div className="text-text-2 px-5 py-[60px] text-center">
-          <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
-            <ListIcon className="size-[26px]" />
-          </div>
-          <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
-            No tasks yet
-          </h2>
-          <p className="text-text-3 text-sm">Create your first task with the New task button.</p>
-        </div>
+        <TasksEmptyState icon={ListIcon} heading="No tasks yet">
+          Create your first task with the New task button.
+        </TasksEmptyState>
       ) : matchCount === 0 ? (
-        <div className="text-text-2 px-5 py-[60px] text-center">
-          <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
-            <SearchIcon className="size-[26px]" />
-          </div>
-          <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
-            No matching tasks
-          </h2>
-          <p className="text-text-3 text-sm">{noMatches.detail}.</p>
-          <Button variant="outline" onClick={clearNarrowing} className="mt-4">
-            {noMatches.action}
-          </Button>
-        </div>
+        <TasksEmptyState
+          icon={SearchIcon}
+          heading="No matching tasks"
+          action={{ label: noMatches.action, onClick: narrowing.clear }}
+        >
+          {noMatches.detail}
+        </TasksEmptyState>
       ) : (
         TASK_STATUSES.map((status) => {
           const inStatus = byStatus.get(status.id) ?? [];
           // A status with nothing in it is noise while narrowing - drop it until the narrowing clears
-          if (narrowed && inStatus.length === 0) return null;
+          if (narrowing.narrowed && inStatus.length === 0) return null;
           return (
             <TaskSection
               key={status.id}
               status={status.id}
               label={status.label}
-              tasks={byStatus.get(status.id) ?? []}
+              tasks={inStatus}
               categoriesById={categoriesById}
-              collapsed={narrowed ? (narrowCollapsed[status.id] ?? false) : collapsed[status.id]}
-              onCollapsedChange={(next) =>
-                narrowed
-                  ? setNarrowCollapsed((prev) => ({ ...prev, [status.id]: next }))
-                  : toggle(status.id)
-              }
+              collapsed={sections.isCollapsed(status.id)}
+              onCollapsedChange={(next) => sections.setCollapsed(status.id, next)}
               onEdit={openEdit}
               onDelete={deleteTask}
-              needle={needle}
+              needle={narrowing.narrowing.needle}
             />
           );
         })

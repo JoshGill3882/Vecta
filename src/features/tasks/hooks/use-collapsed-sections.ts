@@ -88,12 +88,19 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-/** Open/closed state for the three status sections, persisted to localStorage. */
+/** Open/closed state for the three status sections, persisted to localStorage.
+ *
+ * @returns The collapsed state of every status, and a setter taking the new
+ *   value for one of them.
+ */
 export function useCollapsedSections() {
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const toggle = useCallback((id: TaskStatus) => {
-    const next = { ...getSnapshot(), [id]: !getSnapshot()[id] };
+  // Takes the new value rather than flipping the old one. A flip assumes the
+  // rendered state and the stored state agree, which is not true of a section
+  // held open by something other than this preference.
+  const setCollapsed = useCallback((id: TaskStatus, collapsed: boolean) => {
+    const next = { ...getSnapshot(), [id]: collapsed };
     cache = next;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -104,5 +111,5 @@ export function useCollapsedSections() {
     emit();
   }, []);
 
-  return { collapsed, toggle };
+  return { collapsed, setCollapsed };
 }
