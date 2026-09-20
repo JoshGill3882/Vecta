@@ -6,16 +6,25 @@ import { List, Tag, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/src/shared/lib/utils";
 
+/** One destination in the app navigation. */
 type Tab = { href: string; label: string; Icon: LucideIcon };
 
+/** The app's destinations, in the order both navigations show them. */
 const TABS: Tab[] = [
   { href: "/tasks", label: "Tasks", Icon: List },
   { href: "/categories", label: "Categories", Icon: Tag },
 ];
 
-// Match the tab's own route and anything nested under it, but not a sibling
-// that merely shares a prefix — a future "/team-settings" must not light up
-// the "/team" tab.
+/** Whether a tab should read as the current page.
+ *
+ * Matches the tab's own route and anything nested under it, but not a sibling
+ * that merely shares a prefix: a "/team-settings" route must not light up the
+ * "/team" tab.
+ *
+ * @param pathname The current path.
+ * @param href The tab's destination.
+ * @returns True when the tab is current.
+ */
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }

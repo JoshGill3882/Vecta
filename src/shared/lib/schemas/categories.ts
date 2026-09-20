@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-// Hex colour: # followed by exactly 6 hex digits. Rejects shortened 3-character-codes
+/** A six-digit hex colour. Shortened three-character codes are rejected. */
 const hexColor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Must be a 6-digit hex colour, e.g. #3b9eff");
 
+/** Validates a category as submitted for creation. */
 export const categoryCreateSchema = z.object({
   name: z
     .string()
@@ -17,8 +18,10 @@ export const categoryCreateSchema = z.object({
   color: hexColor.optional(),
 });
 
-// update = "same shape, everything optional". Don't retype it — derive it.
+/** Validates a category update: the same shape, every field optional. */
 export const categoryUpdateSchema = categoryCreateSchema.partial();
 
+/** A validated category ready to be created. */
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
+/** A validated set of changes to an existing category. */
 export type CategoryUpdateInput = z.infer<typeof categoryUpdateSchema>;
