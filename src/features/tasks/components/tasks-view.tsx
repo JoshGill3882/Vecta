@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ListIcon, Plus, SearchIcon } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/src/shared/components/ui/button";
+import { useServerAction } from "@/src/shared/hooks/use-server-action";
 import { useCollapsedSections } from "@/src/features/tasks/hooks/use-collapsed-sections";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
@@ -64,7 +63,7 @@ function describeNoMatches(query: string, byCategory: boolean) {
  */
 export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories: CategoryDTO[] }) {
   const { collapsed, toggle } = useCollapsedSections();
-  const router = useRouter();
+  const runAction = useServerAction();
 
   // A successful delete unmounts the card that opened the confirm dialog, so its
   // focus has nowhere to return — the shared restore lands on `<body>`. Record
@@ -151,51 +150,45 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     if (!narrowed) setNarrowCollapsed({});
   }
 
-  async function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
-    const result = editing
-      ? await updateTaskAction(editing.id, values)
-      : await createTaskAction(values);
-
-    if (!result.ok) {
-      toast.error(result.error);
-      return null;
-    }
-
-    toast.success(editing ? "Changes saved" : "Task created");
-    router.refresh();
-    return result.data;
+  /** Creates or updates a task, depending on whether one is being edited.
+   *
+   * @param values The submitted form values.
+   * @returns The saved task, or null if the save failed.
+   */
+  function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
+    return runAction(editing ? updateTaskAction(editing.id, values) : createTaskAction(values), {
+      success: editing ? "Changes saved" : "Task created",
+    });
   }
 
+  /** Deletes a task and aims focus at the section it lived under.
+   *
+   * @param task The task to delete.
+   * @returns Whether it was deleted, which is what closes the confirm dialog.
+   */
   async function deleteTask(task: TaskDTO): Promise<boolean> {
-    const result = await deleteTaskAction(task.id);
-
-    if (!result.ok) {
-      toast.error(result.error);
-      return false;
-    }
-
-    toast.success("Task deleted");
-    // Focus its section header once the refresh has re-rendered without the card.
-    pendingSectionFocus.current = task.status;
-    router.refresh();
-    return true;
+    const deleted = await runAction(deleteTaskAction(task.id), {
+      success: "Task deleted",
+      // Recorded before the refresh, because the card holding focus is gone once
+      // the list re-renders.
+      beforeRefresh: () => {
+        pendingSectionFocus.current = task.status;
+      },
+    });
+    return deleted !== null;
   }
 
-  async function createCategory(name: string): Promise<CategoryDTO | null> {
+  /** Creates a category from the task dialog, colouring it from the palette.
+   *
+   * @param name The new category name.
+   * @returns The created category, or null if it failed.
+   */
+  function createCategory(name: string): Promise<CategoryDTO | null> {
     const formData = new FormData();
     formData.set("name", name);
     formData.set("color", suggestCategoryColor(categories.length));
 
-    const result = await createCategoryAction(null, formData);
-
-    if (!result.ok) {
-      toast.error(result.error);
-      return null;
-    }
-
-    toast.success("Category created");
-    router.refresh();
-    return result.data;
+    return runAction(createCategoryAction(null, formData), { success: "Category created" });
   }
 
   function openCreate() {

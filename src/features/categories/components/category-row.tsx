@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 
 import { CategoryChip } from "@/src/shared/components/category-chip";
 import {
@@ -17,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/src/shared/components/ui/alert-dialog";
 import { Button } from "@/src/shared/components/ui/button";
+import { useServerAction } from "@/src/shared/hooks/use-server-action";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
 import { deleteCategoryAction } from "@/src/features/categories/actions";
@@ -38,7 +37,7 @@ export function CategoryRow({
    */
   onDeleted: () => void;
 }) {
-  const router = useRouter();
+  const runAction = useServerAction();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -46,15 +45,13 @@ export function CategoryRow({
   // so it's called directly inside a transition to get a pending flag.
   function confirmDelete() {
     startTransition(async () => {
-      const result = await deleteCategoryAction(category.id);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(`“${category.name}” deleted`);
-      setConfirming(false);
-      onDeleted();
-      router.refresh();
+      await runAction(deleteCategoryAction(category.id), {
+        success: `“${category.name}” deleted`,
+        beforeRefresh: () => {
+          setConfirming(false);
+          onDeleted();
+        },
+      });
     });
   }
 
