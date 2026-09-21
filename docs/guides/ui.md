@@ -190,23 +190,34 @@ Filtering an array already in memory is sub-millisecond; a debounce would only a
 
 A preference that survives a reload goes through `createPersistedValue` in
 [`src/shared/hooks/use-persisted-value.ts`](../../src/shared/hooks/use-persisted-value.ts).
-It takes a storage key, a parser and a fallback, and hands back a hook.
-Both the collapsed sections and the sort order are built from it, and the next one should be too — not because the duplication is long, but because four of its five parts are subtle and none of them fails loudly:
+It takes a cookie name, a parser and a fallback, and hands back a hook.
+Both the collapsed sections and the sort order are built from it, and the next one should be too — not because the duplication is long, but because most of its parts are subtle and none of them fails loudly:
 
+- **A cookie, because the server renders these preferences.**
+  A cookie arrives with the request, so the first paint is already correct.
+  Storage the server cannot reach would leave the page painting a default and correcting itself once hydration finished, which reorders the whole list in front of the reader.
+- **The parser is shared with the server.**
+  It lives beside the data in `lib/`, not in the hook, because a `"use client"` module cannot be called from a Server Component.
+  One definition means the two ends cannot disagree about what a stored value means.
 - **The store is module scope, not per hook instance.**
   A preference is one value however many components read it.
 - **`getSnapshot` returns a cached reference.**
-  `useSyncExternalStore` compares snapshots by identity, so building a fresh object per call is an infinite render loop rather than a slow render.
-- **`getServerSnapshot` returns the fallback**, which is also what the first client render uses.
-  The server has no storage, so anything else is a hydration mismatch for every user whose stored value differs from the default.
-  The cost is a one-frame flash for those users; avoiding it needs a blocking inline script, which is steep for a folded section.
-- **Every storage call is wrapped.**
-  Blocked or full storage degrades to working-but-forgetful; the in-memory cache still drives the UI.
+  `useSyncExternalStore` compares snapshots by identity, so parsing the cookie afresh on every call is an infinite render loop rather than a slow render.
+- **`getServerSnapshot` returns what the server rendered with**, threaded down as a prop from the route.
+  It has to match the first client render exactly, and it does, because both read the same cookie.
 - **The parser treats what it reads as untrusted.**
-  A stored value survives deploys and is editable by hand, so it can name an option a later version removed. Anything the parser rejects falls back.
+  A stored value survives deploys and is editable by anyone with the console open, so it can name an option a later version removed. Anything the parser rejects falls back.
 
-Keys are prefixed `vecta_`.
-Nothing migrates a renamed key: a preference reverting to its default once is judged cheaper than carrying migration code for it.
+**Cross-tab changes travel over a `BroadcastChannel`.**
+A cookie fires no event of its own, so one tab tells the others to re-read.
+Where the API is missing the preference still works and still persists; only live following of a change made in another tab goes.
+That trade is the one worth naming: a flash on every reload against live cross-tab sync, and the channel is what buys both rather than either.
+
+**`localStorage` is still the right answer for some preferences**, and this is not a precedent against it.
+Reach for it when the server never renders the value, when it should not be sent with every request, or when it is larger than a cookie should carry.
+
+Cookies are prefixed `vecta_`, scoped to `path=/`, set `SameSite=Lax`, and marked `Secure` only when the page is served over HTTPS — this is self-hosted, and an install on a plain-HTTP LAN would find a `Secure` cookie silently never sent back.
+Nothing migrates a renamed cookie: a preference reverting to its default once is judged cheaper than carrying migration code for it.
 
 **Sorting is not narrowing, and runs after it.**
 The order applies within each status bucket, so sections keep their fixed order while their contents reorder.

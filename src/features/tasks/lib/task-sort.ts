@@ -52,3 +52,18 @@ export function sortTasks(tasks: TaskDTO[], sort: TaskSort): TaskDTO[] {
       return sorted.sort((a, b) => b.title.localeCompare(a.title, "en"));
   }
 }
+
+/** The cookie the chosen order is stored under. */
+export const TASK_SORT_COOKIE = "vecta_task_sort";
+
+/** Validates a stored sort order.
+ *
+ * The same function runs on the server and in the browser, so the two cannot
+ * disagree about whether a stored order is one this version offers.
+ *
+ * @param raw The parsed cookie value.
+ * @returns The order, or undefined when it is not one this version has.
+ */
+export function parseTaskSort(raw: unknown): TaskSort | undefined {
+  return isTaskSort(raw) ? raw : undefined;
+}

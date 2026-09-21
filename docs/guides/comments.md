@@ -232,3 +232,21 @@ onSelect={(event) => event.preventDefault()}
 
 The test: **will this still be true, and still be useful, in a year, to someone who never saw the change?**
 The first survives it. The second does not.
+
+A comparison is the easiest place to slip, because the same fact reads both ways.
+**Comparing to an alternative is rationale; comparing to a predecessor is history** — and a phrase like "X rather than Y" does not say which one it is.
+
+**Keep** — the alternative, and what it cannot do:
+
+```ts
+// A cookie because the server renders this preference. Storage the server
+// cannot reach leaves the page painting a default and correcting itself.
+```
+
+**Drop** — the same fact told as a change:
+
+```ts
+// Moved from localStorage to a cookie to fix the flash on reload.
+```
+
+Both explain the cookie. Only the first still helps a reader who never knew there was anything else, which after a while is every reader.

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useCollapsedSections } from "@/src/features/tasks/hooks/use-collapsed-sections";
 import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
+import { CollapsedMap } from "@/src/features/tasks/lib/section-collapse";
 
 /** Whether each status section is collapsed, and how to change it. */
 export interface SectionCollapse {
@@ -27,10 +28,11 @@ export interface SectionCollapse {
  * Callers see one pair of functions and never the seam between the two states.
  *
  * @param narrowed Whether anything is currently narrowing the list.
+ * @param initial The collapsed state the server rendered with.
  * @returns A reader and a setter covering whichever state applies.
  */
-export function useSectionCollapse(narrowed: boolean): SectionCollapse {
-  const { collapsed, setCollapsed } = useCollapsedSections();
+export function useSectionCollapse(narrowed: boolean, initial: CollapsedMap): SectionCollapse {
+  const { collapsed, setCollapsed } = useCollapsedSections(initial);
   const [transient, setTransient] = useState<Partial<Record<TaskStatus, boolean>>>({});
 
   // Discarded when narrowing ends, whichever control ended it. Adjusted during
