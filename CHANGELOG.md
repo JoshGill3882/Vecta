@@ -9,6 +9,44 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-21
+
+Making a longer task list usable: search, filter and sort.
+
+### Added
+
+- **Search the task list** by title and description.
+  Matches are highlighted where they appear, and the header reports how many of your tasks matched.
+  Press `/` from anywhere on the page to jump to the field, and `Esc` to clear it
+- **Filter the task list by category**, choosing any number of them at once.
+  Tasks with no category are reachable through an explicit **Uncategorised** option, so nothing can hide behind a filter.
+  Deleting a category while it is selected drops it from the filter rather than leaving you with an empty list
+- **Sort the task list**, by recently updated, oldest first, or title in either direction.
+  The choice is remembered across reloads and follows you between open tabs.
+  Ordering applies within each status section, so the sections themselves stay in their usual order
+
+Search, filtering and sorting all compose: narrow by both a query and a category, and the result is sorted the way you chose.
+
+### Changed
+
+- **A status section holding no tasks now shows only its heading and a count.**
+  It previously offered a collapse control for a section with nothing in it, and a line of text repeating what the count already said
+- **Collapsed sections reset once when you upgrade.**
+  Which sections are folded is now remembered differently, and the old setting is not carried over.
+  Fold them again and the choice sticks as before
+- The published image no longer includes the Prisma command-line tool, which was never used at runtime
+
+### Fixed
+
+- The **"No tasks yet"** message appeared _below_ the three empty status sections rather than replacing them, so a new install looked like it had a list and a message rather than neither
+- The **favicon** was almost entirely soft glow with nothing solid behind it, leaving it close to invisible in a light-themed tab strip
+- The task list **no longer flashes its default order** before settling.
+  Your sort order and folded sections are now applied to the page as it arrives, rather than corrected a moment after it appears
+
+### Security
+
+- Dependency advisories reported by Dependabot are cleared, including transitive ones pinned ahead of their upstream fixes
+
 ## [1.0.0] - 2026-09-07
 
 ### Changed

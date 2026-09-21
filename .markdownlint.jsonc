@@ -28,4 +28,11 @@
   // parses as valid JSON but is not a shape the rule understands, so it is
   // discarded and the rule silently falls back to its "consistent" default.
   "MD049": { "style": "underscore" },
+
+  // Duplicate headings. A Keep a Changelog file repeats "Added", "Changed" and
+  // "Fixed" under every release by design, so the default rule reports every
+  // version after the first. Scoping the check to siblings keeps it useful -
+  // two "Fixed" headings inside one release are still a mistake - while
+  // allowing the same heading once per version.
+  "MD024": { "siblings_only": true },
 }
