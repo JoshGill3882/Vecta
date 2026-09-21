@@ -30,6 +30,8 @@ import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-tool
 import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
 import { useTaskNarrowing } from "@/src/features/tasks/hooks/use-task-narrowing";
 import { narrowTasks } from "@/src/features/tasks/lib/task-search";
+import { useTaskSort } from "../hooks/use-task-sort";
+import { sortTasks } from "../lib/task-sort";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
@@ -73,16 +75,19 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     [categories]
   );
 
+  const { value: sort, set: setSort } = useTaskSort();
+
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
   const { byStatus, matchCount } = useMemo(() => {
     const matched = narrowTasks(tasks, narrowing.narrowing);
     const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
     for (const task of matched) buckets.get(task.status)?.push(task);
-    for (const bucket of buckets.values())
-      bucket.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    return { byStatus: buckets, matchCount: matched.length };
-  }, [tasks, narrowing.narrowing]);
+    return {
+      byStatus: new Map([...buckets].map(([status, bucket]) => [status, sortTasks(bucket, sort)])),
+      matchCount: matched.length,
+    };
+  }, [tasks, narrowing.narrowing, sort]);
 
   /** Creates or updates a task, depending on whether one is being edited.
    *
@@ -171,6 +176,8 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
           categories={categories}
           selectedCategoryIds={narrowing.categoryIds}
           onSelectedCategoryIdsChange={narrowing.setCategoryIds}
+          sort={sort}
+          onSortChange={setSort}
         />
       )}
 

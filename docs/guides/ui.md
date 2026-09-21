@@ -148,15 +148,14 @@ It is a pure module over `TaskDTO[]` — no state, no DOM, no clock.
 That is deliberate: there is no component renderer in the test setup (see the [testing guide](./testing.md)), so logic left inside a component is logic that cannot be tested.
 Anything with an edge case worth pinning down belongs in that module; the component keeps the wiring only.
 
-Five things here are easy to get wrong:
+Several things here are easy to get wrong.
 
 - **A narrowing control reads the stored collapsed state and never writes it.**
-  A match hidden inside a collapsed section reads as no match, so sections are forced open while a query is active.
-  Forcing that through `useCollapsedSections`'s `toggle()` would destroy a preference the user set for an unrelated reason — and because the rendered state and the stored state no longer agree, a `toggle()` that merely flips would write the wrong value.
-  Derive an effective collapsed value instead, and hold any transient override in component state so clearing the query restores what the user left.
-  Every control that narrows the list follows this rule, so none of them can disagree about what happens to the sections.
+  A match hidden inside a collapsed section reads as no match, so sections are forced open while the list is narrowed.
+  Writing that through the stored preference would destroy something the user set for an unrelated reason.
+  `useSectionCollapse` holds the transient override instead, and discards it when the narrowing ends, so clearing a query restores what the user left.
 - **Collapse handlers take the new value; they do not flip the old one.**
-  `TaskSection` exposes `onCollapsedChange(collapsed: boolean)` and passes Radix's reported state through.
+  `useCollapsedSections` exposes `setCollapsed(status, collapsed)` and `TaskSection` passes Radix’s reported state through.
   A handler that flips assumes the rendered and stored values always agree, which stops being true the moment a section is forced open.
 - **The narrowed count is announced, not just displayed.**
   The header subtitle carries `role="status"` — an [ARIA live region](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/ARIA_Live_Regions) — so a screen-reader user hears the list narrow instead of the number changing silently.
@@ -186,3 +185,29 @@ Five things here are easy to get wrong:
 
 Do **not** debounce the input.
 Filtering an array already in memory is sub-millisecond; a debounce would only add latency the user can feel.
+
+## Remembering a preference
+
+A preference that survives a reload goes through `createPersistedValue` in
+[`src/shared/hooks/use-persisted-value.ts`](../../src/shared/hooks/use-persisted-value.ts).
+It takes a storage key, a parser and a fallback, and hands back a hook.
+Both the collapsed sections and the sort order are built from it, and the next one should be too — not because the duplication is long, but because four of its five parts are subtle and none of them fails loudly:
+
+- **The store is module scope, not per hook instance.**
+  A preference is one value however many components read it.
+- **`getSnapshot` returns a cached reference.**
+  `useSyncExternalStore` compares snapshots by identity, so building a fresh object per call is an infinite render loop rather than a slow render.
+- **`getServerSnapshot` returns the fallback**, which is also what the first client render uses.
+  The server has no storage, so anything else is a hydration mismatch for every user whose stored value differs from the default.
+  The cost is a one-frame flash for those users; avoiding it needs a blocking inline script, which is steep for a folded section.
+- **Every storage call is wrapped.**
+  Blocked or full storage degrades to working-but-forgetful; the in-memory cache still drives the UI.
+- **The parser treats what it reads as untrusted.**
+  A stored value survives deploys and is editable by hand, so it can name an option a later version removed. Anything the parser rejects falls back.
+
+Keys are prefixed `vecta_`.
+Nothing migrates a renamed key: a preference reverting to its default once is judged cheaper than carrying migration code for it.
+
+**Sorting is not narrowing, and runs after it.**
+The order applies within each status bucket, so sections keep their fixed order while their contents reorder.
+The comparators live in [`src/features/tasks/lib/task-sort.ts`](../../src/features/tasks/lib/task-sort.ts) and compare titles with `localeCompare` against an explicit locale — a plain `<` puts every capital before every lowercase letter, and leaving the locale to the runtime lets the server and the client disagree about collation, which is a hydration mismatch in the markup rather than in any stored value.

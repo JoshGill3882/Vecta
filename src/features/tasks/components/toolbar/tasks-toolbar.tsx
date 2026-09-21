@@ -1,8 +1,10 @@
 "use client";
 
+import { TaskSort } from "../../lib/task-sort";
 import { CategoryFilter } from "./category-filter";
 import { SearchField } from "./search-field";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { SortMenu } from "./sort-menu";
 
 /**
  * The row of controls above the task list.
@@ -21,12 +23,16 @@ export function TasksToolbar({
   categories,
   selectedCategoryIds,
   onSelectedCategoryIdsChange,
+  sort,
+  onSortChange,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
   categories: CategoryDTO[];
   selectedCategoryIds: ReadonlySet<string | null>;
   onSelectedCategoryIdsChange: (next: ReadonlySet<string | null>) => void;
+  sort: TaskSort;
+  onSortChange: (sort: TaskSort) => void;
 }) {
   return (
     <div className="mb-3.5 flex flex-wrap items-center gap-2">
@@ -36,6 +42,7 @@ export function TasksToolbar({
         selected={selectedCategoryIds}
         onSelectedChange={onSelectedCategoryIdsChange}
       />
+      <SortMenu value={sort} onChange={onSortChange} />
     </div>
   );
 }

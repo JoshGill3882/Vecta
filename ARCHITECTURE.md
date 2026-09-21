@@ -34,6 +34,7 @@ src/
   shared/                 Used by more than one feature, or owned by none
     components/
       ui/                 shadcn/ui primitives — we own this source
+    hooks/                Reusable behaviour with no feature concepts in it
     lib/
       dtos/               Prisma model -> plain serialisable object
       schemas/            Zod input schemas
