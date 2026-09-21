@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionFromRequest } from "@/src/lib/session";
+import { getSessionFromRequest } from "@/src/shared/lib/session";
 
 // Routes reachable without a session. Everything else is treated as protected.
 const PUBLIC_ROUTES = ["/login"];

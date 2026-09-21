@@ -1,9 +1,9 @@
 # Rate limiting
 
-A tiny in-memory limiter deters brute-force password guessing. It's used by the
-login action and is reusable on other Server Actions.
+A tiny in-memory limiter deters brute-force password guessing.
+It's used by the login action and is reusable on other Server Actions.
 
-**Key file:** `src/lib/rate-limit.ts` (used in `app/login/actions.tsx`)
+**Key file:** `src/features/auth/lib/rate-limit.ts` (used in `src/features/auth/login-actions.tsx`)
 
 ## API
 
@@ -15,14 +15,12 @@ isRateLimited(): boolean
 recordFailure(): void
 ```
 
-Defaults (constants at the top of the module): **5 failures per 60-second
-sliding window**. `isRateLimited()` prunes timestamps older than the window on
-each call, so the window slides rather than resetting on a fixed schedule.
+Defaults (constants at the top of the module): **5 failures per 60-second sliding window**.
+`isRateLimited()` prunes timestamps older than the window on each call, so the window slides rather than resetting on a fixed schedule.
 
 ## How it's used
 
-`app/login/actions.tsx` checks the limiter before doing any work and records a
-failure only on a wrong password:
+`src/features/auth/login-actions.tsx` checks the limiter before doing any work and records a failure only on a wrong password:
 
 ```ts
 if (isRateLimited()) return { error: "Too many attempts. Retry in a minute" };
@@ -37,7 +35,7 @@ if (!ok) {
 
 ```ts
 "use server";
-import { isRateLimited, recordFailure } from "@/src/lib/rate-limit";
+import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
 
 export async function sensitiveAction() {
   if (isRateLimited()) return { error: "Too many attempts. Try again shortly." };
@@ -46,18 +44,15 @@ export async function sensitiveAction() {
 }
 ```
 
-> Note: the failure log is a **single module-level array shared across all
-> callers** — it's a global lockout, not per-IP or per-action. For the
-> single-admin login that's the intent; if you need independent buckets, give
-> the module a keyed map first.
+> Note: the failure log is a **single module-level array shared across all callers** — it's a global lockout, not per-IP or per-action.
+> For the single-admin login that's the intent; if you need independent buckets, give the module a keyed map first.
 
 ## Limitations
 
-- **In-memory and per-instance.** State lives in module memory: it resets on
-  every redeploy/restart and is **not shared across multiple instances**. It's a
-  brute-force speed bump, not a distributed rate limiter.
-- **Not a substitute for real protection** at the edge/proxy if you deploy
-  multiple replicas. See `docs/PLAN.md` for where this sits in scope.
+- **In-memory and per-instance.** State lives in module memory:
+  it resets on every redeploy/restart and is **not shared across multiple instances**.
+  It's a brute-force speed bump, not a distributed rate limiter.
+- **Not a substitute for real protection** at the edge/proxy if you deploy multiple replicas.
+  See `docs/PLAN.md` for where this sits in scope.
 
-For how this module is unit-tested (fake timers + module-state reset), see
-[Testing patterns](./testing.md).
+For how this module is unit-tested (fake timers + module-state reset), see [Testing patterns](./testing.md).

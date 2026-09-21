@@ -1,13 +1,11 @@
 # Developer guides
 
-Integration how-tos for building on the Vecta codebase. These are
-task-oriented ("how do I protect a route?", "how do I add a model?") and assume
-you already have the app running — see the root [`README.md`](../../README.md)
-for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.
+Integration how-tos for building on the Vecta codebase.
+These are task-oriented ("how do I protect a route?", "how do I add a model?") and assume you already have the app running — see the root [`README.md`](../../README.md) for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.
 
-> **This is Next.js 16 + Prisma 7.** Conventions differ from older versions and
-> from most training data: it's **Proxy**, not Middleware; Prisma requires a
-> **driver adapter** on the client. See [`AGENTS.md`](../../AGENTS.md).
+> **This is Next.js 16 + Prisma 7.** Conventions differ from older versions and from most training data: it's **Proxy**, not Middleware;
+> Prisma requires a **driver adapter** on the client.
+> See [`AGENTS.md`](../../AGENTS.md).
 
 | Guide                                                          | What it covers                                                                      |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -19,4 +17,5 @@ for setup and [`docs/PLAN.md`](../PLAN.md) for the feature spec and roadmap.
 | [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation       |
 | [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming   |
 | [Rate limiting](./rate-limiting.md)                            | Applying the in-memory attempt limiter to an action                                 |
+| [Comments & documentation](./comments.md)                      | What earns a comment, the doc-block shape, which JSDoc tags earn their place        |
 | [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                       |

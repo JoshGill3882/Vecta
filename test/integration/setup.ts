@@ -9,7 +9,7 @@ import { join } from "node:path";
 // because they can't run outside a request: auth (`getSession`, which pulls in
 // server-only/iron-session/next/headers) and the cache primitive (`updateTag`).
 // The database and the service layer are the real thing.
-vi.mock("@/src/lib/session", () => ({
+vi.mock("@/src/shared/lib/session", () => ({
   getSession: vi.fn(async () => ({ isLoggedIn: true })),
 }));
 vi.mock("next/cache", () => ({
@@ -33,6 +33,10 @@ if (!url.includes(":memory:")) {
 // separate process, so it would create (and discard) its own in-memory DB rather
 // than populating the one the tests connect to. Replaying the real migration
 // files gives the identical schema without that cross-process problem.
+/** Reads the SQLite migrations as statements to apply to a fresh database.
+ *
+ * @returns Every statement, in migration order.
+ */
 function migrationStatements(): string[] {
   const dir = fileURLToPath(new URL("../../prisma/migrations/sqlite", import.meta.url));
   const migrations = readdirSync(dir, { withFileTypes: true })

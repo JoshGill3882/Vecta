@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileQuestion } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/src/shared/components/ui/button";
 
 /**
  * Root not-found boundary. Next renders this for any unmatched URL across the

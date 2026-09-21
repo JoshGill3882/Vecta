@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 // Pure function — no DB, no env, no mocks needed. We import it straight from the
 // .mjs module (Vitest handles JS + TS side by side) and just feed it URLs.
-import { detectProvider, MIGRATIONS_DIR } from "../../scripts/db-provider.mjs";
+import { detectProvider, MIGRATIONS_DIR } from "@/scripts/db-provider.mjs";
 
 describe("detectProvider", () => {
   describe("PostgreSQL URLs", () => {

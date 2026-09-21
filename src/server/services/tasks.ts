@@ -1,24 +1,36 @@
-import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/lib/dtos/tasks";
-import { taskCreateSchema, taskUpdateSchema } from "@/src/lib/schemas/tasks";
+import { TaskStatus, TaskDTO, toTaskDTO } from "@/src/shared/lib/dtos/tasks";
+import { taskCreateSchema, taskUpdateSchema } from "@/src/shared/lib/schemas/tasks";
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { NotFoundError } from "@/src/server/errors";
 
 // Task service — the seam all task DB access flows through.
 
-/** Create Task Input Parameters */
+/** The fields needed to create a task. */
 export interface CreateTaskInput {
+  /** Short summary. Required, and trimmed before length checks. */
   title: string;
+  /** Markdown body. Omitted means empty. */
   description?: string;
+  /** Which section the task starts in. */
   status: TaskStatus;
+  /** A category to file it under, or null for none. */
   categoryId?: string | null;
 }
 
-/** Update Task Input Parameters */
+/** The fields that may be changed on an existing task.
+ *
+ * Every one is optional: an omitted field is left as it was, which is what
+ * makes a partial update expressible.
+ */
 export interface UpdateTaskInput {
+  /** Short summary. */
   title?: string;
+  /** Markdown body. */
   description?: string;
+  /** Which section the task appears in. */
   status?: TaskStatus;
+  /** A category to file it under, or null to unfile it. */
   categoryId?: string | null;
 }
 

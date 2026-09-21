@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { TopBar } from "@/src/components/shell/top-bar";
-import { Toaster } from "@/src/components/ui/sonner";
+import { TopBar } from "@/src/shared/components/shell/top-bar";
+import { Toaster } from "@/src/shared/components/ui/sonner";
 
 /**
  * Layout for the authenticated area (Tasks, Categories). The `(app)` route

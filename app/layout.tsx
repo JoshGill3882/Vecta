@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { geistSans, geistMono } from "@/src/lib/fonts";
+import { geistSans, geistMono } from "@/src/shared/lib/fonts";
+import { FaviconThemeSync } from "@/src/shared/components/shell/favicon-theme-sync";
 
+/** Product name, used in the document title and the social cards. */
 const title = "Vecta";
+/** One-line description, used in the meta tags and the social cards. */
 const description = "Self-hosted, single-user task management.";
 
+/** Document metadata for every route beneath this layout. */
 export const metadata: Metadata = {
   title,
   description,
@@ -26,6 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
+/** Viewport and theme-colour settings for every route. */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -41,6 +46,7 @@ export const viewport: Viewport = {
   // which people rely on to read. Next's docs show them, they are not defaults.
 };
 
+/** The document shell: html, body, fonts and the toast host. */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -51,7 +57,10 @@ export default function RootLayout({
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <FaviconThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

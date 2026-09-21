@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { RotateCw, TriangleAlert } from "lucide-react";
 
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/src/shared/components/ui/button";
 
 /**
  * Error boundary for the authenticated area. Sitting at the `(app)` segment, it

@@ -1,14 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { prisma } from "@/src/server/db";
-import { CATEGORY_PALETTE } from "@/src/lib/palette";
+import { CATEGORY_PALETTE } from "@/src/shared/lib/palette";
 import {
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-} from "../../app/(app)/categories/actions";
+} from "@/src/features/categories/actions";
 
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
 
+/** Builds form data from plain fields.
+ *
+ * @param fields Field names and values.
+ * @returns Form data ready to submit.
+ */
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.set(k, v);

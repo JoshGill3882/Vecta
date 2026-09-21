@@ -1,0 +1,19 @@
+# Revisions to skip when attributing lines with `git blame`.
+#
+# These commits reflowed prose onto semantic line breaks. They changed where
+# lines end and nothing else — verified by rendering every file to HTML before
+# and after — so attributing a line to them tells you who rewrapped it rather
+# than who wrote it.
+#
+# GitHub applies this file automatically. For the same locally, once per clone:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Add a revision here only when it is purely a reformat. A commit that also
+# changes wording belongs in blame, or the change it made becomes unattributable.
+
+# docs: reflow the developer guides onto semantic line breaks
+78076e7b826219dc7f9ff0854205c213bdedc979
+
+# docs: reflow the top-level documentation onto semantic line breaks
+4b8c92c735a241d6507b07dda7c5aae535431d8f
