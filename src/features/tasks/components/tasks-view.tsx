@@ -30,21 +30,32 @@ import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-tool
 import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
 import { useTaskNarrowing } from "@/src/features/tasks/hooks/use-task-narrowing";
 import { narrowTasks } from "@/src/features/tasks/lib/task-search";
-import { useTaskSort } from "../hooks/use-task-sort";
-import { sortTasks } from "../lib/task-sort";
+import { useTaskSort } from "@/src/features/tasks/hooks/use-task-sort";
+import { sortTasks, TaskSort } from "@/src/features/tasks/lib/task-sort";
+import { CollapsedMap } from "@/src/features/tasks/lib/section-collapse";
 
 /**
  * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
  * route stays thin (auth + data fetching) while this owns the presentation.
  *
  * A Client Component, because the whole view is one interactive unit: the
- * collapsed sections read localStorage and the "New task" action owns dialog
+ * collapsed sections read a stored preference and the "New task" action owns dialog
  * state. Reads still happen on the server; the data arrives as props.
  */
-export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories: CategoryDTO[] }) {
+export function TasksView({
+  tasks,
+  categories,
+  initialSort,
+  initialCollapsed,
+}: {
+  tasks: TaskDTO[];
+  categories: CategoryDTO[];
+  initialSort: TaskSort;
+  initialCollapsed: CollapsedMap;
+}) {
   const runAction = useServerAction();
   const narrowing = useTaskNarrowing(categories);
-  const sections = useSectionCollapse(narrowing.narrowed);
+  const sections = useSectionCollapse(narrowing.narrowed, initialCollapsed);
 
   // A successful delete unmounts the card that opened the confirm dialog, so its
   // focus has nowhere to return — the shared restore lands on `<body>`. Record
@@ -75,7 +86,7 @@ export function TasksView({ tasks, categories }: { tasks: TaskDTO[]; categories:
     [categories]
   );
 
-  const { value: sort, set: setSort } = useTaskSort();
+  const { value: sort, set: setSort } = useTaskSort(initialSort);
 
   // Bucket once per data change rather than filtering the list once per section.
   // Most-recently-touched first, matching the design.
