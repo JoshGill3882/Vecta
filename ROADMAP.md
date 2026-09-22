@@ -14,27 +14,26 @@ There are no dates — [see below](#why-there-are-no-dates).
 
 Planned, and the most likely candidates for the release after the current one.
 
-- **Search, filter and sort on the task list.** The first thing that stops scaling.
-  Status grouping is the only organisation there is today, which is fine at thirty tasks and not at three hundred.
-  Split across [#111](https://github.com/JoshGill3882/Vecta/issues/111), [#112](https://github.com/JoshGill3882/Vecta/issues/112) and [#113](https://github.com/JoshGill3882/Vecta/issues/113).
-- **Due dates and overdue indicators.** The most-requested shape of task metadata, and the one the list view has an obvious place to show.
-  Split across [#114](https://github.com/JoshGill3882/Vecta/issues/114) and [#115](https://github.com/JoshGill3882/Vecta/issues/115).
+- **Due dates, and seeing what is late.** The most-requested shape of task metadata, and the one the list view has an obvious place to show.
+  A task gets an optional due date, with a time on it where the time matters.
+  A date that has passed is marked on the card, and the list can be narrowed to what is overdue, due today, or due in the coming week.
+  Split across [#114](https://github.com/JoshGill3882/Vecta/issues/114), [#115](https://github.com/JoshGill3882/Vecta/issues/115) and [#158](https://github.com/JoshGill3882/Vecta/issues/158).
+- **Deleting a task from the task view.**
+  Delete is reachable only from the list card's overflow menu, so a task read in full has to be dismissed and found again before it can be removed.
+  [#138](https://github.com/JoshGill3882/Vecta/issues/138).
+- **Installing to a phone's home screen.** The layout already works on mobile;
+  what is missing is the manifest that lets a browser install it, so it opens in its own window under an icon that looks like the app rather than one a launcher invents for a bookmark.
+  [#117](https://github.com/JoshGill3882/Vecta/issues/117).
 
 ## Later
 
 Intended, but unscheduled.
 Roughly in order of how useful they seem, not how hard they are.
 
-- **Deleting a task from the task view.**
-  Delete is reachable only from the list card's overflow menu, so a task read in full has to be dismissed and found again before it can be removed.
-  [#138](https://github.com/JoshGill3882/Vecta/issues/138).
 - **Acceptance criteria on a task**, as a toggleable checklist.
 - **Sub-categories.** Categories are deliberately flat today;
   nesting is the natural next step once there are enough of them to want grouping.
 - **Task dependencies and a "blocked" status.** These belong together — a blocked status without a reason attached is just a fourth column.
-- **Installing to a phone's home screen.** The layout already works on mobile;
-  what is missing is the manifest that lets a browser install it, so it opens in its own window under an icon that looks like the app rather than one a launcher invents for a bookmark.
-  [#117](https://github.com/JoshGill3882/Vecta/issues/117).
 - **A drag-and-drop kanban view**, as an alternative to the list rather than a replacement for it.
 - **A richer Markdown editor** with a preview toolbar.
   The current plain textarea renders on save, which is enough but not pleasant.
