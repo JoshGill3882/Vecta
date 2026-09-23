@@ -1,21 +1,22 @@
 # Testing patterns
 
-Tests run on [Vitest](https://vitest.dev) in a Node environment (server-side code, no jsdom).
-This guide covers the project-specific patterns for testing the server seams, which mostly come down to mocking the Next.js-only dependencies.
+Tests run on [Vitest](https://vitest.dev), split across three projects: server-side code in a Node environment, and React components in jsdom.
+This guide covers the project-specific patterns — which mostly come down to mocking the Next.js-only dependencies.
 
 ## Key files
 
-- `vitest.config.ts` — two projects (`unit`, `integration`) + shared module aliases
-- `test/` — mirrors the source tree (`test/lib`, `test/app`, `test/scripts`)
+- `vitest.config.ts` — three projects (`unit`, `integration`, `component`) + shared module aliases
+- `test/` — mirrors the source tree (`test/shared`, `test/features`, `test/scripts`)
 - `test/integration/` — real-database integration project (`setup.ts` + `*.int.test.ts`)
+- `test/component/setup.ts` — Testing Library cleanup between component specs
 - `test/stubs/empty.js` — no-op stand-in for `server-only`
 
 Run with:
 
 ```bash
-npm test                              # both projects (unit + integration)
+npm test                              # all three projects
 npm run test:watch
-npx vitest run --project integration  # integration only
+npx vitest run --project integration  # one project only
 ```
 
 ## Module aliases (`vitest.config.ts`)
@@ -94,7 +95,6 @@ expect(res.headers.get("location")).toBe("http://localhost/login");
 Most specs are **unit** tests that mock their collaborators.
 A second Vitest **project** holds **integration** tests that drive the genuine stack — Server Action → `validate()` → service → Prisma → a real database — so they catch what mocks can't:
 real Prisma error translation (`P2003`/`P2025`/`P2002` → `NotFoundError`/`ConflictError`) and schema behaviour like `onDelete: SetNull`.
-Both projects are declared in `vitest.config.ts`, and `npm test` runs both.
 
 - **Database — in-memory SQLite.** The integration project sets `DATABASE_URL=file::memory:` (the `file:` prefix is required so the provider resolver detects SQLite; the adapter strips it back to `:memory:`).
   Nothing hits disk, and the DB is discarded when the worker exits — so it is created and torn down every run for free.
@@ -108,18 +108,74 @@ Both projects are declared in `vitest.config.ts`, and `npm test` runs both.
 
 Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`).
 
-## Testing UI logic without a DOM
+## Component tests (React in jsdom)
 
-There is no jsdom and no component renderer here, so a React component cannot be mounted in a test.
-The pattern that works is to keep the logic out of the component: extract it into a pure module — the feature's own `lib/`, or `src/shared/lib/` where more than one feature needs it — and test that directly.
+A third project renders components with [Testing Library](https://testing-library.com/docs/react-testing-library/intro/) in a jsdom environment.
+It covers what the other two cannot: whether the right branch renders, what a control is labelled, and where focus lands.
 
+- **Where they live.** Beside the other specs for the same source, mirroring the source path — `src/features/tasks/components/tasks-view.tsx` → `test/features/tasks/tasks-view.test.tsx`.
+- **Naming is the selector.** The `component` project collects `test/**/*.test.tsx` and the `unit` project collects `test/**/*.test.ts`, so the extension alone decides which environment a spec runs in.
+  There is no overlap and nothing to configure per file — a `.ts` spec never pays for jsdom, and a `.tsx` spec always gets it.
+- **Cleanup is explicit.** Testing Library only unmounts between tests automatically when Vitest runs with globals enabled, and this suite imports its helpers explicitly instead.
+  `test/component/setup.ts` calls `cleanup` in an `afterEach`; without it the previous render stays in the document and the next query finds two of everything.
+
+### Mocking `next/navigation`
+
+Any Client Component that reaches the router needs it stubbed, and the reach is often indirect — `TasksView` never imports `next/navigation`, but `useServerAction` does, and calls `router.refresh()` after every action.
+Mock the module rather than the hook, so it covers both cases:
+
+```tsx
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+```
+
+Two more boundaries usually need the same treatment:
+
+- **Server Actions.** The action modules reach Prisma through the service layer, which cannot load in jsdom — stub every action the component can invoke.
+- **`sonner`.** Toasts render into a portal the component under test does not mount, so assertions would have nothing to find.
+
+Because `vi.mock` is hoisted, import the component **after** the mocks — `const { TasksView } = await import("…")` — or the real modules load first.
+
+### A re-render is how a refresh is observed
+
+`router.refresh()` is mocked, so nothing re-fetches.
+Where a component reacts to fresh data — an effect keyed on a prop — drive it by rerendering with the new props yourself:
+
+```tsx
+const view = render(<TasksView tasks={[task()]} {...rest} />);
+// …delete the only task…
+view.rerender(<TasksView tasks={[]} {...rest} />);
+expect(document.activeElement).toBe(document.getElementById(tasksEmptyStateHeadingId));
+```
+
+`test/features/tasks/tasks-view.test.tsx` is the reference for all of this.
+
+### No React plugin
+
+`vitest.config.ts` has no `@vitejs/plugin-react`.
+Vite's esbuild reads `jsx: "react-jsx"` from `tsconfig.json` and transforms `.tsx` with the automatic runtime, which is all a test needs — the plugin's remaining job is Fast Refresh, which does not apply here.
+Leaving it out also avoids a genuine dependency conflict: the plugin pulls Babel 8 through `@rolldown/plugin-babel`, while `shadcn` pins Babel 7, and npm cannot satisfy both.
+
+`test/component/environment.test.tsx` is a canary for exactly this.
+It asserts nothing about the app, only that JSX still transforms and renders — so when a toolchain upgrade breaks the arrangement, it fails with an obvious message rather than a real spec failing for a reason that looks like its own.
+
+## Prefer a pure module where the logic allows
+
+Being able to render a component is not a reason to test logic through one.
+Rendering is slower, and an assertion about matching rules made through a rendered list fails for many reasons that have nothing to do with the rules.
+
+Keep the logic out of the component where it will go: extract it into a pure module — the feature's own `lib/`, or `src/shared/lib/` where more than one feature needs it — and test that directly.
 `src/features/tasks/lib/task-search.ts` is the reference.
-The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]` — trimming and case-folding a query, deciding whether a task matches, locating substrings to highlight — and `test/features/tasks/task-search.test.ts` covers them with no mocks at all.
+The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]`, and `test/features/tasks/task-search.test.ts` covers them with no mocks at all.
 `tasks-view.tsx` keeps the wiring: state, memoisation, and what renders.
 
 Draw the line at the edge cases.
 If a rule has one worth pinning down — a literal `.*` that must not behave as a wildcard, a query of pure whitespace, a string whose length changes when lowercased — it belongs in the module.
-What this leaves uncovered is real and worth naming: labelling, focus behaviour, keyboard handling and whether the right branch renders are verified by hand.
+What belongs in a component spec is what only exists once it renders: which branch was taken, how something is labelled, and where focus went.
 
 ## Where to put tests
 
@@ -130,3 +186,4 @@ internal folders would leave directories holding one file.
 Sources at the repository root are mirrored at the top of `test/`.
 Pure helpers (no Next/DB deps) need no mocks — see `test/scripts/db-provider.test.ts`.
 Integration specs (real DB) go in `test/integration/` as `*.int.test.ts`.
+Component specs use `.test.tsx`, which is what puts them in the jsdom project.
