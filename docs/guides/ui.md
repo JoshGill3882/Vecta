@@ -4,6 +4,11 @@ How the frontend is put together:
 the component toolkit, where components live, how to add a page, and how theming works.
 Task-oriented — for the overall feature roadmap see [`docs/PLAN.md`](../PLAN.md).
 
+The interface is built to match a design file held in Claude Design:
+<https://claude.ai/design/p/959c7f14-0ec7-4102-a374-1d60ad78582e?via=share>.
+It covers the login screen, the app shell, the task list and its cards, the create and edit modal, and the categories view.
+Build new UI to match it, and change the design first where the built UI needs to diverge from it.
+
 ## Toolkit
 
 - **[shadcn/ui](https://ui.shadcn.com/)** (radix base, `radix-nova` style) — we own the component source;
