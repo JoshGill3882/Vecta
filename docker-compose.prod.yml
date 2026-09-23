@@ -1,8 +1,8 @@
 # Self-host path 2 of 2 — run the published image, no clone required.
 #
 # Quick start:
-#   curl -O https://raw.githubusercontent.com/JoshGill3882/Vecta/production/docker-compose.prod.yml
-#   curl -o .env https://raw.githubusercontent.com/JoshGill3882/Vecta/production/.env.example
+#   curl -LO https://github.com/JoshGill3882/Vecta/releases/latest/download/docker-compose.prod.yml
+#   curl -Lo .env https://github.com/JoshGill3882/Vecta/releases/latest/download/env.example
 #   # edit .env: set ADMIN_PASSWORD and SESSION_SECRET
 #   docker compose -f docker-compose.prod.yml up -d
 #

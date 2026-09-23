@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [production, develop]
+    branches: [develop]
 
 permissions:
   contents: read
