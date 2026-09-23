@@ -257,6 +257,27 @@ Both run on every pull request.
 
 ---
 
+## Stack choices
+
+Settled before the first line was written, and kept.
+The reasoning is recorded here because "why this and not that" is the question a new reader asks first, and because several of these turn up again below as things that are now expensive to undo.
+
+| Concern       | Choice                                                                                                  | Why                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Framework     | Next.js (App Router), TypeScript, Tailwind                                                              | Server Components and Server Actions remove the API layer a single-user app does not need                          |
+| UI components | [shadcn/ui](https://ui.shadcn.com/) on Radix                                                            | The component source lives in this repository rather than inside a dependency, and Radix carries the accessibility |
+| ORM           | [Prisma](https://www.prisma.io/)                                                                        | One schema file for both engines, and a generated client that types every query                                    |
+| Database      | SQLite by default, Postgres opt-in                                                                      | SQLite makes a self-host one container with one file to back up; Postgres is there for people already running one  |
+| Auth          | Single admin, password from the environment, [iron-session](https://github.com/vvo/iron-session) cookie | The smallest thing that keeps an exposed instance shut, with no user table to migrate away from later              |
+| API style     | Server Actions over a service layer                                                                     | Actions for the speed of writing them, the service layer as the seam a REST API would attach to                    |
+| Validation    | [Zod](https://zod.dev/) at every entry point                                                            | One definition produces both the runtime check and the TypeScript type                                             |
+| Distribution  | GHCR; `:latest` from non-prerelease `v*` tags, `:unstable` from `main`                                  | One moving pointer per channel, published from an immutable tag rather than from a branch                          |
+| Licence       | MIT                                                                                                     | Permissive, with the standard no-warranty disclaimer                                                               |
+
+The database choice is the one with teeth: supporting both engines constrains what the schema may use, which is why [the migrations guide](./docs/guides/dual-provider-migrations.md) rather than this table is where the column-type rule lives.
+
+---
+
 ## Decisions that would be expensive to reverse
 
 - **Server Actions instead of a REST API.** The service layer is the hedge; the actions are a thin shell over it.
@@ -264,5 +285,3 @@ Both run on every pull request.
 - **Both database engines from day one.** Cheap to maintain now, and it constrains the schema;
   adding Postgres later would have meant a migration history that never existed.
 - **Dark-only theming.** A light theme means auditing every colour token, not adding a toggle.
-
-The reasoning behind the original stack choices is in [`docs/PLAN.md` §2](./docs/PLAN.md).
