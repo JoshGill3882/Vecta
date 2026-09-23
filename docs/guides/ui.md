@@ -2,7 +2,12 @@
 
 How the frontend is put together:
 the component toolkit, where components live, how to add a page, and how theming works.
-Task-oriented — for the overall feature roadmap see [`docs/PLAN.md`](../PLAN.md).
+Task-oriented — for what is planned next see [`ROADMAP.md`](../../ROADMAP.md).
+
+The interface is built to match a design file held in Claude Design:
+<https://claude.ai/design/p/959c7f14-0ec7-4102-a374-1d60ad78582e?via=share>.
+It covers the login screen, the app shell, the task list and its cards, the create and edit modal, and the categories view.
+Build new UI to match it, and change the design first where the built UI needs to diverge from it.
 
 ## Toolkit
 
@@ -95,7 +100,7 @@ Pair it with the Zod schemas from the [validation guide](./validation.md) so the
 
 ## Confirmations & destructive actions
 
-Every destructive action gets a confirmation step (a project rule — see [`docs/PLAN.md`](../PLAN.md)).
+Every destructive action gets a confirmation step.
 Use the shadcn **`AlertDialog`** primitive, not `Dialog`:
 it's the modal-confirm variant, and it can't be dismissed by clicking the overlay.
 Name the thing being destroyed in the description so the prompt is unambiguous.

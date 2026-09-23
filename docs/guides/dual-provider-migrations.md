@@ -46,6 +46,7 @@ The same models and service-layer code run unchanged on both.
 
 1. Edit `prisma/schema.prisma`. **Stick to `String`, `Int`, `DateTime`, `Boolean`** — no `Json`/`Jsonb` or native UUID types — so one schema compiles to both engines.
    (Enums are stored as `String`; see `Task.status`.)
+   IDs use Prisma's `cuid()` or `uuid()` and are stored as `String`, rather than a native UUID column type that only one engine has.
 2. Generate a migration **for each provider** so both histories stay in lockstep:
 
    ```bash

@@ -39,7 +39,7 @@ This project aims for a third option:
 - A Trello/Jira clone — feature parity is not a goal
 - Ready for production use yet (see status above)
 
-For the full scope and what's deferred, see [`PLAN.md` § 3](./docs/PLAN.md).
+For what is planned, what is being considered and what has been ruled out, see [`ROADMAP.md`](./ROADMAP.md).
 
 ---
 
@@ -245,7 +245,7 @@ Start-up logs show provider resolution and each migration applied, which is the 
 | Auth         | Single admin user via env-var password ([iron-session](https://github.com/vvo/iron-session)) |
 | Distribution | Docker image on GitHub Container Registry                                                    |
 
-For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
+For the reasoning behind each choice, see [`ARCHITECTURE.md`](./ARCHITECTURE.md#stack-choices).
 
 ---
 
@@ -254,7 +254,6 @@ For the reasoning behind each choice, see [`PLAN.md` § 2](./docs/PLAN.md).
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — how the codebase is put together and why
 - [`CHANGELOG.md`](./CHANGELOG.md) — what changed in each release
 - [`ROADMAP.md`](./ROADMAP.md) — what is planned, considered, and ruled out
-- [`PLAN.md`](./docs/PLAN.md) — how v1.0.0 was scoped and delivered, phase by phase
 - [Developer guides](./docs/guides/README.md) — integration how-tos (auth, database, migrations, environment, rate limiting, testing)
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — local development setup, branching
 - [`SECURITY.md`](./SECURITY.md) — what counts as a vulnerability, and how to report one privately
@@ -277,8 +276,6 @@ they've been refined into the principles below, which guide design decisions thr
 ## Roadmap
 
 What is planned, what is being considered, and what has been ruled out are all in [`ROADMAP.md`](./ROADMAP.md), grouped by likelihood rather than by date.
-
-For how v1.0.0 itself was scoped and delivered, see [`PLAN.md`](./docs/PLAN.md).
 
 ---
 

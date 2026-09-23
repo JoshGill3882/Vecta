@@ -274,14 +274,9 @@ inserting a word near the top of a wrapped paragraph reflows every line below it
 It also has to be held in mind while writing, which semantic breaks do not — "new sentence, new line" is something you are already thinking about.
 
 No tool checks this one, so it is on you when writing.
-Every tracked Markdown file follows it, with three deliberate exceptions:
-
-- **The issue and pull request templates** under [`.github/`](./.github/).
-  They are routinely edited through GitHub's web template editor, which rewrites the file on save, so any convention applied here survives only until the next edit made that way.
-  They are excluded from Prettier for the same reason.
-- **[`docs/PLAN.md`](./docs/PLAN.md).**
-  The delivery plan for v1.0.0 and a record of how it was built, rather than a living document — it opens with a blanket `markdownlint-disable` and has taken one commit since the release it describes.
-  Semantic line breaks exist to make future diffs readable, and a document with no future diffs gains nothing from them.
+Every tracked Markdown file follows it, with one deliberate exception: the issue and pull request templates under [`.github/`](./.github/).
+They are routinely edited through GitHub's web template editor, which rewrites the file on save, so any convention applied here survives only until the next edit made that way.
+They are excluded from Prettier for the same reason.
 
 Do not reformat a file in passing.
 A wholesale rewrap buries the change you actually came to make, which is why the conversion was done once, in its own commits, rather than a file at a time as people happened to touch them.
