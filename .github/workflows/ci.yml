@@ -2,12 +2,12 @@ name: CI
 
 on:
   pull_request:
-    # Both names are listed across the rename of the long-lived branch. This
-    # filter is matched against the base branch, and the three checks this
-    # workflow provides are required by the ruleset — so a filter that stopped
-    # matching would leave every pull request permanently unmergeable, with no
-    # way to merge the fix.
-    branches: [develop, main]
+    # Matched against the base branch. The three checks this workflow provides
+    # are the ones the ruleset requires, so a filter that stops matching the
+    # branch pull requests target leaves every one of them unmergeable —
+    # including the pull request that would correct the filter. Change this and
+    # the ruleset together.
+    branches: [main]
 
 permissions:
   contents: read
