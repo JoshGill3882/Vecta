@@ -193,13 +193,13 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 
 ## Branching strategy
 
-| Branch                  | Purpose                                        |
-| ----------------------- | ---------------------------------------------- |
-| `develop`               | Integration branch — protected, no direct push |
-| `<issue-number>-<slug>` | Work branches, cut from `develop`              |
+| Branch                  | Purpose                                                |
+| ----------------------- | ------------------------------------------------------ |
+| `main`                  | The only long-lived branch — protected, no direct push |
+| `<issue-number>-<slug>` | Work branches, cut from `main`                         |
 
 Work branches are named after the issue they close — `73-tag-the-v010-release`.
-Create the branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base develop`.
+Create the branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
 Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
 
 Then check it out locally:
@@ -209,24 +209,24 @@ git fetch origin
 git switch <issue-number>-<slug>
 ```
 
-All changes go through a pull request into `develop`.
+All changes go through a pull request into `main`.
 
-Releases are cut by tagging `develop` directly.
+Releases are cut by tagging `main` directly.
 There is no second long-lived branch to merge into first — a release is reproducible because its tag is immutable, not because a branch pointed at it.
 Publishing a release attaches `docker-compose.prod.yml` and `.env.example` to it, which is where the install instructions in [`README.md`](./README.md) fetch them from.
 
 ### Fixing a released version urgently
 
-A fix that cannot wait for whatever is sitting unreleased on `develop` branches from the release tag instead:
+A fix that cannot wait for whatever is sitting unreleased on `main` branches from the release tag instead:
 
 ```bash
 git fetch origin --tags
 git switch -c <issue-number>-<slug> v1.1.0
 ```
 
-Tag the patch release from that branch, then merge it back into `develop` so the fix is not lost at the next release.
+Tag the patch release from that branch, then merge it back into `main` so the fix is not lost at the next release.
 
-Branching from `develop` would be the mistake here:
+Branching from `main` would be the mistake here:
 the fix would carry every unreleased change sitting on it, and the patch release would stop being a patch.
 The tag is the released state and nothing else, which is exactly what a patch should be built on.
 

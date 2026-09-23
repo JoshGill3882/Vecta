@@ -4,7 +4,7 @@ name: Publish
 #
 # Two publishing triggers, plus a third that publishes nothing:
 #
-#   push to develop  -> :unstable and :develop-<sha>. Rolling dev builds,
+#   push to main     -> :unstable and :main-<sha>. Rolling dev builds,
 #                       overwritten freely.
 #   push of a v* tag -> the exact version, e.g. :v0.1.0-rc1. Git tags are
 #                       immutable, so a published version tag is never rebuilt
@@ -13,11 +13,9 @@ name: Publish
 #   workflow_dispatch -> a dry run. Computes the tag set for a simulated version
 #                       and reports it, without building or pushing anything.
 #
-# `production` is deliberately not a trigger. Releases are cut by tagging it
-# after develop merges in; production is the CI-green branch, not a publish
-# event. Deriving the release from an immutable tag rather than a branch push
-# is what stops a second push republishing an already-released version with
-# different bits.
+# A release is a tag push and nothing else. Deriving it from an immutable tag
+# rather than from a branch is what stops a second push republishing an
+# already-released version with different bits.
 #
 # ── Why this is three jobs rather than one ───────────────────────────────────
 # Each architecture builds on a runner of its own architecture, and a final job
@@ -32,7 +30,10 @@ name: Publish
 # a hung build. Native runners for both halves remove the emulation entirely.
 on:
   push:
-    branches: [develop]
+    # Both names are listed across the rename of the long-lived branch, so
+    # neither the last push under the old name nor the first under the new one
+    # goes unpublished.
+    branches: [develop, main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -46,7 +47,7 @@ permissions:
 
 concurrency:
   group: publish-${{ github.ref }}
-  # Superseding a develop build is fine — the next one publishes the same
+  # Superseding a branch build is fine — the next one publishes the same
   # moving tags. Never cancel a tag build: a half-published release is worse
   # than a wasted runner, and the tag cannot be pushed again to retry.
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
@@ -141,8 +142,8 @@ jobs:
           # :v0.1) would be extra moving tags this project has not promised to
           # maintain. Raw publishes exactly the version that was tagged.
           tags: |
-            type=raw,value=unstable,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=sha,prefix=develop-,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=unstable,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=main-,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
             type=raw,value=${{ steps.ctx.outputs.version }},enable=${{ steps.ctx.outputs.version != '' }}
             type=raw,value=latest,enable=${{ steps.ctx.outputs.release == 'true' }}
 

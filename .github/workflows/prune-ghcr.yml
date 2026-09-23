@@ -1,8 +1,8 @@
 name: Prune GHCR
 
-# Retention for `develop-<sha>` image versions.
+# Retention for `main-<sha>` image versions.
 #
-# GHCR applies no retention to tagged versions, so every merge to develop leaves
+# GHCR applies no retention to tagged versions, so every merge to `main` leaves
 # a version behind for ever — each holding its layers alive and each with a
 # cosign signature entry beside it. `scripts/prune-ghcr-versions.mjs` carries the
 # reasoning for the keep count and for why this is a script rather than
@@ -31,7 +31,7 @@ on:
         type: boolean
         default: true
       keep:
-        description: "How many develop-<sha> builds to keep"
+        description: "How many main-<sha> builds to keep"
         type: string
         default: "10"
 
@@ -46,7 +46,7 @@ concurrency:
 
 jobs:
   prune:
-    name: Prune develop-<sha> versions
+    name: Prune main-<sha> versions
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

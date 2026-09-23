@@ -24,7 +24,7 @@ services:
     #               a prerelease
     #   :v0.1.0   — one exact, immutable set of bits; pin this to control when
     #               you upgrade
-    #   :unstable — rolling build of the develop branch; not for self-hosting
+    #   :unstable — rolling build of the `main` branch; not for self-hosting
     #
     # Upgrading is `docker compose -f docker-compose.prod.yml pull` followed by
     # `up -d`. Migrations are applied by the container on start, so nothing else

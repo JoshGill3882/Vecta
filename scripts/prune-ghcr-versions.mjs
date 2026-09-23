@@ -1,9 +1,9 @@
-// Prune old `develop-<sha>` image versions from GHCR.
+// Prune old `main-<sha>` image versions from GHCR.
 //
-// Every push to develop publishes an immutable `develop-<sha>` alongside the
-// moving `:unstable`, and GHCR applies no retention to tagged versions. Left
-// alone they accumulate for the life of the project, each holding its layers
-// alive and each with a cosign signature entry beside it.
+// Every push to the long-lived branch publishes an immutable `main-<sha>`
+// alongside the moving `:unstable`, and GHCR applies no retention to tagged
+// versions. Left alone they accumulate for the life of the project, each
+// holding its layers alive and each with a cosign signature entry beside it.
 //
 // ── Why this is not `actions/delete-package-versions` ───────────────────────
 //
@@ -11,7 +11,7 @@
 // — destroys published releases here. A multi-arch publish produces eight
 // versions, and six of them are untagged:
 //
-//   develop-<sha>, :unstable            the index the tag resolves to
+//   main-<sha>, :unstable               the index the tag resolves to
 //     ├── linux/amd64                   UNTAGGED, referenced by the index
 //     ├── linux/arm64                   UNTAGGED, referenced by the index
 //     ├── attestation (unknown/unknown) UNTAGGED, referenced by the index
@@ -27,9 +27,9 @@
 // Mark and sweep, which gets the shared cases right without enumerating them.
 //
 //   MARK   Every protected tag (`:unstable`, `:latest`, any `v*`) and the N
-//          most recent `develop-<sha>` are roots. Walk each root's manifest and
+//          most recent `main-<sha>` are roots. Walk each root's manifest and
 //          mark everything reachable from it, plus its signature.
-//   SWEEP  Delete `develop-<sha>` versions past the keep count, their
+//   SWEEP  Delete `main-<sha>` versions past the keep count, their
 //          signatures, and any untagged version nothing marked.
 //
 // Reachability is the safety property. A manifest shared between two builds is
@@ -52,10 +52,17 @@ const IMAGE = `${OWNER}/${PACKAGE}`.toLowerCase();
 // Tags that must never be pruned, whatever their age.
 export const PROTECTED_TAGS = ["unstable", "latest"];
 export const PROTECTED_TAG_PATTERN = /^v\d/;
-export const DEVELOP_TAG_PATTERN = /^develop-[0-9a-f]{7,40}$/;
+// Matches the per-commit tag published for a push to the long-lived branch.
+//
+// Two prefixes, because a published version keeps whatever prefix was current
+// when it was built, and the branch has been renamed. Matching only the newer
+// one would push every older version down `classify`'s "unrecognised tag is not
+// ours to delete" path, which protects it for ever — the retention job would
+// quietly stop reclaiming exactly the versions it exists to reclaim.
+export const BRANCH_BUILD_TAG_PATTERN = /^(?:main|develop)-[0-9a-f]{7,40}$/;
 export const SIGNATURE_TAG_PATTERN = /^sha256-([0-9a-f]{64})\.sig$/;
 
-// How many `develop-<sha>` builds to keep.
+// How many `main-<sha>` builds to keep.
 //
 // Ten, because the point of an immutable per-commit tag is that "it broke on
 // unstable" stays reproducible and a regression stays bisectable. Ten covers
@@ -86,7 +93,7 @@ function parseArgs(argv) {
 /** Split the version list into the categories the sweep reasons about. */
 export function classify(versions) {
   const protectedIdx = [];
-  const develop = [];
+  const branchBuilds = [];
   const signatures = new Map(); // signed digest -> version
   const untagged = [];
 
@@ -105,19 +112,19 @@ export function classify(versions) {
       (t) => PROTECTED_TAGS.includes(t) || PROTECTED_TAG_PATTERN.test(t)
     );
     if (isProtected) protectedIdx.push(v);
-    else if (tags.some((t) => DEVELOP_TAG_PATTERN.test(t))) develop.push(v);
+    else if (tags.some((t) => BRANCH_BUILD_TAG_PATTERN.test(t))) branchBuilds.push(v);
     else protectedIdx.push(v); // an unrecognised tag is not ours to delete
   }
-  return { protectedIdx, develop, signatures, untagged };
+  return { protectedIdx, branchBuilds, signatures, untagged };
 }
 
 /**
- * Which `develop-<sha>` versions to keep, newest first. A version carrying a
+ * Which `main-<sha>` versions to keep, newest first. A version carrying a
  * protected tag as well (the newest usually also holds `:unstable`) has already
  * been classified as protected, so it never reaches here.
  */
-export function selectDevelopToPrune(develop, keep) {
-  const sorted = [...develop].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+export function selectBranchBuildsToPrune(branchBuilds, keep) {
+  const sorted = [...branchBuilds].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   return { keep: sorted.slice(0, keep), prune: sorted.slice(keep) };
 }
 
@@ -211,12 +218,12 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   const versions = await listVersions();
-  const { protectedIdx, develop, signatures, untagged } = classify(versions);
-  const { keep, prune } = selectDevelopToPrune(develop, args.keep);
+  const { protectedIdx, branchBuilds, signatures, untagged } = classify(versions);
+  const { keep, prune } = selectBranchBuildsToPrune(branchBuilds, args.keep);
 
   console.log(`Package ${IMAGE} — ${versions.length} versions`);
   console.log(
-    `  ${protectedIdx.length} protected, ${develop.length} develop-<sha>, ` +
+    `  ${protectedIdx.length} protected, ${branchBuilds.length} branch builds, ` +
       `${signatures.size} signatures, ${untagged.length} untagged\n`
   );
 
@@ -238,7 +245,7 @@ async function main() {
   // SWEEP.
   const doomed = [];
   for (const v of prune) {
-    doomed.push({ v, why: "develop build past the keep count" });
+    doomed.push({ v, why: "branch build past the keep count" });
     const sig = signatures.get(v.name);
     if (sig) doomed.push({ v: sig, why: "signature of a pruned build" });
   }
@@ -252,7 +259,7 @@ async function main() {
     }
   }
 
-  console.log(`\nKeeping ${keep.length} of ${develop.length} develop builds:`);
+  console.log(`\nKeeping ${keep.length} of ${branchBuilds.length} branch builds:`);
   for (const v of keep) console.log(`  keep   ${describe(v)}`);
   console.log(`\nProtected, never pruned:`);
   for (const v of protectedIdx) console.log(`  keep   ${describe(v)}`);

@@ -4,11 +4,11 @@ import { describe, it, expect, vi } from "vitest";
 // importing it here never reaches for either.
 import {
   classify,
-  selectDevelopToPrune,
+  selectBranchBuildsToPrune,
   markReachable,
   PROTECTED_TAGS,
   PROTECTED_TAG_PATTERN,
-  DEVELOP_TAG_PATTERN,
+  BRANCH_BUILD_TAG_PATTERN,
   SIGNATURE_TAG_PATTERN,
   DEFAULT_KEEP,
 } from "@/scripts/prune-ghcr-versions.mjs";
@@ -41,16 +41,31 @@ describe("tag patterns", () => {
     }
   });
 
-  it("does not mistake a develop tag for a version tag", () => {
-    expect(PROTECTED_TAG_PATTERN.test("develop-80747c8")).toBe(false);
-    expect(DEVELOP_TAG_PATTERN.test("develop-80747c8")).toBe(true);
-    expect(DEVELOP_TAG_PATTERN.test("develop-notahex")).toBe(false);
+  it("does not mistake a branch build tag for a version tag", () => {
+    expect(PROTECTED_TAG_PATTERN.test("main-80747c8")).toBe(false);
+    expect(BRANCH_BUILD_TAG_PATTERN.test("main-80747c8")).toBe(true);
+    expect(BRANCH_BUILD_TAG_PATTERN.test("main-notahex")).toBe(false);
+  });
+
+  // A published version keeps the prefix that was current when it was built,
+  // and the branch has been renamed. Matching only the newer prefix would send
+  // every older version down the "unrecognised tag" path, which protects it for
+  // ever — the retention job would silently stop reclaiming anything older than
+  // the rename.
+  it("still recognises builds published under the previous branch name", () => {
+    expect(BRANCH_BUILD_TAG_PATTERN.test("develop-80747c8")).toBe(true);
+    expect(BRANCH_BUILD_TAG_PATTERN.test("develop-notahex")).toBe(false);
+  });
+
+  it("does not match a prefix that is neither", () => {
+    expect(BRANCH_BUILD_TAG_PATTERN.test("feature-80747c8")).toBe(false);
+    expect(BRANCH_BUILD_TAG_PATTERN.test("80747c8")).toBe(false);
   });
 
   it("extracts the signed digest from a cosign signature tag", () => {
     const digest = "a".repeat(64);
     expect(SIGNATURE_TAG_PATTERN.exec(`sha256-${digest}.sig`)?.[1]).toBe(digest);
-    expect(SIGNATURE_TAG_PATTERN.exec("develop-80747c8")).toBeNull();
+    expect(SIGNATURE_TAG_PATTERN.exec("main-80747c8")).toBeNull();
   });
 });
 
@@ -59,56 +74,70 @@ describe("classify", () => {
     const digest = "b".repeat(64);
     const result = classify([
       version("sha256:1", ["latest", "v1.0.0"]),
-      version("sha256:2", ["develop-80747c8", "unstable"]),
-      version("sha256:3", ["develop-5d17230"]),
+      version("sha256:2", ["main-80747c8", "unstable"]),
+      version("sha256:3", ["main-5d17230"]),
       version(`sha256:${digest}`, [`sha256-${digest}.sig`]),
       version("sha256:5", []),
     ]);
     expect(result.protectedIdx.map((v) => v.name)).toEqual(["sha256:1", "sha256:2"]);
-    expect(result.develop.map((v) => v.name)).toEqual(["sha256:3"]);
+    expect(result.branchBuilds.map((v) => v.name)).toEqual(["sha256:3"]);
     expect(result.untagged.map((v) => v.name)).toEqual(["sha256:5"]);
     expect(result.signatures.has(`sha256:${digest}`)).toBe(true);
   });
 
-  // A develop build that also carries :unstable is the newest one. It must be
-  // protected by the tag, not left eligible because of its develop- tag.
-  it("protects a develop build that also carries a protected tag", () => {
-    const { protectedIdx, develop } = classify([
-      version("sha256:1", ["develop-abc1234", "unstable"]),
+  // A branch build that also carries :unstable is the newest one. It must be
+  // protected by the tag, not left eligible because of its per-commit tag.
+  it("protects a branch build that also carries a protected tag", () => {
+    const { protectedIdx, branchBuilds } = classify([
+      version("sha256:1", ["main-abc1234", "unstable"]),
     ]);
     expect(protectedIdx).toHaveLength(1);
-    expect(develop).toHaveLength(0);
+    expect(branchBuilds).toHaveLength(0);
   });
 
   // Fail safe: something this script does not recognise is not its to delete.
   it("treats an unrecognised tag as protected rather than prunable", () => {
-    const { protectedIdx, develop } = classify([version("sha256:1", ["experimental"])]);
+    const { protectedIdx, branchBuilds } = classify([version("sha256:1", ["experimental"])]);
     expect(protectedIdx).toHaveLength(1);
-    expect(develop).toHaveLength(0);
+    expect(branchBuilds).toHaveLength(0);
+  });
+
+  // Versions published either side of the branch rename are one pool, ordered
+  // by age. If the older prefix were not classified here it would be protected
+  // instead, and would never be reclaimed.
+  it("pools builds from both branch names into one bucket", () => {
+    const { protectedIdx, branchBuilds } = classify([
+      version("sha256:1", ["develop-abc1234"]),
+      version("sha256:2", ["main-def5678"]),
+    ]);
+    expect(branchBuilds.map((v) => v.name)).toEqual(["sha256:1", "sha256:2"]);
+    expect(protectedIdx).toHaveLength(0);
   });
 });
 
-describe("selectDevelopToPrune", () => {
+describe("selectBranchBuildsToPrune", () => {
+  // Deliberately mixed prefixes: the older build predates the branch rename,
+  // and age is the only thing that decides what goes.
   const builds = [
     version("sha256:old", ["develop-1111111"], "2026-01-01T00:00:00Z"),
-    version("sha256:new", ["develop-3333333"], "2026-03-01T00:00:00Z"),
-    version("sha256:mid", ["develop-2222222"], "2026-02-01T00:00:00Z"),
+    version("sha256:new", ["main-3333333"], "2026-03-01T00:00:00Z"),
+    version("sha256:mid", ["main-2222222"], "2026-02-01T00:00:00Z"),
   ];
 
   it("keeps the most recent N by creation date, whatever order they arrived in", () => {
-    const { keep, prune } = selectDevelopToPrune(builds, 2);
+    const { keep, prune } = selectBranchBuildsToPrune(builds, 2);
     expect(keep.map((v) => v.name)).toEqual(["sha256:new", "sha256:mid"]);
     expect(prune.map((v) => v.name)).toEqual(["sha256:old"]);
   });
 
   it("prunes nothing when there are fewer builds than the keep count", () => {
-    expect(selectDevelopToPrune(builds, 10).prune).toEqual([]);
-    expect(selectDevelopToPrune([], DEFAULT_KEEP).prune).toEqual([]);
+    expect(selectBranchBuildsToPrune(builds, 10).prune).toEqual([]);
+    expect(selectBranchBuildsToPrune([], DEFAULT_KEEP).prune).toEqual([]);
   });
 
   it("does not mutate the list it was given", () => {
     const order = builds.map((v) => v.name);
-    selectDevelopToPrune(builds, 1);
+    selectBranchBuildsToPrune(builds, 1);
     expect(builds.map((v) => v.name)).toEqual(order);
   });
 });
