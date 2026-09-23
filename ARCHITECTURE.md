@@ -235,7 +235,7 @@ Data lives in `/app/data`.
 
 Images are published to GHCR for `linux/amd64` and `linux/arm64`, and signed with cosign in keyless mode.
 
-Each push to develop publishes an immutable `develop-<sha>` beside the moving `:unstable`, which is what keeps a dev build pinnable and an `:unstable` regression bisectable.
+Each push to `main` publishes an immutable `main-<sha>` beside the moving `:unstable`, which is what keeps a dev build pinnable and an `:unstable` regression bisectable.
 GHCR applies no retention to tagged versions, so a weekly job prunes all but the ten most recent, along with their signatures and any manifest nothing references.
 `:unstable`, `:latest` and every `v*` are never touched, nor is anything reachable from them.
 

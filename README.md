@@ -215,7 +215,7 @@ Tags behave as follows:
 | ----------- | ---------------------------------- | ------------------------------------------------- |
 | `:latest`   | on each non-prerelease release     | you want the newest stable version                |
 | `:v1.0.0`   | never — a version tag is immutable | you want to control exactly when you upgrade      |
-| `:unstable` | on every push to `develop`         | you are testing unreleased work, not self-hosting |
+| `:unstable` | on every push to `main`            | you are testing unreleased work, not self-hosting |
 
 ---
 
