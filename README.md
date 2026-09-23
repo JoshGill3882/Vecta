@@ -65,15 +65,21 @@ No clone required.
 Download the compose file and the env template next to each other:
 
 ```bash
-curl -O https://raw.githubusercontent.com/JoshGill3882/Vecta/production/docker-compose.prod.yml
-curl -o .env https://raw.githubusercontent.com/JoshGill3882/Vecta/production/.env.example
+curl -LO https://github.com/JoshGill3882/Vecta/releases/latest/download/docker-compose.prod.yml
+curl -Lo .env https://github.com/JoshGill3882/Vecta/releases/latest/download/env.example
 # edit .env — set ADMIN_PASSWORD and SESSION_SECRET
 
 docker compose -f docker-compose.prod.yml up -d
 ```
 
+Both files come from the newest release, so they match a version that was actually published rather than whatever is currently unreleased.
+Swap `latest` for a version — `releases/download/v1.1.0/…` — to fetch the pair a specific release shipped with.
+
+`-L` is not optional.
+These URLs redirect to the asset, and `curl` without it writes an empty file and exits successfully, which surfaces later as a confusing compose error rather than a download failure.
+
 The app is on <http://localhost:3000>.
-To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.0.0` in `.env`.
+To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.1.0` in `.env`.
 
 ### Option 2 — Clone and build
 
