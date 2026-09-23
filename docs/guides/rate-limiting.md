@@ -53,6 +53,5 @@ export async function sensitiveAction() {
   it resets on every redeploy/restart and is **not shared across multiple instances**.
   It's a brute-force speed bump, not a distributed rate limiter.
 - **Not a substitute for real protection** at the edge/proxy if you deploy multiple replicas.
-  See `docs/PLAN.md` for where this sits in scope.
 
 For how this module is unit-tested (fake timers + module-state reset), see [Testing patterns](./testing.md).
