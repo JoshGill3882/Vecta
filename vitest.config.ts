@@ -30,6 +30,17 @@ export default defineConfig({
       {
         resolve: { alias },
         test: {
+          // Component tests: React rendered into jsdom. Its own project so the
+          // unit project keeps a `node` environment and stays quick to run alone.
+          name: "component",
+          environment: "jsdom",
+          include: ["test/**/*.test.tsx"],
+          setupFiles: ["test/component/setup.ts"],
+        },
+      },
+      {
+        resolve: { alias },
+        test: {
           // Integration tests: real service + Prisma against an in-memory SQLite
           // DB. `file::memory:` is required (not bare `:memory:`) so the provider
           // resolver detects SQLite; the adapter strips `file:` back to `:memory:`.

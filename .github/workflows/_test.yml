@@ -10,6 +10,11 @@ permissions:
 
 jobs:
   test:
+    # The name is part of a contract: the branch ruleset requires a check called
+    # "Tests / Unit & Integration", so renaming this job stops that check ever
+    # reporting and leaves every pull request unmergeable. Change it and the
+    # ruleset together, or not at all — which is why it does not list the
+    # component tier that runs below.
     name: Unit & Integration
     runs-on: ubuntu-latest
 
@@ -37,7 +42,12 @@ jobs:
         run: npx vitest run --project unit
 
       - name: Integration tests
-        # Run even if the unit step failed, so a red PR surfaces both tiers'
-        # results in one run rather than masking integration behind a unit failure.
+        # Run even if an earlier step failed, so a red PR surfaces every tier's
+        # results in one run rather than masking the later ones behind the first
+        # failure.
         if: ${{ !cancelled() }}
         run: npx vitest run --project integration
+
+      - name: Component tests
+        if: ${{ !cancelled() }}
+        run: npx vitest run --project component
