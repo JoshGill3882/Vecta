@@ -1,0 +1,79 @@
+name: Release assets
+
+# Attaches the two self-host files to every published release, so the install
+# instructions in README.md can point at `releases/latest/download/` and keep
+# resolving without anyone remembering to upload anything by hand.
+#
+# Triggered by the release being published rather than by the tag push that
+# precedes it. Two reasons:
+#
+#   - The upload target has to exist. On a tag push there is a tag but not yet
+#     a release, and `gh release upload` has nothing to attach to.
+#   - On a `release` event the checkout resolves to that tag, so the files
+#     attached are the ones the version actually shipped with.
+#
+# A prerelease gets its assets too, but `releases/latest/download/` resolves to
+# the newest non-prerelease, so attaching them to a release candidate does not
+# move where the README's instructions point.
+#
+# One trap worth knowing: a release created by a workflow authenticating with
+# GITHUB_TOKEN does not emit this event, because GitHub suppresses it to stop
+# workflows triggering one another. It fires for a release cut by hand or with
+# the `gh` CLI, which is how releases are cut here.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    name: Attach self-host files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      # An asset upload is a write to the release.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub strips a leading dot from an asset name, so `.env.example` would
+      # arrive as `env.example` whatever it was uploaded as. Renaming it here
+      # makes the name the README asks for a decision rather than a side effect.
+      - name: Stage the files
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp docker-compose.prod.yml dist/docker-compose.prod.yml
+          cp .env.example dist/env.example
+
+      - name: Attach them to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        # --clobber so re-running this on an existing release replaces the
+        # assets rather than failing on the name already being taken.
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            dist/docker-compose.prod.yml \
+            dist/env.example \
+            --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Summarise what was attached
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### Release assets"
+            echo
+            echo "Attached to \`$TAG\`:"
+            echo
+            echo '- `docker-compose.prod.yml`'
+            echo '- `env.example` (the repository'"'"'s `.env.example`)'
+          } >> "$GITHUB_STEP_SUMMARY"
