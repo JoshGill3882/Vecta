@@ -24,6 +24,11 @@ Planned, and the most likely candidates for the release after the current one.
 - **Installing to a phone's home screen.** The layout already works on mobile;
   what is missing is the manifest that lets a browser install it, so it opens in its own window under an icon that looks like the app rather than one a launcher invents for a bookmark.
   [#117](https://github.com/JoshGill3882/Vecta/issues/117).
+- **Logging, and a record of what changed.** When something goes wrong on the server, the app says "Something went wrong" and nothing is kept that says why.
+  Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
+  Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
+  Old entries age out on their own, and can be exported or cleared from within the app.
+  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170), [#171](https://github.com/JoshGill3882/Vecta/issues/171) and [#172](https://github.com/JoshGill3882/Vecta/issues/172).
 
 ## Later
 
