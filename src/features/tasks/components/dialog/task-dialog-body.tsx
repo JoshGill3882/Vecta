@@ -23,12 +23,14 @@ export function TaskDialogBody({
   onSubmit,
   onCreateCategory,
   onOpenChange,
+  onDelete,
 }: {
   task?: TaskDTO;
   categories: CategoryDTO[];
   onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
   onOpenChange: (open: boolean) => void;
+  onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
   // An existing task opens in view; create opens straight in the form. `current`
   // is the task on screen: a save swaps in the returned DTO so view mode reflects
@@ -72,6 +74,7 @@ export function TaskDialogBody({
           category={category}
           onEdit={() => setMode("edit")}
           onClose={() => onOpenChange(false)}
+          onDelete={onDelete}
         />
       ) : (
         <TaskForm

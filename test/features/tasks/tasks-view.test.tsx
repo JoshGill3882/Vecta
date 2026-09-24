@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { SECTION_COLLAPSE_DEFAULTS } from "@/src/features/tasks/lib/section-collapse";
 import { tasksEmptyStateHeadingId } from "@/src/features/tasks/components/tasks-empty-state";
+import { taskSectionHeaderId } from "@/src/features/tasks/components/list/task-section";
 
 // `useServerAction` calls `useRouter().refresh()` after every action, and there
 // is no Next router in a test. Mocking the module is how any component reaching
@@ -134,5 +135,95 @@ describe("TasksView focus after the last task is deleted", () => {
     const heading = document.getElementById(tasksEmptyStateHeadingId);
     expect(heading).not.toBeNull();
     expect(document.activeElement).toBe(heading);
+  });
+});
+
+describe("TasksView delete from the task view", () => {
+  const other = task({ id: "t2", title: "Rotate the session secret" });
+
+  /** Opens the first task in the dialog and asks to delete it.
+   *
+   * @returns The user driving the test, the render result, and the task dialog.
+   */
+  async function openAndAskToDelete() {
+    const user = userEvent.setup();
+    const view = renderView([task(), other]);
+
+    await user.click(screen.getByRole("button", { name: "Rate-limit failed login attempts" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    return { user, view, dialog };
+  }
+
+  it("deletes through the confirmation, closes both layers and lands focus on the section", async () => {
+    const { user, view } = await openAndAskToDelete();
+
+    const confirm = await screen.findByRole("alertdialog");
+    await user.click(within(confirm).getByRole("button", { name: "Delete task" }));
+
+    expect(deleteTaskAction).toHaveBeenCalledWith("t1");
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    // The refreshed list, without the deleted task. The other task keeps the
+    // Open section alive, so its header is the landmark rather than a fallback.
+    view.rerender(
+      <TasksView
+        tasks={[other]}
+        categories={categories}
+        initialSort="updated_desc"
+        initialCollapsed={SECTION_COLLAPSE_DEFAULTS}
+      />
+    );
+
+    expect(document.activeElement).toBe(document.getElementById(taskSectionHeaderId("open")));
+  });
+
+  it("cancelling closes only the confirmation and returns focus to Delete", async () => {
+    const { user, dialog } = await openAndAskToDelete();
+
+    const confirm = await screen.findByRole("alertdialog");
+    await user.click(within(confirm).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(deleteTaskAction).not.toHaveBeenCalled();
+  });
+
+  it("a failed delete leaves the confirmation and the task open", async () => {
+    deleteTaskAction.mockResolvedValueOnce({ ok: false, error: "Could not delete" } as never);
+    const { user, dialog } = await openAndAskToDelete();
+
+    const confirm = await screen.findByRole("alertdialog");
+    await user.click(within(confirm).getByRole("button", { name: "Delete task" }));
+
+    await waitFor(() =>
+      expect(within(confirm).getByRole("button", { name: "Delete task" })).toHaveProperty(
+        "disabled",
+        false
+      )
+    );
+    expect(screen.getByRole("alertdialog")).toBe(confirm);
+    // The confirmation hides the task dialog from the accessibility tree while it
+    // is open, so a role query cannot see it; it must still be in the document.
+    expect(dialog.isConnected).toBe(true);
+    expect(within(dialog).getByText("Rate-limit failed login attempts")).toBeDefined();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("offers no delete in edit mode", async () => {
+    const user = userEvent.setup();
+    renderView([task()]);
+
+    await user.click(screen.getByRole("button", { name: "Rate-limit failed login attempts" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Edit" }));
+
+    expect(within(dialog).getByRole("heading", { name: "Edit task" })).toBeDefined();
+    expect(within(dialog).queryByRole("button", { name: /Delete/ })).toBeNull();
   });
 });

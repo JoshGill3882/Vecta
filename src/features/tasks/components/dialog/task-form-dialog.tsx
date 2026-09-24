@@ -20,6 +20,7 @@ export function TaskFormDialog({
   categories,
   onSubmit,
   onCreateCategory,
+  onDelete,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,8 +34,21 @@ export function TaskFormDialog({
    */
   onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
+  /** Resolves true when the task was deleted, which closes the dialog */
+  onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
   const visible = useVisibleViewport();
+
+  /** Deletes the task and, on success, closes the dialog over it.
+   *
+   * @param task The task being viewed.
+   * @returns Whether it was deleted.
+   */
+  async function deleteAndClose(task: TaskDTO): Promise<boolean> {
+    const deleted = await onDelete(task);
+    if (deleted) onOpenChange(false);
+    return deleted;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,6 +101,7 @@ export function TaskFormDialog({
           onSubmit={onSubmit}
           onCreateCategory={onCreateCategory}
           onOpenChange={onOpenChange}
+          onDelete={deleteAndClose}
         />
       </DialogContent>
     </Dialog>
