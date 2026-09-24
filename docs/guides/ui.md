@@ -111,6 +111,8 @@ Three things are easy to get wrong:
 
 - **Trigger and dialog are separate Radix layers.** When the confirm is opened from a `DropdownMenu` item, keep the `AlertDialog` a **sibling** of the menu, not nested inside a menu item — both trap focus, so the menu must close before the dialog opens or they fight over it.
   Drive the dialog from state the menu sets (`onSelect={() => setConfirmOpen(true)}`).
+  A confirm opened from inside a `Dialog` is the opposite case: the dialog stays open behind it, so render the `AlertDialog` inside the dialog's content and let it stack.
+  Radix pauses the outer focus trap while the inner one is open (`task-view.tsx`).
 - **Let the confirm callback own the close.** Give the dialog an `onConfirm: () => Promise<boolean>` that resolves `true` only when the action succeeded — the same contract the [form dialog](#forms) uses for save.
   A failure then keeps the dialog open over the item the user was trying to remove rather than dismissing as though it worked;
   the caller surfaces the error as a [toast](#toasts).
@@ -139,6 +141,12 @@ Handle this in the view that _survives_ the delete, not in the dialog:
 - **Have a fallback for a landmark that may not exist.**
   A landmark can vanish in the same delete that needs it: the status section holding the last match is dropped while the list is narrowed, and the empty state that would otherwise stand in is not rendered while other sections still show results.
   `tasks-view.tsx` resolves the first of three ids actually in the DOM — section header, then empty-state heading, then the search field — rather than assuming the first one is there.
+
+The restore skips an opener that has already left the DOM, which covers the other ordering — a refresh that lands before the close animation ends.
+What it cannot cover is an opener inside a layer that is closing too.
+A confirm opened from the task view's Delete button closes alongside the task dialog, so when the refresh lands first that button is still mounted, fading out with its dialog.
+The restore focuses it, and focus falls to `<body>` a moment later, undoing the view's move.
+A confirm that can be opened from inside another dialog therefore opts out of the restore after a successful delete, as `delete-task-dialog.tsx` does, and leaves focus to the view.
 
 `tasks-view.tsx` and `categories-view.tsx` are the reference implementations.
 
