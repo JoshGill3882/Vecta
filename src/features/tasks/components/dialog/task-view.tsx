@@ -1,7 +1,9 @@
-import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { CategoryChip } from "@/src/shared/components/category-chip";
 import { StatusBadge } from "@/src/features/tasks/components/status-badge";
+import { DeleteTaskDialog } from "@/src/features/tasks/components/list/delete-task-dialog";
 import { Button } from "@/src/shared/components/ui/button";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
@@ -20,12 +22,16 @@ export function TaskView({
   category,
   onEdit,
   onClose,
+  onDelete,
 }: {
   task: TaskDTO;
   category?: CategoryDTO;
   onEdit: () => void;
   onClose: () => void;
+  onDelete: (task: TaskDTO) => Promise<boolean>;
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto p-[18px]">
@@ -52,15 +58,33 @@ export function TaskView({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center justify-end gap-2 border-t px-[18px] py-3.5">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Close
+      {/* Delete sits alone on the left, away from Edit - the button pressed
+          most often - so a destructive action is never one slip away. */}
+      <div className="flex shrink-0 items-center gap-2 border-t px-[18px] py-3.5">
+        <Button type="button" variant="destructive" onClick={() => setConfirmOpen(true)}>
+          <Trash2 className="size-[15px]" />
+          Delete
         </Button>
-        <Button type="button" onClick={onEdit}>
-          <Pencil className="size-4" />
-          Edit
-        </Button>
+        <div className="ml-auto flex gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button type="button" onClick={onEdit}>
+            <Pencil className="size-4" />
+            Edit
+          </Button>
+        </div>
       </div>
+
+      {/* Rendered inside the task dialog so it stacks over it: Radix pauses the
+          outer focus trap while this one is open, and cancelling returns focus
+          to the Delete button. */}
+      <DeleteTaskDialog
+        task={task}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={() => onDelete(task)}
+      />
     </>
   );
 }

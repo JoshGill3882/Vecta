@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 
 import {
@@ -39,13 +39,20 @@ export function DeleteTaskDialog({
   onConfirm: () => Promise<boolean>;
 }) {
   const [pending, setPending] = useState(false);
+  // After a successful delete the opener is on its way out, but it can still be
+  // in the page when this closes - a Delete button inside the task dialog, which
+  // fades out alongside this one - so the shared restore would focus it just
+  // before it goes. The view that survives the delete moves focus instead
+  const deleted = useRef(false);
 
   /** Runs the delete and closes the dialog only if it succeeded. */
   async function confirm() {
     setPending(true);
     try {
-      const deleted = await onConfirm();
-      if (deleted) onOpenChange(false);
+      if (await onConfirm()) {
+        deleted.current = true;
+        onOpenChange(false);
+      }
     } finally {
       setPending(false);
     }
@@ -53,7 +60,13 @@ export function DeleteTaskDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          if (!deleted.current) return;
+          deleted.current = false;
+          event.preventDefault();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogMedia className="bg-destructive/10 text-destructive">
             <TriangleAlert />

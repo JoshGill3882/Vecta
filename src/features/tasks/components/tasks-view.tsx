@@ -233,6 +233,7 @@ export function TasksView({
         categories={categories}
         onSubmit={saveTask}
         onCreateCategory={createCategory}
+        onDelete={deleteTask}
       />
     </section>
   );
