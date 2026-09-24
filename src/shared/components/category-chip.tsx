@@ -21,6 +21,7 @@ export function CategoryChip({
 }) {
   return (
     <span
+      title={name}
       className={cn(
         "inline-flex items-center gap-[7px] rounded-full border py-[5px] pr-[11px] pl-[9px] text-[12.5px] leading-none font-medium whitespace-nowrap",
         className
@@ -28,7 +29,10 @@ export function CategoryChip({
       style={{ color, borderColor: `${color}55`, backgroundColor: `${color}1f` }}
     >
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      {name}
+      {/* Truncates only when a parent lets the chip shrink (min-w-0); elsewhere
+          the chip is as wide as its name. The padding/negative margin pair gives
+          descenders room inside the clip without changing the chip's height. */}
+      <span className="-my-0.5 truncate py-0.5">{name}</span>
     </span>
   );
 }
