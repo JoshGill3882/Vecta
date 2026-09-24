@@ -158,7 +158,8 @@ The trigger for revisiting that is the payload of fetching every task becoming a
 
 **The matching logic lives in `src/features/tasks/lib/task-search.ts`, not in the view.**
 It is a pure module over `TaskDTO[]` — no state, no DOM, no clock.
-That is deliberate: there is no component renderer in the test setup (see the [testing guide](./testing.md)), so logic left inside a component is logic that cannot be tested.
+That is deliberate: a pure module is tested by calling it, with nothing to render or mock.
+Logic left inside a component can only be reached through a [component test](./testing.md#component-tests-react-in-jsdom) that renders it, which is slower to write and further from the case under test.
 Anything with an edge case worth pinning down belongs in that module; the component keeps the wiring only.
 
 Several things here are easy to get wrong.
