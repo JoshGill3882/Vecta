@@ -72,6 +72,17 @@ used by more than one feature up to `src/shared/`.
 by path, and folding services into feature folders would put server-only code in a tree that Client
 Components import from. Vecta is feature-first on the client and layered on the server.
 
+### When a file is split
+
+Extract what is cohesive or repeated, not what is long. A file split into pieces that must all be open
+at once is worse than the file it replaced.
+
+So a component used by exactly one other component stays in that component's file, as a private
+helper written above it — `SectionHeading` in `task-section.tsx` is the pattern. It moves to its own
+file when a second consumer appears, or when it becomes something you would read and change on its
+own, and it moves to wherever [Where a file goes](#where-a-file-goes) sends it rather than beside its
+first user by default.
+
 ---
 
 ## The layers

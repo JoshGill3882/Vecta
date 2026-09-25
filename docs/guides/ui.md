@@ -125,7 +125,7 @@ Three things are easy to get wrong:
 Every dialog here is **controlled** — opened from an `open` prop, with no `DialogTrigger`.
 Radix's modal close behaviour restores focus to that trigger;
 with no trigger the restore is a no-op and focus falls to `<body>`, stranding a keyboard or screen-reader user at the top of the page.
-The shared `DialogContent` and `AlertDialogContent` wrappers close this gap with `useRestoreFocus` (`src/shared/components/ui/use-restore-focus.ts`):
+The shared `DialogContent`, `AlertDialogContent` and `SheetContent` wrappers close this gap with `useRestoreFocus` (`src/shared/components/ui/use-restore-focus.ts`):
 it records the element that had focus when the dialog opened and returns focus to it on close, however the dialog is dismissed (Esc, the close button, Cancel, the overlay).
 This is automatic — a new dialog inherits it with no per-dialog wiring.
 To opt a dialog out (custom close focus), pass your own `onCloseAutoFocus` and call `preventDefault()`.
