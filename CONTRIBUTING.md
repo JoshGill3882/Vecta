@@ -114,7 +114,7 @@ See [`docs/guides/environment.md`](./docs/guides/environment.md#allowed_dev_orig
 | ------------------------ | ------------------------------------------------------------------- |
 | `npm run dev`            | Start the development server                                        |
 | `npm run build`          | Production build                                                    |
-| `npm test`               | Run the unit and integration suites once                            |
+| `npm test`               | Run the unit, integration and component suites once                 |
 | `npm run test:watch`     | Run the suites in watch mode                                        |
 | `npm run lint`           | Run ESLint                                                          |
 | `npm run lint:fix`       | Run ESLint and auto-fix                                             |

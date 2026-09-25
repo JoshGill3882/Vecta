@@ -48,7 +48,7 @@ prisma/
   migrations/sqlite/      Two histories, because the SQL differs per engine
   migrations/postgres/
 scripts/                  Build- and boot-time tooling (provider resolution)
-test/                     Mirrors the source tree; unit and integration projects
+test/                     Mirrors the source tree; unit, integration and component projects
 docs/guides/              How-to guides for working on the code
 ```
 
@@ -260,9 +260,10 @@ The job marks everything reachable from a protected tag and sweeps only what is 
 
 ## Testing
 
-Vitest, split into two projects:
-`unit` for pure logic and `integration` for tests that exercise services against a real in-memory SQLite database.
-Both run on every pull request.
+Vitest, split into three projects:
+`unit` for pure logic, `integration` for tests that exercise services against a real in-memory SQLite database,
+and `component` for React components rendered into jsdom.
+All three run on every pull request.
 
 → [Testing patterns](./docs/guides/testing.md)
 
