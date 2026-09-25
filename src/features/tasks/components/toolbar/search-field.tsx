@@ -75,8 +75,8 @@ export function SearchField({
           }
         }}
         // `type="search"` draws a native clear button in Chrome and Safari.
-        // Ours sits in the aame place, so the native one is suppressed rather than shown alongside it.
-        className="h-9 pl-9 [&::-webkit-search-cancel-button]:appearance-none"
+        // Ours sits in the same place, so the native one is suppressed rather than shown alongside it.
+        className="h-9 pl-9 pointer-coarse:h-11 [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <Button
