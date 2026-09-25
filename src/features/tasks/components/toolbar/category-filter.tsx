@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/src/shared/components/ui/dropdown-menu";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { toggled } from "@/src/features/tasks/lib/selection";
 
 /** `null` is the Uncategorised option, matching how a task stores its absence. */
 type Selection = ReadonlySet<string | null>;
@@ -39,10 +40,7 @@ export function CategoryFilter({
    * @param id The category, or null for the Uncategorised option.
    */
   function toggle(id: string | null) {
-    const next = new Set(selected);
-    // delete reports whether it removed anything, so one call covers both ways.
-    if (!next.delete(id)) next.add(id);
-    onSelectedChange(next);
+    onSelectedChange(toggled(selected, id));
   }
 
   return (
