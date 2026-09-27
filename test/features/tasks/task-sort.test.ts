@@ -88,6 +88,55 @@ describe("sortTasks", () => {
   });
 });
 
+describe("sortTasks by due date", () => {
+  /** A task due at a given time, updated at a given moment.
+   *
+   * @param id Identifies the task in an assertion.
+   * @param dueAt The due date, or null for none.
+   * @param updatedAt When it was last updated, for tie-breaks.
+   * @returns A complete task.
+   */
+  function due(id: string, dueAt: string | null, updatedAt = "2026-01-01T00:00:00.000Z") {
+    return { ...task(id, id, updatedAt), dueAt };
+  }
+
+  it("puts the soonest due first", () => {
+    const list = [due("later", "2026-10-09"), due("sooner", "2026-09-28")];
+    expect(sortTasks(list, "due_asc").map((t) => t.id)).toEqual(["sooner", "later"]);
+  });
+
+  // A date with no time is due at the end of its day, after any time on it.
+  it("puts a date-only due date after a timed one on the same day", () => {
+    const list = [due("all-day", "2026-09-28"), due("evening", "2026-09-28T21:00")];
+    expect(sortTasks(list, "due_asc").map((t) => t.id)).toEqual(["evening", "all-day"]);
+  });
+
+  // An absent date is not an early one.
+  it("puts tasks with no due date last", () => {
+    const list = [due("none", null), due("far", "2030-01-01"), due("near", "2026-09-28")];
+    expect(sortTasks(list, "due_asc").map((t) => t.id)).toEqual(["near", "far", "none"]);
+  });
+
+  it("breaks ties by most recently updated", () => {
+    const list = [
+      due("stale", "2026-09-28", "2026-01-01T00:00:00.000Z"),
+      due("fresh", "2026-09-28", "2026-06-01T00:00:00.000Z"),
+      due("stale-none", null, "2026-01-01T00:00:00.000Z"),
+      due("fresh-none", null, "2026-06-01T00:00:00.000Z"),
+    ];
+    expect(sortTasks(list, "due_asc").map((t) => t.id)).toEqual([
+      "fresh",
+      "stale",
+      "fresh-none",
+      "stale-none",
+    ]);
+  });
+
+  it("is offered in the menu as Due soonest", () => {
+    expect(TASK_SORTS.find((sort) => sort.id === "due_asc")?.label).toBe("Due soonest");
+  });
+});
+
 describe("isTaskSort", () => {
   it("accepts every order the menu offers", () => {
     for (const sort of TASK_SORTS) expect(isTaskSort(sort.id)).toBe(true);

@@ -1,0 +1,33 @@
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+import { DuePill } from "@/src/features/tasks/components/due-pill";
+
+// Sunday 27 September 2026, 10:00 local.
+const NOW = new Date(2026, 8, 27, 10, 0);
+
+describe("DuePill", () => {
+  // No "No due date" placeholder: a task without one shows nothing at all.
+  it("renders nothing when the task has no due date", () => {
+    const { container } = render(<DuePill task={{ dueAt: null }} now={NOW} />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("shows the short label", () => {
+    render(<DuePill task={{ dueAt: "2026-09-28T17:30" }} now={NOW} />);
+    expect(screen.getByText("Due tomorrow · 17:30")).toBeDefined();
+  });
+
+  it("offers the full date on hover", () => {
+    render(<DuePill task={{ dueAt: "2026-10-09" }} now={NOW} />);
+    expect(screen.getByTitle("Friday, 9 October 2026")).toBeDefined();
+  });
+
+  // aria-label is ignored on a plain span, so the full date is in the text itself,
+  // visually hidden - which is what a screen reader reads.
+  it("gives screen readers the full date as well as the label", () => {
+    const { container } = render(<DuePill task={{ dueAt: "2026-10-09T17:30" }} now={NOW} />);
+    expect(container.textContent).toBe("Due 9 Oct · 17:30, Friday, 9 October 2026 at 17:30");
+    expect(screen.getByText(", Friday, 9 October 2026 at 17:30").className).toContain("sr-only");
+  });
+});
