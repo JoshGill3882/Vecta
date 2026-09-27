@@ -16,6 +16,8 @@ export interface CreateTaskInput {
   status: TaskStatus;
   /** A category to file it under, or null for none. */
   categoryId?: string | null;
+  /** When it is due (`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`), or null for no due date. */
+  dueAt?: string | null;
 }
 
 /** The fields that may be changed on an existing task.
@@ -32,6 +34,8 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   /** A category to file it under, or null to unfile it. */
   categoryId?: string | null;
+  /** When it is due, or null for no due date. */
+  dueAt?: string | null;
 }
 
 /** Gets all Tasks

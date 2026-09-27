@@ -24,6 +24,7 @@ function task(overrides: Partial<TaskDTO> & Pick<TaskDTO, "id">): TaskDTO {
     description: "",
     status: "open",
     categoryId: null,
+    dueAt: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,

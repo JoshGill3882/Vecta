@@ -23,6 +23,12 @@ export interface TaskDTO {
   createdAt: string;
   /** ISO 8601 timestamp of the last change, which the list sorts on. */
   updatedAt: string;
+  /**
+   * When the task is due, as local wall-clock text: `YYYY-MM-DD`, or
+   * `YYYY-MM-DDTHH:MM` when a time was set. Null when it has no due date.
+   * Deliberately not an ISO timestamp - it has no timezone to convert.
+   */
+  dueAt: string | null;
 }
 
 /** Converts a task row into the shape a client can receive.
@@ -42,5 +48,6 @@ export function toTaskDTO(model: TaskModel): TaskDTO {
     categoryId: model.categoryId,
     createdAt: model.createdAt.toISOString(),
     updatedAt: model.updatedAt.toISOString(),
+    dueAt: model.dueAt,
   };
 }

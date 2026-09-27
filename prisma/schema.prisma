@@ -16,9 +16,9 @@ datasource db {
 }
 
 
-// Models below are shared by both providers. Per PLAN.md: stick to String/Int/
-// DateTime/Boolean only — no Json/Jsonb or native UUID types — so the one schema
-// compiles to both SQLite and Postgres.
+// Models below are shared by both providers. Per ARCHITECTURE.md (Data model): stick
+// to String/Int/DateTime/Boolean only — no Json/Jsonb or native UUID types — so the
+// one schema compiles to both SQLite and Postgres.
 model Task {
   id          String    @id @default(cuid())
   title       String
@@ -28,6 +28,7 @@ model Task {
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  dueAt       String?   // "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM": local wall-clock time, no timezone
 }
 
 model Category {
