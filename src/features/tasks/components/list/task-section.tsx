@@ -74,6 +74,7 @@ export function TaskSection({
   onEdit,
   onDelete,
   needle,
+  now,
 }: {
   status: TaskStatus;
   label: string;
@@ -85,6 +86,8 @@ export function TaskSection({
   /** Resolves true when the task was deleted, which closes the confirm dialog. */
   onDelete: (task: TaskDTO) => Promise<boolean>;
   needle: string;
+  /** The moment due dates are measured against, shared by every card. */
+  now: Date;
 }) {
   // A section with nothing in it has nothing to collapse, so it does not offer the control:
   // heading only, no chevron and no body. The stored collapsed state is neither read here
@@ -133,6 +136,7 @@ export function TaskSection({
               onEdit={onEdit}
               onDelete={onDelete}
               needle={needle}
+              now={now}
             />
           ))}
         </div>
