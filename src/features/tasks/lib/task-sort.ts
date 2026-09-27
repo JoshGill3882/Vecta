@@ -1,12 +1,14 @@
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
+import { dueMoment } from "@/src/features/tasks/lib/due-date";
 
 /** One of the orders the list can be shown in. */
-export type TaskSort = "updated_desc" | "updated_asc" | "title_asc" | "title_desc";
+export type TaskSort = "updated_desc" | "updated_asc" | "due_asc" | "title_asc" | "title_desc";
 
 /** The orders the task list can be shown in, as the menu lists them. */
 export const TASK_SORTS: readonly { id: TaskSort; label: string }[] = [
   { id: "updated_desc", label: "Recently updated" },
   { id: "updated_asc", label: "Oldest first" },
+  { id: "due_asc", label: "Due soonest" },
   { id: "title_asc", label: "Title A-Z" },
   { id: "title_desc", label: "Title Z-A" },
 ];
@@ -25,6 +27,35 @@ export const DEFAULT_TASK_SORT: TaskSort = "updated_desc";
  */
 export function isTaskSort(value: unknown): value is TaskSort {
   return TASK_SORTS.some((sort) => sort.id === value);
+}
+
+/** Compares machine-written text by code unit, so no locale can reorder it.
+ *
+ * @param a One value.
+ * @param b The other.
+ * @returns Negative, zero or positive, as `sort` expects.
+ */
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** Orders two tasks soonest-due first.
+ *
+ * Tasks with no due date go last: an absent date is not an early one. Ties fall
+ * back to recently updated first.
+ *
+ * @param a One task.
+ * @param b The other.
+ * @returns Negative, zero or positive, as `sort` expects.
+ */
+function compareDue(a: TaskDTO, b: TaskDTO): number {
+  if (a.dueAt === null || b.dueAt === null) {
+    if (a.dueAt !== b.dueAt) return a.dueAt === null ? 1 : -1;
+  } else {
+    const byDue = compareText(dueMoment(a.dueAt), dueMoment(b.dueAt));
+    if (byDue !== 0) return byDue;
+  }
+  return b.updatedAt.localeCompare(a.updatedAt, "en");
 }
 
 /** Orders a list of tasks, leaving the input untouched.
@@ -46,6 +77,8 @@ export function sortTasks(tasks: TaskDTO[], sort: TaskSort): TaskDTO[] {
       return sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt, "en"));
     case "updated_asc":
       return sorted.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt, "en"));
+    case "due_asc":
+      return sorted.sort(compareDue);
     case "title_asc":
       return sorted.sort((a, b) => a.title.localeCompare(b.title, "en"));
     case "title_desc":
