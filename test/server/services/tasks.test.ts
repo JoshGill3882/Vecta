@@ -35,6 +35,7 @@ const taskRow = {
   description: "",
   status: "open",
   categoryId: null,
+  dueAt: null,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
 };
@@ -70,12 +71,23 @@ describe("getTasks", () => {
         description: "",
         status: "open",
         categoryId: null,
+        dueAt: null,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-02T00:00:00.000Z",
       },
     ]);
     // The DTO carries strings, not Date instances.
     expect(typeof result[0].createdAt).toBe("string");
+  });
+
+  // A due date is wall-clock text with no timezone, so it crosses unconverted:
+  // turning it into an ISO timestamp would give it a timezone it never had.
+  it("passes a due date through exactly as stored", async () => {
+    task.findMany.mockResolvedValue([{ ...taskRow, dueAt: "2026-09-15T17:30" }] as never);
+
+    const [result] = await getTasks();
+
+    expect(result.dueAt).toBe("2026-09-15T17:30");
   });
 });
 
@@ -108,6 +120,13 @@ describe("createTask", () => {
     expect(task.create).not.toHaveBeenCalled();
   });
 
+  it("rejects an invalid due date at the seam, before the DB", async () => {
+    await expect(
+      createTask({ title: "Dated", status: "open", dueAt: "2026-02-30" })
+    ).rejects.toThrow();
+    expect(task.create).not.toHaveBeenCalled();
+  });
+
   it("creates and returns a DTO for valid input", async () => {
     task.create.mockResolvedValue(taskRow as never);
 
@@ -131,6 +150,11 @@ describe("createTask", () => {
 });
 
 describe("updateTask", () => {
+  it("rejects an invalid due date at the seam, before the DB", async () => {
+    await expect(updateTask("t1", { dueAt: "2026-09-15T25:00" })).rejects.toThrow();
+    expect(task.update).not.toHaveBeenCalled();
+  });
+
   it("updates and returns a DTO", async () => {
     task.update.mockResolvedValue({ ...taskRow, title: "Renamed" } as never);
 

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { taskCreateSchema, taskUpdateSchema, TASK_STATUSES } from "@/src/shared/lib/schemas/tasks";
+import {
+  dueAtSchema,
+  taskCreateSchema,
+  taskUpdateSchema,
+  TASK_STATUSES,
+} from "@/src/shared/lib/schemas/tasks";
 
 // A known-good payload. Each test clones this and breaks exactly one field, so a
 // failure can only be caused by the rule under test (not an unrelated invalid field).
@@ -105,5 +110,61 @@ describe("taskUpdateSchema (partial)", () => {
   it("still enforces a provided field's rules (empty title fails)", () => {
     const result = taskUpdateSchema.safeParse({ title: "" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("dueAtSchema", () => {
+  it.each([
+    ["a date", "2026-09-15"],
+    ["a date with a time", "2026-09-15T17:30"],
+    ["midnight", "2026-09-15T00:00"],
+    ["the last minute of the day", "2026-09-15T23:59"],
+    ["a leap day in a leap year", "2028-02-29"],
+  ])("accepts %s", (_, value) => {
+    expect(dueAtSchema.safeParse(value).success).toBe(true);
+  });
+
+  it.each([
+    // A naive regex lets this through: the shape is right, the day does not exist.
+    ["a day the month does not have", "2026-02-30"],
+    // A naive `new Date()` lets this through: it parses unpadded parts happily.
+    ["unpadded month and day", "2026-9-1"],
+    ["an hour past 23", "2026-09-15T25:00"],
+    ["a minute past 59", "2026-09-15T17:60"],
+    ["a leap day in a common year", "2026-02-29"],
+    ["month 13", "2026-13-01"],
+    ["seconds", "2026-09-15T17:30:00"],
+    ["a timezone offset", "2026-09-15T17:30Z"],
+    ["a full ISO timestamp", "2026-09-15T17:30:00.000Z"],
+    ["a day-first date", "15/09/2026"],
+    ["a time with no date", "17:30"],
+    ["an empty string", ""],
+    ["surrounding whitespace", " 2026-09-15 "],
+  ])("rejects %s", (_, value) => {
+    expect(dueAtSchema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe("dueAt on a task", () => {
+  // The three shapes mirror the nullable column: set it, clear it, or leave it.
+  it("accepts a due date on create", () => {
+    const result = taskCreateSchema.safeParse({ ...validTask, dueAt: "2026-09-15T17:30" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null, which clears the due date", () => {
+    expect(taskUpdateSchema.safeParse({ dueAt: null }).success).toBe(true);
+  });
+
+  it("accepts it omitted, which leaves the due date alone", () => {
+    const result = taskUpdateSchema.safeParse({ title: "Renamed" });
+    expect(result.success).toBe(true);
+    if (result.success) expect("dueAt" in result.data).toBe(false);
+  });
+
+  it("reports an invalid due date against the dueAt field", () => {
+    const result = taskCreateSchema.safeParse({ ...validTask, dueAt: "2026-02-30" });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(z.flattenError(result.error).fieldErrors.dueAt).toBeDefined();
   });
 });
