@@ -158,6 +158,9 @@ export function TasksView({
 
   const noMatches = describeNoMatches(narrowing.query, narrowing.categoryIds.size > 0);
 
+  // One "now" per render, so every card measures its due date against the same moment.
+  const now = new Date();
+
   return (
     <section>
       {/* Stacks below `sm`. Side by side, the button is bottom-aligned to a
@@ -221,6 +224,7 @@ export function TasksView({
               onEdit={openEdit}
               onDelete={deleteTask}
               needle={narrowing.narrowing.needle}
+              now={now}
             />
           );
         })

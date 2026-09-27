@@ -4,6 +4,7 @@ import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { relativeTime } from "@/src/features/tasks/lib/relative-time";
 import { cn } from "@/src/shared/lib/utils";
+import { DuePill } from "@/src/features/tasks/components/due-pill";
 
 import { TaskCardMenu } from "./task-card-menu";
 import { Highlight } from "./highlight";
@@ -15,6 +16,7 @@ export function TaskCard({
   onEdit,
   onDelete,
   needle,
+  now,
 }: {
   task: TaskDTO;
   category?: CategoryDTO;
@@ -22,6 +24,7 @@ export function TaskCard({
   /** Resolves true when the task was deleted, which closes the confirm dialog. */
   onDelete: (task: TaskDTO) => Promise<boolean>;
   needle: string;
+  now: Date;
 }) {
   const closed = task.status === "closed";
 
@@ -74,6 +77,7 @@ export function TaskCard({
       <div className="mt-[13px] flex flex-wrap items-center gap-2">
         <StatusBadge status={task.status} />
         {category && <CategoryChip name={category.name} color={category.color} />}
+        <DuePill task={task} now={now} />
         <span className="flex-1" />
         {/* Relative time is computed from the clock, so the server's render and
             the client's can legitimately differ by a tick — the timestamp is the
