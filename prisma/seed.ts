@@ -48,6 +48,26 @@ const categories = [
   { id: "cseedcatideas", name: "Ideas", color: "#f59e0b" }, // amber
 ] as const;
 
+/** A due date a number of days from today, as the column stores it.
+ *
+ * Relative rather than fixed, so "due today" and "past due" are still true on
+ * whatever day the seed runs.
+ *
+ * @param days Days from today; negative for the past.
+ * @param time An optional `HH:MM` time of day.
+ * @returns `YYYY-MM-DD`, or `YYYY-HH-MMTHH:MM` when a time is given.
+ */
+function dueIn(days: number, time?: string): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  const day = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+  return time ? `${day}T${time}` : day;
+}
+
 // Tasks spread across all three statuses ("open" | "in_progress" | "closed").
 const tasks = [
   {
@@ -56,6 +76,7 @@ const tasks = [
     description: "Cover setup, scripts, and the dual SQLite/Postgres story.",
     status: "open",
     categoryId: "cseedcatwork",
+    dueAt: dueIn(7),
   },
   {
     id: "cseedtask2",
@@ -63,6 +84,7 @@ const tasks = [
     description: "Replace the stubbed bodies with real Prisma queries.",
     status: "in_progress",
     categoryId: "cseedcatwork",
+    dueAt: dueIn(0, "17:00"),
   },
   {
     id: "cseedtask3",
@@ -70,6 +92,7 @@ const tasks = [
     description: "",
     status: "open",
     categoryId: "cseedcatpersonal",
+    dueAt: dueIn(-2),
   },
   {
     id: "cseedtask4",
@@ -77,6 +100,7 @@ const tasks = [
     description: "Production cert expires at the end of the month.",
     status: "in_progress",
     categoryId: "cseedcaturgent",
+    dueAt: dueIn(1, "09:30"),
   },
   {
     id: "cseedtask5",
@@ -84,6 +108,7 @@ const tasks = [
     description: "A nice-to-have once the core flows are done.",
     status: "closed",
     categoryId: "cseedcatideas",
+    dueAt: null,
   },
   {
     id: "cseedtask6",
@@ -91,6 +116,7 @@ const tasks = [
     description: "Example data for new contributors.",
     status: "closed",
     categoryId: "cseedcatwork",
+    dueAt: dueIn(-5),
   },
 ] as const;
 
@@ -114,6 +140,7 @@ async function main() {
         description: task.description,
         status: task.status,
         categoryId: task.categoryId,
+        dueAt: task.dueAt,
       },
       create: task,
     });

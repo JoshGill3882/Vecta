@@ -55,6 +55,7 @@ function task(over: Partial<TaskDTO> = {}): TaskDTO {
     description: "",
     status: "open",
     categoryId: null,
+    dueAt: null,
     createdAt: "2026-09-01T00:00:00.000Z",
     updatedAt: "2026-09-01T00:00:00.000Z",
     ...over,

@@ -44,6 +44,7 @@ const taskDTO = {
   description: "",
   status: "open" as const,
   categoryId: null,
+  dueAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-02T00:00:00.000Z",
 };

@@ -86,6 +86,51 @@ describe("updateTaskAction (integration)", () => {
   });
 });
 
+describe("due dates (integration)", () => {
+  it("stores a due date exactly as given, time included", async () => {
+    const res = await createTaskAction({
+      title: "Dated",
+      status: "open",
+      dueAt: "2026-09-15T17:30",
+    });
+
+    expect(res.ok).toBe(true);
+    const [row] = await prisma.task.findMany();
+    expect(row.dueAt).toBe("2026-09-15T17:30");
+  });
+
+  it("clears a due date when handed an explicit null", async () => {
+    const created = await prisma.task.create({
+      data: { title: "Dated", status: "open", dueAt: "2026-09-15" },
+    });
+
+    const res = await updateTaskAction(created.id, { dueAt: null });
+
+    expect(res.ok).toBe(true);
+    const row = await prisma.task.findUnique({ where: { id: created.id } });
+    expect(row?.dueAt).toBeNull();
+  });
+
+  it("leaves a due date alone when the field is omitted", async () => {
+    const created = await prisma.task.create({
+      data: { title: "Dated", status: "open", dueAt: "2026-09-15" },
+    });
+
+    const res = await updateTaskAction(created.id, { title: "Renamed" });
+
+    expect(res.ok).toBe(true);
+    const row = await prisma.task.findUnique({ where: { id: created.id } });
+    expect(row?.dueAt).toBe("2026-09-15");
+  });
+
+  it("rejects an impossible date without writing a row", async () => {
+    const res = await createTaskAction({ title: "Dated", status: "open", dueAt: "2026-02-30" });
+
+    expect(res.ok).toBe(false);
+    expect(await prisma.task.count()).toBe(0);
+  });
+});
+
 describe("deleteTaskAction (integration)", () => {
   it("removes the row from the DB", async () => {
     const created = await prisma.task.create({ data: { title: "Doomed", status: "open" } });
