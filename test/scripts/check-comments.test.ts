@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { commentsIn, issueRefsIn } from "../../scripts/check-no-issue-refs.mjs";
+import { commentsIn, issueRefsIn } from "../../scripts/check-comments.mjs";
 
 describe("issueRefsIn", () => {
   it("flags a reference in a line comment", () => {

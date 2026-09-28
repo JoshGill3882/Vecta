@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 const SCANNED_PREFIXES = ["app/", "src/", "test/"];
 
 /** This guard names the pattern it hunts for, so it does not scan itself. */
-const SELF = "scripts/check-no-issue-refs.mjs";
+const SELF = "scripts/check-comments.mjs";
 
 /** Source we author. Data files are skipped: a `#1234` in one is not prose. */
 const SCANNED_EXT = /\.(ts|tsx|mts|cts|js|mjs|cjs|jsx)$/;
