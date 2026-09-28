@@ -5,11 +5,12 @@ import { RotateCw, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/src/shared/components/ui/button";
 
-/**
- * Error boundary for the authenticated area. Sitting at the `(app)` segment, it
- * wraps both the tasks and categories routes but *not* `(app)/layout.tsx` above
- * it — so a thrown render or failed data read swaps only the main region for
- * this fallback while the top bar stays put and the user can still switch tabs.
+/** Error boundary for the authenticated area.
+ *
+ * Sitting at the `(app)` segment, it wraps both the tasks and categories routes
+ * but *not* `(app)/layout.tsx` above it — so a thrown render or failed data
+ * read swaps only the main region for this fallback while the top bar stays put
+ * and the user can still switch tabs.
  *
  * Recovery goes through `unstable_retry`, not `reset`: this Next re-fetches and
  * re-renders the segment on retry (`reset` only clears error state without

@@ -11,11 +11,11 @@ import { relativeTime } from "@/src/features/tasks/lib/relative-time";
 
 import { TaskDescription } from "./task-description";
 
-/**
- * Read/view mode — the modal's default state for an existing task, and where a
- * save lands. The list card carries no description preview, so this is the one
- * place a task's Markdown description is shown. The Edit button hands control to
- * the form; the header (with its title and close affordance) is the dialog's.
+/** Read/view mode — the modal's default state for an existing task, and where a save lands.
+ *
+ * The list card carries no description preview, so this is the one place a
+ * task's Markdown description is shown. The Edit button hands control to the
+ * form; the header (with its title and close affordance) is the dialog's.
  */
 export function TaskView({
   task,

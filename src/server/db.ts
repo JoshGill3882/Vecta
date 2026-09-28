@@ -4,8 +4,7 @@ import { PrismaClient as SqliteClient } from "@/generated/prisma-sqlite/client";
 import { PrismaClient as PostgresClient } from "@/generated/prisma-postgresql/client";
 import { detectProvider } from "@/scripts/db-provider.mjs";
 
-/**
- * Singleton Prisma client — the single entry point for all database access.
+/** Singleton Prisma client — the single entry point for all database access.
  *
  * Why a singleton: Next.js hot-reload re-evaluates modules on every edit. Without
  * a guard, each reload would construct a fresh PrismaClient (and a new connection

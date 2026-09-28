@@ -10,9 +10,7 @@ export type VisibleViewport = {
   offsetTop: number;
 };
 
-/**
- * Tracks the visual viewport on touch devices — the part of the page left over
- * once the on-screen keyboard is up.
+/** Tracks the visual viewport on touch devices: the page left over once the keyboard is up.
  *
  * `dvh` is not enough on its own. It follows the browser's own chrome (the URL
  * bar collapsing as you scroll), but the keyboard is not chrome: by default it

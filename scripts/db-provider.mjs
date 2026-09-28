@@ -10,8 +10,7 @@ export const MIGRATIONS_DIR = {
   postgresql: "prisma/migrations/postgres",
 };
 
-/**
- * Determine the Prisma datasource provider from a connection URL.
+/** Determine the Prisma datasource provider from a connection URL.
  *
  * Prisma cannot read `provider` from an env var, so we derive it from the URL
  * shape: `file:` -> SQLite, `postgres(ql)://` -> PostgreSQL.

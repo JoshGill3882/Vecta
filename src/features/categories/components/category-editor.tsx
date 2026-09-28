@@ -16,11 +16,12 @@ import { cn } from "@/src/shared/lib/utils";
 
 import { createCategoryAction, updateCategoryAction } from "@/src/features/categories/actions";
 
-/**
- * The create/edit form — one component for both, as in the design. Passing a
- * `category` switches it to edit mode: the only real difference is which action
- * it submits to, and both share the `(prevState, formData)` shape `useActionState`
- * calls with, so `updateCategoryAction` just needs its `id` bound first.
+/** The create/edit form: one component serves both.
+ *
+ * Passing a `category` switches it to edit mode: the only real difference is
+ * which action it submits to, and both share the `(prevState, formData)` shape
+ * `useActionState` calls with, so `updateCategoryAction` just needs its `id`
+ * bound first.
  */
 export function CategoryEditor({
   category,

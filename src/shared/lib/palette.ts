@@ -1,7 +1,7 @@
-/**
- * Category colour palette — the swatches offered in the category colour picker,
- * taken from the Vecta design. Curated to stay legible on the dark surfaces: a
- * category's colour is used as text, border, and background tint on its chip.
+/** Category colour palette: the swatches the category colour picker offers.
+ *
+ * Curated to stay legible on the dark surfaces: a category's colour is used as
+ * text, border, and background tint on its chip.
  *
  * Categories store an arbitrary hex string (validated by `categoryCreateSchema`),
  * so a colour outside this list is legal — the picker just doesn't offer one.

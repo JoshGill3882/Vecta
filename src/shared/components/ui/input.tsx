@@ -2,12 +2,15 @@ import * as React from "react";
 
 import { cn } from "@/src/shared/lib/utils";
 
-/**
+/** A text input whose text shrinks only for a mouse, never on a touchscreen.
+ *
  * Deviates from the shadcn default, which shrinks the text at `md:` — restore
- * that on a re-generate and it breaks: iOS Safari zooms the page when a focused
- * input's text is under 16px, and a width breakpoint is the wrong lever for it.
- * 768px is a portrait iPad, so `md:text-sm` zooms on exactly the tablet width we
- * target. `pointer-fine` keys the 14px to a mouse instead, which is what the
+ * that on a re-generate and it breaks: iOS Safari zooms the page when a
+ * focused input's text is under 16px, and a width breakpoint is the wrong
+ * lever for it.
+ *
+ * 768px is a portrait iPad, so `md:text-sm` zooms on exactly the tablet width
+ * we target. `pointer-fine` keys the 14px to a mouse instead, which is what the
  * smaller text was ever really for.
  */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {

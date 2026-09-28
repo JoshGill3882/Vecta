@@ -10,11 +10,10 @@ import type { ActionResult } from "@/src/shared/lib/result";
 export interface RunOptions<T> {
   /** Message shown once the action reports success. */
   success: string;
-  /**
-   * Runs after the success toast and before the route refreshes, for a caller
-   * with something to record about the outcome. The delete flows use it to note
-   * where focus should land, which has to happen before the list re-renders
-   * without the row that had it.
+  /** Runs after the success toast and before the refresh, for a caller with a note to make.
+   *
+   * The delete flows use it to note where focus should land, which has to
+   * happen before the list re-renders without the row that had it.
    */
   beforeRefresh?: (data: T) => void;
 }

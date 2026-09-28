@@ -1,9 +1,10 @@
 import { Skeleton } from "@/src/shared/components/ui/skeleton";
 
-/**
- * Suspense fallback for the categories route. Like the tasks fallback, this sits
- * inside the `(app)` layout's boundary, so only the content region swaps while
- * the auth check and category/task reads resolve.
+/** Suspense fallback for the categories route.
+ *
+ * Like the tasks fallback, this sits inside the `(app)` layout's boundary, so
+ * only the content region swaps while the auth check and category/task reads
+ * resolve.
  *
  * Mirrors `CategoriesView`: header over a bordered card of rows, so content
  * settles into the same frame. Row count is arbitrary — enough to fill the card

@@ -110,9 +110,7 @@ function OptionRow({
   );
 }
 
-/**
- * Every filter and the sort order behind one button, for screens too narrow to
- * hold them in a row.
+/** Every filter and the sort order behind one button, for screens too narrow to hold them in a row.
  *
  * Changes apply as they are made rather than on Done: the list is right there
  * behind the sheet, and an Apply step would leave the badge and the list out of

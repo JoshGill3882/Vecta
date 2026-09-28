@@ -1,10 +1,9 @@
 import { cn } from "@/src/shared/lib/utils";
 
-/**
- * A category rendered as a GitHub-style label: coloured dot, name, and a tinted
- * pill derived from the category's own colour. Lives in `src/components` rather
- * than beside the categories route because task cards and the task dialog show
- * the same chip.
+/** A category as a GitHub-style label: dot and name in a pill tinted by its own colour.
+ *
+ * Lives in `src/shared/components` rather than in the categories feature, because
+ * the task cards and the task dialog show the same chip.
  *
  * The colour is per-row data, so it has to be an inline style — Tailwind can
  * only emit classes it can see at build time. The hex suffixes are alpha:

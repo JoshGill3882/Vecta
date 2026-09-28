@@ -27,10 +27,11 @@ export function TaskFormDialog({
   /** Omitted for create; supplied for edit, which opens in view mode over it. */
   task?: TaskDTO;
   categories: CategoryDTO[];
-  /**
-   * Persists the task and resolves the saved row — the fresh DTO, so view mode
-   * can show the new state (create included) without waiting on a refetch — or
-   * `null` when the save failed, which keeps the form open with its errors.
+  /** Persists the task, resolving the saved row or `null` when the save failed.
+   *
+   * The saved row is the fresh DTO, so view mode can show the new state (create
+   * included) without waiting on a refetch. `null` keeps the form open with its
+   * errors.
    */
   onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
@@ -64,8 +65,8 @@ export function TaskFormDialog({
             ? { top: visible.offsetTop + visible.height * 0.07, maxHeight: visible.height * 0.86 }
             : undefined
         }
-        // The design gives the dialog no prose description, and Radix only stops
-        // warning about the missing `aria-describedby` when it's cleared.
+        // The dialog has no prose description, and Radix only stops warning about
+        // the missing `aria-describedby` when it's cleared.
         aria-describedby={undefined}
         // The close button is the first tabbable in the content, so Radix's
         // default would land focus there. Never let it: this always takes over.

@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/src/shared/components/ui/button";
 
-/**
- * DOM id of the empty state's heading. A delete that empties the list leaves no
- * section header to return focus to, so this heading stands in as the landmark.
+/** DOM id of the empty state's heading.
+ *
+ * A delete that empties the list leaves no section header to return focus to,
+ * so this heading stands in as the landmark.
  */
 export const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
 

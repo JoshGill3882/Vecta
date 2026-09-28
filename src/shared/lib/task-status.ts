@@ -1,9 +1,9 @@
 import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
 
-/**
- * The three status sections, in the order the list view renders them. The DTO's
- * `TaskStatus` union is the source of truth for the ids; this adds the display
- * labels and fixes an order, neither of which belongs in the DTO.
+/** The three status sections, in the order the list view renders them.
+ *
+ * The DTO's `TaskStatus` union is the source of truth for the ids; this adds
+ * the display labels and fixes an order, neither of which belongs in the DTO.
  */
 export const TASK_STATUSES: readonly { id: TaskStatus; label: string }[] = [
   { id: "open", label: "Open" },
@@ -11,10 +11,10 @@ export const TASK_STATUSES: readonly { id: TaskStatus; label: string }[] = [
   { id: "closed", label: "Closed" },
 ];
 
-/**
- * Per-status Tailwind classes, written out in full rather than composed from a
- * colour name — Tailwind only emits classes it can read literally in the source,
- * so `text-status-${id}` would compile to nothing.
+/** Per-status Tailwind classes, written out in full.
+ *
+ * Not composed from a colour name: Tailwind only emits classes it can read
+ * literally in the source, so `text-status-${id}` would compile to nothing.
  */
 export const STATUS_ACCENT: Record<TaskStatus, { dot: string; ring: string; badge: string }> = {
   open: {

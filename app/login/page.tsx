@@ -25,7 +25,7 @@ export default async function LoginPage({
   return (
     // flex-1 fills the flex-col <body> from the root layout; centres the card
     // and stacks the footer line beneath it. No background of its own — the
-    // body's radial gradient (globals.css) shows through, matching the design.
+    // body's radial gradient (globals.css) shows through, as on every page.
     <main className="flex flex-1 flex-col items-center justify-center px-6">
       <div className="border-border-strong from-surface-2 to-card w-full max-w-[396px] rounded-[18px] border bg-gradient-to-b px-[30px] pt-8 pb-[26px] shadow-2xl">
         {/* brand + heading — purely static, no JS needed. alt="" because the

@@ -30,10 +30,11 @@ export function CategoryRow({
   category: CategoryDTO;
   taskCount: number;
   onEdit: () => void;
-  /**
-   * Fired after a successful delete. The row (and the Delete button that opened
-   * the confirm dialog) unmounts on refresh, so the parent restores focus to a
-   * landmark that survives rather than letting it fall to `<body>`.
+  /** Fired after a successful delete.
+   *
+   * The row (and the Delete button that opened the confirm dialog) unmounts on
+   * refresh, so the parent restores focus to a landmark that survives rather
+   * than letting it fall to `<body>`.
    */
   onDeleted: () => void;
 }) {

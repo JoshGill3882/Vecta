@@ -15,10 +15,11 @@ import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 import { CategorySelect } from "@/src/features/tasks/components/dialog/category-select";
 import { StatusPicker } from "@/src/features/tasks/components/dialog/status-picker";
 
-/**
- * The form's values are the create schema's, in both modes. `taskUpdateSchema`
- * is `.partial()`, which is right for a PATCH-shaped action but wrong here — the
- * edit form still shows every field, so it still has to enforce every rule.
+/** The form's values are the create schema's, in both modes.
+ *
+ * `taskUpdateSchema` is `.partial()`, which is right for a PATCH-shaped action
+ * but wrong here — the edit form still shows every field, so it still has to
+ * enforce every rule.
  */
 export type TaskFormValues = z.output<typeof taskCreateSchema>;
 /** The form values before Zod parses them, which is what the resolver sees. */
@@ -63,9 +64,9 @@ export function TaskForm({
     formState: { errors, isDirty, isSubmitting },
   } = form;
 
-  // Per the design, only the edit variant gates on dirty. Create leaves the
-  // button live so an empty title answers with an inline error rather than a
-  // button that silently does nothing.
+  // Only the edit variant gates on dirty: saving an unchanged task does nothing.
+  // Create leaves the button live so an empty title answers with an inline error
+  // rather than a button that silently does nothing.
   const saveDisabled = isSubmitting || (isEdit && !isDirty);
 
   const submit = form.handleSubmit(async (values) => {
@@ -95,8 +96,8 @@ export function TaskForm({
             placeholder="What needs doing?"
             aria-invalid={errors.title !== undefined}
             aria-describedby={errors.title ? "task-title-error" : undefined}
-            // The design's 15px, but only where a mouse is: under 16px iOS Safari
-            // zooms the page on focus, and this is the field the dialog opens on.
+            // 15px only where a mouse is: under 16px iOS Safari zooms the page
+            // on focus, and this is the field the dialog opens on.
             className="h-[42px] rounded-[9px] pointer-fine:text-[15px]"
           />
           {errors.title && (

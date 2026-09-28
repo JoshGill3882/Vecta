@@ -7,8 +7,7 @@ import { SearchField } from "./search-field";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { SortMenu } from "./sort-menu";
 
-/**
- * The row of controls above the task list.
+/** The row of controls above the task list.
  *
  * Its own component because every such control belongs in this row, and
  * `tasks-view.tsx` already owns the derivation, the dialogs and the delete focus

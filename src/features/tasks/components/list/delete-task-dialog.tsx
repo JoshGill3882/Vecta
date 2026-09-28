@@ -16,9 +16,10 @@ import {
 } from "@/src/shared/components/ui/alert-dialog";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
-/**
- * Confirmation step in front of a task deletion. Presentational and controlled:
- * it names the task and gathers the yes/no, but owns none of the delete itself.
+/** Confirmation step in front of a task deletion.
+ *
+ * Presentational and controlled: it names the task and gathers the yes/no, but
+ * owns none of the delete itself.
  *
  * `onConfirm` resolves true when the task was deleted, which closes the dialog —
  * the same contract `TaskFormDialog` uses for save, so a failure keeps the
