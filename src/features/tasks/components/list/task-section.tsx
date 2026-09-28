@@ -14,11 +14,11 @@ import { cn } from "@/src/shared/lib/utils";
 
 import { TaskCard } from "./task-card";
 
-/**
- * DOM id of a section's header button. It's the focus landmark a successful
- * delete lands on: the card that opened the confirm dialog is gone by then, so
- * focus returns to the header of the status it lived under rather than to
- * `<body>`.
+/** DOM id of a section's header button.
+ *
+ * It's the focus landmark a successful delete lands on: the card that opened
+ * the confirm dialog is gone by then, so focus returns to the header of the
+ * status it lived under rather than to `<body>`.
  *
  * @param status The status whose section header is wanted.
  * @returns The DOM id of that section's header.
@@ -27,9 +27,10 @@ export function taskSectionHeaderId(status: TaskStatus) {
   return `task-section-${status}`;
 }
 
-/**
- * Layout of a section header row. Shared by both forms the header takes so the
- * dot, label and count stay in one column down the list.
+/** Layout of a section header row.
+ *
+ * Shared by both forms the header takes so the dot, label and count stay in one
+ * column down the list.
  */
 const HEADER_ROW =
   "focus-visible:ring-ring/50 focus-visible:border-ring flex w-full items-center gap-2.5 rounded-lg border border-transparent px-0.5 py-2 outline-none focus-visible:ring-3";
@@ -57,9 +58,7 @@ function SectionHeading({
   );
 }
 
-/**
- * One collapsible status section: a header carrying the status dot, label and
- * count badge, over the tasks in that status.
+/** One collapsible status section: its header (dot, label, count) over the tasks in that status.
  *
  * Collapsed state is owned by the parent (it is persisted as a single map), so
  * this is a controlled Collapsible.

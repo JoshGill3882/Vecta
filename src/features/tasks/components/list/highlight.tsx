@@ -2,10 +2,11 @@ import { Fragment } from "react";
 
 import { findMatches } from "@/src/features/tasks/lib/task-search";
 
-/**
- * Wraps each occurrence of `needle` in `text` in a <mark>. Purely presentational:
- * the surrounding text nodes still concatenate to the original string, so a
- * screen reader reads one title rather than a run of fragments.
+/** Wraps each occurrence of `needle` in `text` in a <mark>.
+ *
+ * Purely presentational: the surrounding text nodes still concatenate to the
+ * original string, so a screen reader reads one title rather than a run of
+ * fragments.
  */
 export function Highlight({ text, needle }: { text: string; needle: string }) {
   const ranges = findMatches(text, needle);

@@ -1,11 +1,11 @@
 import { Skeleton } from "@/src/shared/components/ui/skeleton";
 import { TASK_STATUSES } from "@/src/shared/lib/task-status";
 
-/**
- * Suspense fallback for the tasks route. Next wraps `page.tsx` in a boundary
- * nested inside the `(app)` layout, so the top bar stays put and only this
- * `<main>` region swaps in while `requireSession()` and the task/category reads
- * resolve.
+/** Suspense fallback for the tasks route.
+ *
+ * Next wraps `page.tsx` in a boundary nested inside the `(app)` layout, so the
+ * top bar stays put and only this `<main>` region swaps in while
+ * `requireSession()` and the task/category reads resolve.
  *
  * It mirrors `TasksView`'s DOM — header, then the three status sections — so the
  * real content lands into the same shape and the page doesn't jump when data

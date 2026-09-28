@@ -9,12 +9,13 @@ import { TriangleAlert } from "lucide-react";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/shared/lib/fonts";
 
-/**
- * Last-resort boundary. It catches errors that escape the route boundaries —
- * including failures in the root layout itself — that would otherwise blank the
- * whole app. Kept deliberately minimal and self-contained: it renders when even
- * the shell is broken, so it leans on plain elements and tokens rather than the
- * component library.
+/** Last-resort boundary.
+ *
+ * It catches errors that escape the route boundaries — including failures in
+ * the root layout itself — that would otherwise blank the whole app. Kept
+ * deliberately minimal and self-contained: it renders when even the shell is
+ * broken, so it leans on plain elements and tokens rather than the component
+ * library.
  *
  * Recovery uses `unstable_retry` (re-fetch + re-render), matching the route
  * boundary; `metadata` can't be exported here, so the tab title is set with a

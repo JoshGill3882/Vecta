@@ -118,10 +118,11 @@ export function classify(versions) {
   return { protectedIdx, branchBuilds, signatures, untagged };
 }
 
-/**
- * Which `main-<sha>` versions to keep, newest first. A version carrying a
- * protected tag as well (the newest usually also holds `:unstable`) has already
- * been classified as protected, so it never reaches here.
+/** Which `main-<sha>` versions to keep, newest first.
+ *
+ * A version carrying a protected tag as well (the newest usually also holds
+ * `:unstable`) has already been classified as protected, so it never reaches
+ * here.
  */
 export function selectBranchBuildsToPrune(branchBuilds, keep) {
   const sorted = [...branchBuilds].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -187,8 +188,7 @@ async function fetchManifest(reference) {
   return res.json();
 }
 
-/**
- * Mark everything reachable from `roots`, following index → manifest edges.
+/** Mark everything reachable from `roots`, following index → manifest edges.
  *
  * Throws rather than skipping on any read failure. The sweep treats "unmarked"
  * as "delete", so an incomplete mark set is indistinguishable from a large pile

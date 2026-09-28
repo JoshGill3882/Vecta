@@ -2,10 +2,10 @@ import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
 import { STATUS_ACCENT, TASK_STATUSES } from "@/src/shared/lib/task-status";
 import { cn } from "@/src/shared/lib/utils";
 
-/**
- * A task's status as a tinted pill with a leading dot — the "badge" status
- * treatment from the design. Sits in `src/components` rather than beside the
- * route because the task dialog shows the same badge.
+/** A task's status as a tinted pill with a leading dot.
+ *
+ * Sits above the `list/` and `dialog/` slices rather than in either, because the
+ * task list and the task dialog both show it.
  */
 export function StatusBadge({ status, className }: { status: TaskStatus; className?: string }) {
   const label = TASK_STATUSES.find((s) => s.id === status)?.label ?? status;

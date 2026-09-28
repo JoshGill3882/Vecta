@@ -34,9 +34,10 @@ import { useTaskSort } from "@/src/features/tasks/hooks/use-task-sort";
 import { sortTasks, TaskSort } from "@/src/features/tasks/lib/task-sort";
 import { CollapsedMap } from "@/src/features/tasks/lib/section-collapse";
 
-/**
- * Tasks view — the content of the `/` route. Kept separate from page.tsx so the
- * route stays thin (auth + data fetching) while this owns the presentation.
+/** Tasks view — the content of the `/` route.
+ *
+ * Kept separate from page.tsx so the route stays thin (auth + data fetching)
+ * while this owns the presentation.
  *
  * A Client Component, because the whole view is one interactive unit: the
  * collapsed sections read a stored preference and the "New task" action owns dialog
@@ -88,8 +89,8 @@ export function TasksView({
 
   const { value: sort, set: setSort } = useTaskSort(initialSort);
 
-  // Bucket once per data change rather than filtering the list once per section.
-  // Most-recently-touched first, matching the design.
+  // Bucket once per data change rather than filtering the list once per section,
+  // then put each bucket in the chosen order.
   const { byStatus, matchCount } = useMemo(() => {
     const matched = narrowTasks(tasks, narrowing.narrowing);
     const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));

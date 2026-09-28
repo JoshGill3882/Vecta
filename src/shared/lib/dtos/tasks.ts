@@ -23,10 +23,10 @@ export interface TaskDTO {
   createdAt: string;
   /** ISO 8601 timestamp of the last change, which the list sorts on. */
   updatedAt: string;
-  /**
-   * When the task is due, as local wall-clock text: `YYYY-MM-DD`, or
-   * `YYYY-MM-DDTHH:MM` when a time was set. Null when it has no due date.
-   * Deliberately not an ISO timestamp - it has no timezone to convert.
+  /** When the task is due, as local wall-clock text: `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`.
+   *
+   * Null when it has no due date. Deliberately not an ISO timestamp - it has no
+   * timezone to convert.
    */
   dueAt: string | null;
 }

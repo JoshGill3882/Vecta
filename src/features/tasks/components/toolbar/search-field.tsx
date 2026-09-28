@@ -6,11 +6,12 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/src/shared/components/ui/button";
 import { Input } from "@/src/shared/components/ui/input";
 
-/**
- * DOM id of the search input. The last link in the post-delete focus chain:
- * deleting the last match in a status drops that section while the list is
- * narrowed, so there is no header to return to - and no empty state either,
- * while other statuses still show results.
+/** DOM id of the search input.
+ *
+ * The last link in the post-delete focus chain: deleting the last match in a
+ * status drops that section while the list is narrowed, so there is no header
+ * to return to - and no empty state either, while other statuses still show
+ * results.
  */
 export const tasksSearchFieldId = "tasks-search-field";
 

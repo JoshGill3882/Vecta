@@ -2,9 +2,10 @@ import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
-/**
- * Renders a task's Markdown description. Safety is the whole point of this
- * component, so the layers are deliberate and must not be loosened:
+/** Renders a task's Markdown description.
+ *
+ * Safety is the whole point of this component, so the layers are deliberate and
+ * must not be loosened:
  *
  * - No `rehype-raw`, so raw HTML in the source is never parsed into elements —
  *   an embedded `<script>` or `<img onerror=…>` stays inert text.

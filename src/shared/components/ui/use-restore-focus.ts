@@ -2,8 +2,7 @@
 
 import * as React from "react";
 
-/**
- * Returns focus to the control that opened a dialog when it closes.
+/** Returns focus to the control that opened a dialog when it closes.
  *
  * Radix's modal content hard-restores focus to its `<DialogTrigger>`, cancelling
  * FocusScope's own restore first (`@radix-ui/react-dialog` index.mjs:148-151).

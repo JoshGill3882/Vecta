@@ -2,11 +2,14 @@
 
 import { useEffect } from "react";
 
-/**
- * Browsers rasterise a favicon once and cache the bitmap against its URL, so the
- * `prefers-color-scheme` query inside `app/icon.svg` is only evaluated when that
- * raster is produced. Switching theme leaves the stale icon in the tab until a
- * hard refresh; re-pointing the link at a fresh URL forces a new one.
+/** Keeps the tab icon in step with the theme when it changes mid-session.
+ *
+ * Browsers rasterise a favicon once and cache the bitmap against its URL, so
+ * the `prefers-color-scheme` query inside `app/icon.svg` is only evaluated
+ * when that raster is produced.
+ *
+ * Switching theme leaves the stale icon in the tab until a hard refresh;
+ * re-pointing the link at a fresh URL forces a new one.
  *
  * Progressive enhancement only: without JavaScript the icon is still correct
  * for whichever theme was active when the page loaded.

@@ -13,8 +13,7 @@ import { cn } from "@/src/shared/lib/utils";
 const ITEM_CLASS =
   "hover:bg-surface-3 flex w-full items-center gap-[9px] rounded-[7px] px-2.5 py-[9px] text-left text-[13.5px] text-text-2 transition-colors outline-none hover:text-foreground focus-visible:bg-surface-3 focus-visible:text-foreground";
 
-/**
- * Category picker with the design's inline "create new" affordance.
+/** Category picker that can also create a new category inline.
  *
  * Built on Popover rather than Select: the menu holds a text input, and Radix
  * Select's typeahead treats keystrokes as jump-to-option, so an input inside it

@@ -20,8 +20,8 @@ const buttonVariants = cva(
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      // Every size carries a `pointer-coarse` bump to a 44px target. The design's
-      // sizes are drawn for a mouse; a finger needs roughly 44px to hit reliably,
+      // Every size carries a `pointer-coarse` bump to a 44px target. The base
+      // sizes suit a mouse; a finger needs roughly 44px to hit reliably,
       // and these run 28–36px. Keyed to the pointer rather than a width so a
       // narrow desktop window keeps the drawn size and a touch laptop gets the
       // bigger target. Sizes are the only place this belongs — hitting it here

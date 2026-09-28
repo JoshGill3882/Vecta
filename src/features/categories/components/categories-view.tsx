@@ -10,9 +10,9 @@ import { suggestCategoryColor } from "@/src/shared/lib/palette";
 import { CategoryEditor } from "./category-editor";
 import { CategoryRow } from "./category-row";
 
-/**
- * Categories view — the content of the `/categories` route. `page.tsx` stays
- * thin (auth + data); this owns the presentation.
+/** Categories view — the content of the `/categories` route.
+ *
+ * `page.tsx` stays thin (auth + data); this owns the presentation.
  *
  * Unlike the other views this is a Client Component: the page is one
  * interactive unit — "is the create form open" and "which row is being edited"

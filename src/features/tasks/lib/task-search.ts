@@ -31,12 +31,14 @@ export function matchesQuery(task: TaskDTO, needle: string): boolean {
 export type TaskNarrowing = {
   /** Already normalised. Empty means "no query", never "match nothing". */
   needle: string;
-  /**
-   * Selected category ids, where `null` is the Uncategorised option rather than
-   * a sentinel string: `TaskDTO.categoryId` is `string | null`, so a set holding
-   * `null` matches an uncategorised task directly and no call site has to
-   * translate. Empty means "no category filter" - the same "match everything"
-   * reading `needle` gets.
+  /** Selected category ids, where `null` is the Uncategorised option.
+   *
+   * `null` rather than a sentinel string: `TaskDTO.categoryId` is
+   * `string | null`, so a set holding `null` matches an uncategorised task
+   * directly and no call site has to translate.
+   *
+   * Empty means "no category filter" - the same "match everything" reading
+   * `needle` gets.
    */
   categoryIds: ReadonlySet<string | null>;
 };

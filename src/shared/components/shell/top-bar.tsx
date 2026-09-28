@@ -6,11 +6,10 @@ import { Button } from "@/src/shared/components/ui/button";
 
 import { AppNav, AppNavMobile } from "./nav-tabs";
 
-/**
- * Top bar for the authenticated app shell: brand + title on the left, the
- * Tasks/Categories tabs, and a logout control on the right. Rendered as a
- * Server Component — the logout is a plain <form> bound to the logout server
- * action, so it works without client-side JavaScript.
+/** The authenticated shell's top bar: brand and title, the Tasks/Categories tabs, and logout.
+ *
+ * Rendered as a Server Component — the logout is a plain <form> bound to the
+ * logout server action, so it works without client-side JavaScript.
  */
 export function TopBar() {
   return (

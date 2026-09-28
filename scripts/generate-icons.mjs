@@ -34,14 +34,14 @@ export const SVG_SIZE = 96;
 /** Corner radius of the SVG's ground tile, ~19% — a conventional app-icon curve. */
 export const SVG_RADIUS = 18;
 
-/**
- * Alpha above which a pixel counts as part of the mark for trimming purposes.
- * Deliberately low: the intent is to drop dead margin, not to crop into the glow.
+/** Alpha above which a pixel counts as part of the mark for trimming purposes.
+ *
+ * Deliberately low: the intent is to drop dead margin, not to crop into the
+ * glow.
  */
 export const TRIM_THRESHOLD = 10;
 
-/**
- * Bounding box of everything above `threshold` alpha, squared off and re-centred.
+/** Bounding box of everything above `threshold` alpha, squared off and re-centred.
  *
  * Derived rather than hardcoded so the script still frames correctly if the logo
  * is ever replaced with art of a different shape. The result is square because a
@@ -79,8 +79,7 @@ export function squareTrimBox(rgba, width, height, threshold = TRIM_THRESHOLD) {
   return { left, top, size };
 }
 
-/**
- * Assemble PNG buffers into an .ico container.
+/** Assemble PNG buffers into an .ico container.
  *
  * The format is a 6-byte ICONDIR, one 16-byte ICONDIRENTRY per image, then the
  * payloads. Entries are PNG rather than BMP, which browsers accept and which
@@ -116,9 +115,10 @@ export function buildIco(pngs, sizes) {
   return Buffer.concat([header, ...entries, ...pngs]);
 }
 
-/**
- * Read back an .ico container. Used by the icon tests, and handy for checking a
- * generated file without reaching for another tool.
+/** Read back an .ico container.
+ *
+ * Used by the icon tests, and handy for checking a generated file without
+ * reaching for another tool.
  *
  * @param {Buffer} ico
  * @returns {{ width: number, height: number, bitCount: number, png: Buffer }[]}
@@ -139,8 +139,7 @@ export function parseIco(ico) {
   });
 }
 
-/**
- * The theme-aware SVG favicon.
+/** The theme-aware SVG favicon.
  *
  * The mark is embedded as a raster rather than redrawn as vector: the bloom is a
  * raster effect that does not translate, and a favicon SVG cannot fetch external

@@ -72,6 +72,7 @@ It is also what makes the rule enforceable rather than aspirational.
 
 The summary **shares the block's opening line**.
 A folded block shows only its first physical line, so a block whose first line carries nothing but the opening delimiter folds to nothing useful, while one that opens with its summary stays readable collapsed.
+`npm run check:comments` fails on a block that opens on an empty line — see [What is checked](#what-is-checked).
 Hover shows the summary either way; folding does not.
 
 The summary is a sentence and ends with a full stop.
@@ -185,9 +186,11 @@ Give it a summary and prose; its props type carries the rest.
 ```tsx
 /** The row of controls above the task list.
  *
- * Wrapping rather than a breakpoint: the field claims the row and the controls
- * drop below it once they no longer fit, so the layout follows how many
- * controls there are rather than a guess about screen width.
+ * Two layouts, switched at the same 720px the nav tabs use. From there up, the
+ * controls sit inline beside the search field and wrap below it if they run out
+ * of room. Below it they fold into one button that opens a sheet: a phone has
+ * room for the field and one button, and every control added to a wrapping row
+ * costs another line above the list.
  */
 export function TasksToolbar({ query, onQueryChange }: TasksToolbarProps) {
   // ...
@@ -208,6 +211,9 @@ That rules out:
   "Stands in until the category control lands" is wrong the day that control lands, and nothing prompts anyone to revisit it.
 - **Anything about what the code used to be.**
   Git records that, records it accurately, and goes on recording it long after the comment has drifted.
+- **The design file as a reason.**
+  "Matching the design" or "the design's 15px" points at a document that moves on without the comment, which is then left describing a state that no longer exists.
+  Say what the design was solving instead — "15px only where a mouse is: under 16px iOS Safari zooms on focus" — which stays true whatever the design becomes.
 
 ### Rationale survives; history does not
 
@@ -250,3 +256,21 @@ A comparison is the easiest place to slip, because the same fact reads both ways
 ```
 
 Both explain the cookie. Only the first still helps a reader who never knew there was anything else, which after a while is every reader.
+
+## What is checked
+
+The rules a tool can check are checked; the rest are held by review.
+
+| Rule                                                                         | Checked by                     | Scope                                                                                                                     |
+| ---------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| A block on every named function, class, module-scope binding and type member | ESLint (`jsdoc/require-jsdoc`) | Everything ESLint lints, except the shadcn primitives in `src/shared/components/ui/`; functions and classes only in specs |
+| A doc block opens with its summary                                           | `npm run check:comments`       | `app/`, `src/`, `test/`, `scripts/`, `prisma/`                                                                            |
+| No issue or pull request numbers in comments                                 | `npm run check:comments`       | `app/`, `src/`, `test/`                                                                                                   |
+| No Acceptance Criteria labels                                                | `npm run check:ac`             | Everything outside `.github/`                                                                                             |
+
+Both `check:` scripts run in CI and in the pre-commit hook.
+Issue numbers are allowed in `scripts/` and `prisma/` because tooling legitimately links to the issues it was written for; documentation links to them for the same reason.
+
+**What no script can check** is whether a comment is true, whether a tag says anything, or whether a comment leans on the design or on history.
+"Design" and "was" are ordinary words, and a pattern strict enough to catch the misuse would flag every legitimate use.
+Those rules are the reviewer's, which is why they are written down here.

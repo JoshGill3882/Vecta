@@ -3,13 +3,14 @@ import { FileQuestion } from "lucide-react";
 
 import { Button } from "@/src/shared/components/ui/button";
 
-/**
- * Root not-found boundary. Next renders this for any unmatched URL across the
- * whole app (v13.3+), wrapped only by the root layout — so it sits outside the
- * `(app)` shell and stands alone the way the login page does, rather than under
- * the top bar. Styled to the same empty-state vocabulary as the in-app empty
- * and error states so a mistyped URL lands somewhere finished instead of on the
- * bare framework 404. Next injects `noindex` for 404s automatically.
+/** Root not-found boundary.
+ *
+ * Next renders this for any unmatched URL across the whole app (v13.3+),
+ * wrapped only by the root layout — so it sits outside the `(app)` shell and
+ * stands alone the way the login page does, rather than under the top bar.
+ * Styled to the same empty-state vocabulary as the in-app empty and error
+ * states so a mistyped URL lands somewhere finished instead of on the bare
+ * framework 404. Next injects `noindex` for 404s automatically.
  */
 export default function NotFound() {
   return (

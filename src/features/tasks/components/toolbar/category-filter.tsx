@@ -17,10 +17,11 @@ import { toggled } from "@/src/features/tasks/lib/selection";
 /** `null` is the Uncategorised option, matching how a task stores its absence. */
 type Selection = ReadonlySet<string | null>;
 
-/**
- * Narrows the task list to a set of categories. A menu of checkboxes rather than
- * a row of chips: the number of categories is unbounded, and chips would push the
- * toolbar's width around as they are picked.
+/** Narrows the task list to a set of categories.
+ *
+ * A menu of checkboxes rather than a row of chips: the number of categories is
+ * unbounded, and chips would push the toolbar's width around as they are
+ * picked.
  *
  * Selecting nothing means no filter, so the menu always offers Uncategorised even
  * with no categories defined - a control whose only state hides the list would be

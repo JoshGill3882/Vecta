@@ -15,10 +15,10 @@ import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 import { DeleteTaskDialog } from "./delete-task-dialog";
 
-/**
- * The task card's ⋮ overflow menu: edit the task, or delete it behind a
- * confirmation step. Delete opens the confirm dialog rather than acting
- * directly, so no task leaves without passing through it.
+/** The task card's ⋮ overflow menu: edit the task, or delete it behind a confirmation step.
+ *
+ * Delete opens the confirm dialog rather than acting directly, so no task
+ * leaves without passing through it.
  */
 export function TaskCardMenu({
   task,

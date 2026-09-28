@@ -1,9 +1,10 @@
 import { cn } from "@/src/shared/lib/utils";
 
-/**
- * A single shimmering placeholder block. The shadcn `skeleton` primitive,
- * retinted to the app's own `surface-2` token so it reads correctly on the dark
- * theme without pulling in the light-theme `accent` default.
+/** A single shimmering placeholder block.
+ *
+ * The shadcn `skeleton` primitive, retinted to the app's own `surface-2` token
+ * so it reads correctly on the dark theme without pulling in the light-theme
+ * `accent` default.
  *
  * Deliberately just a pulsing box: the issue calls for skeletons over heavy
  * animation, and `animate-pulse` costs nothing but an opacity keyframe.
