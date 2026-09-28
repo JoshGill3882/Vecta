@@ -50,27 +50,30 @@ export function dueMoment(dueAt: string): string {
 
 /** How a due date reads on screen. */
 export interface DueMeta {
-  /** Within the next seven days, further out, or already passed. */
-  state: "soon" | "future" | "past";
-  /** The pill's short text, such as "Due tomorrow · 17:30". */
+  /** `overdue` and `today` are the two states that ask for action.
+   * `soon` and `future` differ only in wording and one step of grey - they are
+   * phrasing, not a near-due warning. `done` is a closed task's date, worded in
+   * the past. */
+  state: "overdue" | "today" | "soon" | "future" | "done";
+  /** The pill's short text, such as "2 days overdue" or "Due tomorrow · 17:30". */
   label: string;
-  /** A clock when a time matters, a calendar otherwise. */
-  icon: "clock" | "calendar";
-  /** The whole date, such as "Friday 9 October 2026 at 17:30". */
+  /** An alert when overdue, a clock when a time matters, a calendar otherwise. */
+  icon: "alert" | "clock" | "calendar";
+  /** The whole date, such as "Friday, 9 October 2026 at 17:30". */
   full: string;
 }
 
 /** Describes a task's due date for display.
  *
  * The one place the app decides what a due date means relative to today. The
- * card reads it; overdue marking and the due-date filter extend it rather than
- * working dates out for themselves, so none of them can disagree with the card.
+ * card reads it, and the due-date filter asks it whether a task is overdue
+ * rather than working that out again, so the two cannot disagree.
  *
- * @param task The task; only its due date is read.
+ * @param task The task; its due date and status are read.
  * @param now The moment to measure against, taken once per render by the caller.
  * @returns The description, or null when the task has no due date.
  */
-export function dueMeta(task: Pick<TaskDTO, "dueAt">, now: Date): DueMeta | null {
+export function dueMeta(task: Pick<TaskDTO, "dueAt" | "status">, now: Date): DueMeta | null {
   if (!task.dueAt) return null;
 
   // No timezone suffix, so this is read as local time: the 15th stays the 15th.
@@ -82,6 +85,7 @@ export function dueMeta(task: Pick<TaskDTO, "dueAt">, now: Date): DueMeta | null
     : null;
   const suffix = time ? ` · ${time}` : "";
   const icon = time ? "clock" : "calendar";
+  const short = at.toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
   const full =
     at.toLocaleDateString(LOCALE, {
       weekday: "long",
@@ -90,13 +94,25 @@ export function dueMeta(task: Pick<TaskDTO, "dueAt">, now: Date): DueMeta | null
       year: "numeric",
     }) + (time ? ` at ${time}` : "");
 
-  if (days === 0) return { state: "soon", label: `Due today${suffix}`, icon: "clock", full };
+  // A finished task is never chased for being late: its date is history, so it
+  // is worded in the past rather than raised as a problem.
+  if (task.status === "closed") {
+    return { state: "done", label: `Was due ${short}`, icon: "calendar", full };
+  }
+
+  // Passed means the due moment has gone - for a date-only due date, the end of
+  // its day - so a task due today with no time is never overdue during today.
+  if (at.getTime() < now.getTime()) {
+    const label =
+      days === 0 ? `Overdue${suffix}` : days === -1 ? "1 day overdue" : `${-days} days overdue`;
+    return { state: "overdue", label, icon: "alert", full };
+  }
+
+  if (days === 0) return { state: "today", label: `Due today${suffix}`, icon: "clock", full };
   if (days === 1) return { state: "soon", label: `Due tomorrow${suffix}`, icon: "clock", full };
   if (days > 1 && days < 7) {
     const weekday = at.toLocaleDateString(LOCALE, { weekday: "short" });
     return { state: "soon", label: `Due ${weekday}${suffix}`, icon, full };
   }
-
-  const short = at.toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
-  return { state: days < 0 ? "past" : "future", label: `Due ${short}${suffix}`, icon, full };
+  return { state: "future", label: `Due ${short}${suffix}`, icon, full };
 }
