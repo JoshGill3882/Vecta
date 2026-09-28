@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { commentsIn, issueRefsIn } from "../../scripts/check-comments.mjs";
+import { blankOpeningsIn, commentsIn, issueRefsIn } from "../../scripts/check-comments.mjs";
 
 describe("issueRefsIn", () => {
   it("flags a reference in a line comment", () => {
@@ -59,5 +59,49 @@ describe("commentsIn", () => {
     const source = ["const a = `one", "two", "three`;", "// here"].join("\n");
     const [found] = commentsIn(source);
     expect(found.line).toBe(4);
+  });
+});
+
+describe("blankOpeningsIn", () => {
+  /** Joins lines into a source file, to keep each case readable.
+   *
+   * @param lines The file, one entry per line.
+   * @returns The source text.
+   */
+  function file(...lines: string[]) {
+    return lines.join("\n") + "\n";
+  }
+
+  it("passes a block that opens with its summary", () => {
+    expect(
+      blankOpeningsIn(file("/** A summary.", " *", " * More.", " */", "const a = 1;"))
+    ).toEqual([]);
+  });
+
+  it("flags a block whose opening line is empty, on the line it opens", () => {
+    const source = file("const a = 1;", "", "/**", " * A summary.", " */", "const b = 2;");
+    expect(blankOpeningsIn(source)).toEqual([{ line: 3 }]);
+  });
+
+  it("treats trailing spaces after the delimiter as empty", () => {
+    expect(blankOpeningsIn(file("/**   ", " * A summary.", " */"))).toHaveLength(1);
+  });
+
+  it("passes a one-line block, which reads in full folded or not", () => {
+    expect(blankOpeningsIn(file("/** A summary. */", "const a = 1;"))).toEqual([]);
+  });
+
+  // The rule is about doc blocks; a plain block comment has no summary to fold to.
+  it("leaves a plain block comment alone", () => {
+    expect(blankOpeningsIn(file("/*", " * Licence text.", " */"))).toEqual([]);
+  });
+
+  it("finds an indented block, such as one on an interface field", () => {
+    const source = file("interface A {", "  /**", "   * A field.", "   */", "  b: string;", "}");
+    expect(blankOpeningsIn(source)).toEqual([{ line: 2 }]);
+  });
+
+  it("ignores a delimiter inside a string", () => {
+    expect(blankOpeningsIn(file('const s = "/**\\n * not a comment";'))).toEqual([]);
   });
 });
