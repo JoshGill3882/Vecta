@@ -70,7 +70,7 @@ const BARE_DAY = /^(?<day>\d{1,2})$/;
  * @param date The date; its time of day is ignored.
  * @returns The date as `YYYY-MM-DD`
  */
-function dayKeyOf(date: Date): string {
+export function dayKeyOf(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
@@ -172,4 +172,51 @@ export function parseDateInput(raw: string, today: Date): DateInputResult {
   if (groups) return dateResult(today.getFullYear(), today.getMonth() + 1, Number(groups.day));
 
   return INVALID;
+}
+
+/** Turns a `YYYY-MM-DD` key back into a local date, at midnight.
+ *
+ * @param dayKey The date as `YYYY-MM-DD`.
+ * @returns The date in local time, so the 24th stays the 24th in every timezone.
+ */
+export function dateOfDayKey(dayKey: string): Date {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** Writes an entered date the way the field shows it, such as `24 Sept 2026`.
+ *
+ * Readable rather than ISO, and in a form `parseDateInput` reads back, so
+ * leaving the shown text as it is keeps the same date.
+ *
+ * @param dayKey The date as `YYYY-MM-DD`.
+ * @returns The date as day, short month and year, in British English.
+ */
+export function formatDateInput(dayKey: string): string {
+  return dateOfDayKey(dayKey).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** A date offered as a one-tap choice beside the field. */
+export interface QuickDate {
+  /** What the button says. */
+  label: string;
+  /** The date it sets, as `YYYY-MM-DD`. */
+  dayKey: string;
+}
+
+/** The one-tap dates offered beside the field: today, tomorrow and a week out.
+ *
+ * @param today The day the choices are measured from.
+ * @returns The choices, nearest first.
+ */
+export function quickDates(today: Date): QuickDate[] {
+  return [
+    { label: "Today", dayKey: dayKeyOf(today) },
+    { label: "Tomorrow", dayKey: dayKeyOf(addDays(today, 1)) },
+    { label: "+1 week", dayKey: dayKeyOf(addDays(today, 7)) },
+  ];
 }
