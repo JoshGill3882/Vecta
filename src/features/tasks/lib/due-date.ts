@@ -116,3 +116,35 @@ export function dueMeta(task: Pick<TaskDTO, "dueAt" | "status">, now: Date): Due
   }
   return { state: "future", label: `Due ${short}${suffix}`, icon, full };
 }
+
+/** A stored due date taken apart into the two fields the form edits. */
+export interface DueParts {
+  /** The date as `YYYY-MM-DD`, or empty when there is no due date. */
+  date: string;
+  /** The time as `HH:MM`, or empty when none is set. */
+  time: string;
+}
+
+/** Takes a stored due date apart into its date and its time.
+ *
+ * @param dueAt The stored value, or null when the task has no due date.
+ * @returns The date and time, each empty where absent.
+ */
+export function splitDueAt(dueAt: string | null | undefined): DueParts {
+  if (!dueAt) return { date: "", time: "" };
+  return { date: dueAt.slice(0, 10), time: dueAt.slice(11, 16) };
+}
+
+/** Puts a date and a time back together as a stored due date.
+ *
+ * A time with no date is not a storable state, so it is dropped along with the
+ * date rather than kept.
+ *
+ * @param date The date as `YYYY-MM-DD`, or empty for none.
+ * @param time The time as `HH:MM`, or empty for none.
+ * @returns The stored value, or null when there is no date.
+ */
+export function joinDueAt(date: string, time: string): string | null {
+  if (!date) return null;
+  return time ? `${date}T${time}` : date;
+}
