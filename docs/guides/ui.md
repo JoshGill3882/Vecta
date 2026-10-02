@@ -81,6 +81,20 @@ It maps the design's colours onto shadcn's semantic tokens (`--background`, `--p
 - The `:root` block holds shadcn's light-mode baseline;
   it's dormant (nothing toggles it) but kept so a light theme could be added later without re-deriving the token set.
 
+## Touch and mouse
+
+What changes between a phone and a desktop is usually the **pointer**, not the width of the screen, so that is what the app keys off.
+A narrow desktop window still has a mouse and a keyboard; a laptop with a touch screen has room to spare and a finger.
+
+- **When only the styling differs, use the `pointer-coarse:` variant.**
+  Every `Button` size above `xs` grows to a 44px target this way (`button.tsx`), and the task form hides its keyboard-shortcut hints with `pointer-coarse:hidden`, since a phone has no esc and no ⌘.
+- **When the markup differs, use `usePointerCoarse`** from `src/shared/hooks/use-pointer-coarse.ts`.
+  The task form's due date is the example: a typed field, a calendar and a 24-hour time field for a mouse and keyboard, and the device's own date and time pickers for touch (`due-date-field.tsx`).
+  Both versions write the same stored value, so nothing outside the field knows which one was used.
+- **The hook answers "mouse" on the server**, which has no pointer to ask about.
+  That never shows inside a dialog, whose content only mounts in the browser once it opens.
+  On markup the server renders, a touch screen would see the mouse version until hydration swaps it, so prefer the variant there.
+
 ## Toasts
 
 `<Toaster/>` is mounted once in the `(app)` layout.

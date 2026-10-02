@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 
@@ -13,6 +13,7 @@ import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 
 import { CategorySelect } from "@/src/features/tasks/components/dialog/category-select";
+import { DueDateField } from "@/src/features/tasks/components/dialog/due-date-field";
 import { StatusPicker } from "@/src/features/tasks/components/dialog/status-picker";
 
 /** The form's values are the create schema's, in both modes.
@@ -56,6 +57,7 @@ export function TaskForm({
       description: task?.description ?? "",
       status: task?.status ?? "open",
       categoryId: task?.categoryId ?? null,
+      dueAt: task?.dueAt ?? null,
     },
   });
 
@@ -63,6 +65,10 @@ export function TaskForm({
     control,
     formState: { errors, isDirty, isSubmitting },
   } = form;
+
+  // The due-date preview shows the pill as the card will, and a closed task's
+  // pill reads differently, so it follows the status as it is being edited.
+  const status = useWatch({ control, name: "status" });
 
   // Only the edit variant gates on dirty: saving an unchanged task does nothing.
   // Create leaves the button live so an empty title answers with an inline error
@@ -170,6 +176,28 @@ export function TaskForm({
             />
             {errors.categoryId && (
               <p className="text-destructive mt-[7px] text-[12.5px]">{errors.categoryId.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="task-due-date" className={LABEL_CLASS}>
+              Due date <span className="text-text-faint font-normal">· optional</span>
+            </Label>
+            <Controller
+              control={control}
+              name="dueAt"
+              render={({ field }) => (
+                <DueDateField
+                  id="task-due-date"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  status={status}
+                  disabled={isSubmitting}
+                />
+              )}
+            />
+            {errors.dueAt && (
+              <p className="text-destructive mt-[7px] text-[12.5px]">{errors.dueAt.message}</p>
             )}
           </div>
         </div>

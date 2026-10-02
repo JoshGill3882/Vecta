@@ -8,7 +8,7 @@ This guide covers the project-specific patterns — which mostly come down to mo
 - `vitest.config.ts` — three projects (`unit`, `integration`, `component`) + shared module aliases
 - `test/` — mirrors the source tree (`test/shared`, `test/features`, `test/scripts`)
 - `test/integration/` — real-database integration project (`setup.ts` + `*.int.test.ts`)
-- `test/component/setup.ts` — Testing Library cleanup between component specs
+- `test/component/setup.ts` — Testing Library cleanup between component specs, and a default `matchMedia`
 - `test/stubs/empty.js` — no-op stand-in for `server-only`
 
 Run with:
@@ -118,6 +118,9 @@ It covers what the other two cannot: whether the right branch renders, what a co
   There is no overlap and nothing to configure per file — a `.ts` spec never pays for jsdom, and a `.tsx` spec always gets it.
 - **Cleanup is explicit.** Testing Library only unmounts between tests automatically when Vitest runs with globals enabled, and this suite imports its helpers explicitly instead.
   `test/component/setup.ts` calls `cleanup` in an `afterEach`; without it the previous render stays in the document and the next query finds two of everything.
+- **`matchMedia` answers "no match".** jsdom has no `matchMedia`, which every real browser does, so a component that asks about the pointer or the screen would throw.
+  The setup file supplies one that matches nothing — a mouse on a wide screen — so components render their default version.
+  A spec about another answer stubs its own with `vi.stubGlobal("matchMedia", …)` and calls `vi.unstubAllGlobals()` after each test, which puts the default back; `test/features/tasks/due-date-field.test.tsx` does this for touch.
 
 ### Mocking `next/navigation`
 

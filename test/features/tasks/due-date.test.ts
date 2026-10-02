@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect } from "vitest";
 
 import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
-import { dueMeta, dueMoment } from "@/src/features/tasks/lib/due-date";
+import { dueMeta, dueMoment, joinDueAt, splitDueAt } from "@/src/features/tasks/lib/due-date";
 
 // Sunday 27 September 2026, 10:00 local. Every "today" below is measured from here,
 // so the tests mean the same thing whatever day they run on.
@@ -31,6 +31,47 @@ describe("dueMoment", () => {
   it("orders a date-only due date after every time on the same day", () => {
     expect(dueMoment("2026-09-27") > dueMoment("2026-09-27T23:59")).toBe(true);
     expect(dueMoment("2026-09-27") < dueMoment("2026-09-28T00:00")).toBe(true);
+  });
+});
+
+describe("splitDueAt", () => {
+  it("gives two empty parts when there is no due date", () => {
+    expect(splitDueAt(null)).toEqual({ date: "", time: "" });
+    expect(splitDueAt(undefined)).toEqual({ date: "", time: "" });
+  });
+
+  it("gives the date and no time for a date-only due date", () => {
+    expect(splitDueAt("2026-09-27")).toEqual({ date: "2026-09-27", time: "" });
+  });
+
+  it("gives the date and the time when one is set", () => {
+    expect(splitDueAt("2026-09-27T17:30")).toEqual({ date: "2026-09-27", time: "17:30" });
+  });
+});
+
+describe("joinDueAt", () => {
+  it("stores a date alone when there is no time", () => {
+    expect(joinDueAt("2026-09-27", "")).toBe("2026-09-27");
+  });
+
+  it("stores a date and a time together", () => {
+    expect(joinDueAt("2026-09-27", "17:30")).toBe("2026-09-27T17:30");
+  });
+
+  it("stores nothing when there is no date", () => {
+    expect(joinDueAt("", "")).toBeNull();
+  });
+
+  // A time with no date is not a storable state, so it goes with the date.
+  it("drops a time that has no date", () => {
+    expect(joinDueAt("", "17:30")).toBeNull();
+  });
+
+  it("puts back together whatever it took apart", () => {
+    for (const dueAt of ["2026-09-27", "2026-09-27T00:00", "2026-09-27T23:59"]) {
+      const { date, time } = splitDueAt(dueAt);
+      expect(joinDueAt(date, time)).toBe(dueAt);
+    }
   });
 });
 
