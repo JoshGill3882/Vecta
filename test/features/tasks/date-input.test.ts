@@ -1,6 +1,12 @@
 import { afterEach, describe, it, expect } from "vitest";
 
-import { parseDateInput } from "@/src/features/tasks/lib/date-input";
+import {
+  dateOfDayKey,
+  dayKeyOf,
+  formatDateInput,
+  parseDateInput,
+  quickDates,
+} from "@/src/features/tasks/lib/date-input";
 
 // Sunday 27 September 2026, 10:00 local. Every relative date below is measured from
 // here, so the tests mean the same thing whatever day they run on.
@@ -205,5 +211,53 @@ describe("parseDateInput across timezones", () => {
 
     expect(parseDateInput("tomorrow", saturday)).toEqual(valid("2026-10-25"));
     expect(parseDateInput("+2", saturday)).toEqual(valid("2026-10-26"));
+  });
+});
+
+describe("dayKeyOf and dateOfDayKey", () => {
+  it("turns a key into local midnight on that day", () => {
+    const date = dateOfDayKey("2026-09-24");
+    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([
+      2026, 8, 24, 0,
+    ]);
+  });
+
+  it("round-trips a key", () => {
+    for (const dayKey of ["2026-01-01", "2026-09-24", "2028-02-29", "2026-12-31"]) {
+      expect(dayKeyOf(dateOfDayKey(dayKey))).toBe(dayKey);
+    }
+  });
+});
+
+describe("formatDateInput", () => {
+  it("writes day, short month and year", () => {
+    expect(formatDateInput("2026-10-09")).toBe("9 Oct 2026");
+  });
+
+  // Whatever the field shows must read back as the same date, or leaving the
+  // shown text untouched would change it. en-GB writes September as "Sept".
+  it.each(["2026-01-05", "2026-05-31", "2026-09-24", "2026-12-25", "2028-02-29"])(
+    "reads %s back as itself",
+    (dayKey) => {
+      expect(parseDateInput(formatDateInput(dayKey), TODAY)).toEqual(valid(dayKey));
+    }
+  );
+});
+
+describe("quickDates", () => {
+  it("offers today, tomorrow and a week out", () => {
+    expect(quickDates(TODAY)).toEqual([
+      { label: "Today", dayKey: "2026-09-27" },
+      { label: "Tomorrow", dayKey: "2026-09-28" },
+      { label: "+1 week", dayKey: "2026-10-04" },
+    ]);
+  });
+
+  it("rolls over the end of the year", () => {
+    expect(quickDates(new Date(2026, 11, 31, 9)).map((quick) => quick.dayKey)).toEqual([
+      "2026-12-31",
+      "2027-01-01",
+      "2027-01-07",
+    ]);
   });
 });
