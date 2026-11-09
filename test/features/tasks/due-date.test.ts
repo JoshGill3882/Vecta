@@ -189,7 +189,10 @@ describe("dueMeta", () => {
 describe("dueMeta across timezones", () => {
   const original = process.env.TZ;
   afterEach(() => {
-    process.env.TZ = original;
+    // Assigning undefined would store the string "undefined", which Node reads
+    // as UTC, leaving every later test in the file in the wrong zone.
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
   });
 
   // The bug a DateTime column causes: a date read as UTC midnight shows as the day
