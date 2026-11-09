@@ -178,6 +178,14 @@
   html {
     @apply font-sans;
   }
+  /* Preflight leaves buttons on the browser's default arrow cursor.
+     Restoring the pointer here covers every button, shadcn's and the
+     hand-rolled ones alike, so no call site needs `cursor-pointer`.
+     Disabled buttons keep the arrow, since clicking them does nothing. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /*
