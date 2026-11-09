@@ -35,6 +35,15 @@ Please include:
 Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Feature request** template.
 Check the [roadmap](./ROADMAP.md) first — your idea may already be planned, or already ruled out with a reason.
 
+## Raising a decision
+
+Some questions have to be answered before anything can be built — which of two approaches to take, or whether something belongs in Vecta at all.
+Those go in a **Decision** issue rather than a feature request, so the work that follows starts from a settled answer instead of an open question.
+The template asks for the question, why it matters, the options, and a recommendation.
+
+The answer is posted as a comment on the issue, saying what was decided and why the other options lost.
+A pull request then records it in whichever document raised the question — usually [`ARCHITECTURE.md`](./ARCHITECTURE.md) or [`ROADMAP.md`](./ROADMAP.md) — and closes the issue.
+
 ---
 
 ## Local development setup
