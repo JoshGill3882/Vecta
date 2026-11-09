@@ -1,13 +1,22 @@
 import { describe, it, expect } from "vitest";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
+import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import {
   normaliseQuery,
   matchesQuery,
   matchesCategory,
+  matchesDue,
   isNarrowing,
   narrowTasks,
   findMatches,
 } from "@/src/features/tasks/lib/task-search";
+
+// Sunday 27 September 2026, 10:00 local. The due-date options are measured from
+// here, so the cases mean the same thing whatever day they run on.
+const NOW = new Date(2026, 8, 27, 10, 0);
+
+const noCategories: ReadonlySet<string | null> = new Set();
+const noDue: ReadonlySet<DueBucket> = new Set();
 
 // Only the fields the search reads carry meaning here; the rest are filler so
 // the fixtures are real TaskDTOs rather than partials cast into place.
@@ -111,90 +120,176 @@ describe("matchesCategory", () => {
   });
 });
 
+describe("matchesDue", () => {
+  const late = task({ id: "late", dueAt: "2026-09-22" });
+  const undated = task({ id: "undated" });
+  const nextMonth = task({ id: "next-month", dueAt: "2026-10-27" });
+
+  it("matches everything when nothing is selected", () => {
+    // The same "no filter" reading as the other two: a task due next month,
+    // which no option reaches, is never unreachable while the filter is off.
+    for (const subject of [late, undated, nextMonth]) {
+      expect(matchesDue(subject, noDue, NOW)).toBe(true);
+    }
+  });
+
+  it("matches a task in any selected option, not only in all of them", () => {
+    // Overdue and No due date share no task, so an intersection would be empty.
+    const either = new Set<DueBucket>(["overdue", "none"]);
+    expect(matchesDue(late, either, NOW)).toBe(true);
+    expect(matchesDue(undated, either, NOW)).toBe(true);
+    expect(matchesDue(nextMonth, either, NOW)).toBe(false);
+  });
+
+  it("drops a task that is in none of the selected options", () => {
+    expect(matchesDue(nextMonth, new Set<DueBucket>(["week"]), NOW)).toBe(false);
+  });
+});
+
 describe("isNarrowing", () => {
-  it("is false with no query and no categories", () => {
-    expect(isNarrowing({ needle: "", categoryIds: new Set() })).toBe(false);
+  it("is false with no query, no categories and no due-date option", () => {
+    expect(isNarrowing({ needle: "", categoryIds: noCategories, dueBuckets: noDue })).toBe(false);
   });
 
   it("is true with a query alone", () => {
-    expect(isNarrowing({ needle: "milk", categoryIds: new Set() })).toBe(true);
+    expect(isNarrowing({ needle: "milk", categoryIds: noCategories, dueBuckets: noDue })).toBe(
+      true
+    );
   });
 
   it("is true with a category alone", () => {
     // The rule this drives is what stops a filtered-away section rendering an
     // empty shell, so a filter with no query has to register as narrowing.
-    expect(isNarrowing({ needle: "", categoryIds: new Set<string | null>(["home"]) })).toBe(true);
+    expect(
+      isNarrowing({ needle: "", categoryIds: new Set<string | null>(["home"]), dueBuckets: noDue })
+    ).toBe(true);
   });
 
   it("is true when Uncategorised alone is selected", () => {
     // `null` is a selection like any other - a set holding only it is not empty.
-    expect(isNarrowing({ needle: "", categoryIds: new Set<string | null>([null]) })).toBe(true);
+    expect(
+      isNarrowing({ needle: "", categoryIds: new Set<string | null>([null]), dueBuckets: noDue })
+    ).toBe(true);
   });
 
-  it("is true with both", () => {
-    expect(isNarrowing({ needle: "milk", categoryIds: new Set<string | null>(["home"]) })).toBe(
-      true
-    );
+  it("is true with a due-date option alone", () => {
+    // So the sections open, empty ones drop and the header says "n of m" with
+    // only the due-date filter in force, exactly as for the other two.
+    expect(
+      isNarrowing({
+        needle: "",
+        categoryIds: noCategories,
+        dueBuckets: new Set<DueBucket>(["overdue"]),
+      })
+    ).toBe(true);
+  });
+
+  it("is true with both a query and a category", () => {
+    expect(
+      isNarrowing({
+        needle: "milk",
+        categoryIds: new Set<string | null>(["home"]),
+        dueBuckets: noDue,
+      })
+    ).toBe(true);
   });
 });
 
 describe("narrowTasks", () => {
   const tasks = [
-    task({ id: "a", title: "Renew the TLS certificate", categoryId: "infra" }),
+    task({ id: "a", title: "Renew the TLS certificate", categoryId: "infra", dueAt: "2026-09-22" }),
     task({ id: "b", title: "Book flights", description: "Certificate of travel needed" }),
-    task({ id: "c", title: "Buy milk", categoryId: "home" }),
+    task({ id: "c", title: "Buy milk", categoryId: "home", dueAt: "2026-09-27" }),
   ];
-  const none: ReadonlySet<string | null> = new Set();
 
   it("keeps only the tasks that match, in their original order", () => {
     expect(
-      narrowTasks(tasks, { needle: "certificate", categoryIds: none }).map((t) => t.id)
+      narrowTasks(
+        tasks,
+        { needle: "certificate", categoryIds: noCategories, dueBuckets: noDue },
+        NOW
+      ).map((t) => t.id)
     ).toEqual(["a", "b"]);
   });
 
   it("returns the input untouched when nothing is narrowing", () => {
     // Identity, not just equality: the no-narrowing path must not pay for a copy
     // on every keystroke that clears the field.
-    expect(narrowTasks(tasks, { needle: "", categoryIds: none })).toBe(tasks);
+    expect(
+      narrowTasks(tasks, { needle: "", categoryIds: noCategories, dueBuckets: noDue }, NOW)
+    ).toBe(tasks);
   });
 
   it("returns nothing when nothing matches", () => {
-    expect(narrowTasks(tasks, { needle: "zzz", categoryIds: none })).toEqual([]);
+    expect(
+      narrowTasks(tasks, { needle: "zzz", categoryIds: noCategories, dueBuckets: noDue }, NOW)
+    ).toEqual([]);
   });
 
   it("narrows by category alone", () => {
-    const byCategory = narrowTasks(tasks, {
-      needle: "",
-      categoryIds: new Set<string | null>(["home"]),
-    });
+    const byCategory = narrowTasks(
+      tasks,
+      { needle: "", categoryIds: new Set<string | null>(["home"]), dueBuckets: noDue },
+      NOW
+    );
     expect(byCategory.map((t) => t.id)).toEqual(["c"]);
+  });
+
+  it("narrows by due-date option alone", () => {
+    const dueToday = narrowTasks(
+      tasks,
+      { needle: "", categoryIds: noCategories, dueBuckets: new Set<DueBucket>(["today"]) },
+      NOW
+    );
+    expect(dueToday.map((t) => t.id)).toEqual(["c"]);
   });
 
   it("requires both criteria when both are active", () => {
     // Composition is an AND, not an OR: "certificate" matches a and b, "infra"
     // matches only a, so only a survives both.
-    const both = narrowTasks(tasks, {
-      needle: "certificate",
-      categoryIds: new Set<string | null>(["infra"]),
-    });
+    const both = narrowTasks(
+      tasks,
+      { needle: "certificate", categoryIds: new Set<string | null>(["infra"]), dueBuckets: noDue },
+      NOW
+    );
     expect(both.map((t) => t.id)).toEqual(["a"]);
   });
 
+  it("requires all three criteria when all three are active", () => {
+    // "certificate" matches a and b, "infra" only a, and Overdue only a; adding
+    // No due date to the due options reaches b, which the category still drops.
+    const all = narrowTasks(
+      tasks,
+      {
+        needle: "certificate",
+        categoryIds: new Set<string | null>(["infra"]),
+        dueBuckets: new Set<DueBucket>(["overdue", "none"]),
+      },
+      NOW
+    );
+    expect(all.map((t) => t.id)).toEqual(["a"]);
+  });
+
   it("can return nothing when each criterion matches but no task matches both", () => {
-    const both = narrowTasks(tasks, {
-      needle: "milk",
-      categoryIds: new Set<string | null>(["infra"]),
-    });
+    const both = narrowTasks(
+      tasks,
+      { needle: "milk", categoryIds: new Set<string | null>(["infra"]), dueBuckets: noDue },
+      NOW
+    );
     expect(both).toEqual([]);
   });
 
   it("reaches uncategorised tasks", () => {
-    const loose = narrowTasks(tasks, { needle: "", categoryIds: new Set<string | null>([null]) });
+    const loose = narrowTasks(
+      tasks,
+      { needle: "", categoryIds: new Set<string | null>([null]), dueBuckets: noDue },
+      NOW
+    );
     expect(loose.map((t) => t.id)).toEqual(["b"]);
   });
 
   it("leaves the input array untouched", () => {
-    narrowTasks(tasks, { needle: "milk", categoryIds: none });
+    narrowTasks(tasks, { needle: "milk", categoryIds: noCategories, dueBuckets: noDue }, NOW);
     expect(tasks.map((t) => t.id)).toEqual(["a", "b", "c"]);
   });
 });
