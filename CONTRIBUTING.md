@@ -44,6 +44,14 @@ The template asks for the question, why it matters, the options, and a recommend
 The answer is posted as a comment on the issue, saying what was decided and why the other options lost.
 A pull request then records it in whichever document raised the question — usually [`ARCHITECTURE.md`](./ARCHITECTURE.md) or [`ROADMAP.md`](./ROADMAP.md) — and closes the issue.
 
+## Once an issue is open
+
+**An issue's body is not rewritten after it is created — the only edit it gets is ticking its boxes.**
+Anything learned later goes in a comment: a change of plan, the answer to a question, or the reason a box will stay unticked.
+
+The body is what the work was agreed against.
+A body edited after the fact cannot be told apart from one that always said that, and the original wording — yours, if you opened the issue — is worth keeping as you wrote it.
+
 ---
 
 ## Local development setup
