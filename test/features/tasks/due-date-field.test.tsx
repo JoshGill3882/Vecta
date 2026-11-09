@@ -312,7 +312,19 @@ describe("DueDateField on touch", () => {
 });
 
 describe("DueDateField's preview line", () => {
-  beforeEach(() => stubPointer(false));
+  // The preview reads the clock, so a fixed due date reads as overdue once the
+  // real date passes it. Pinning a week before keeps the pill on its plain
+  // "Due 9 Oct" wording, clear of "today", "tomorrow" and "overdue". Only Date
+  // is faked: the field's own timers keep running.
+  beforeEach(() => {
+    stubPointer(false);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 2, 12, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("says there is no due date when there is none", () => {
     render(<Harness />);
