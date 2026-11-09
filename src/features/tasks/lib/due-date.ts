@@ -48,6 +48,21 @@ export function dueMoment(dueAt: string): string {
   return dueAt.includes("T") ? dueAt : `${dueAt}T23:59:59`;
 }
 
+/** Whether a task's due moment has passed while it is still open.
+ *
+ * The card's overdue state and the due-date filter's Overdue option both ask
+ * this, so a task marked overdue on its card is always one the filter finds.
+ *
+ * @param task The task; its due date and status are read.
+ * @param now The moment to measure against.
+ * @returns True when the task is open and its due moment is before `now`.
+ */
+export function isOverdue(task: Pick<TaskDTO, "dueAt" | "status">, now: Date): boolean {
+  if (!task.dueAt || task.status === "closed") return false;
+  // No timezone suffix, so this is read as local time.
+  return new Date(dueMoment(task.dueAt)).getTime() < now.getTime();
+}
+
 /** How a due date reads on screen. */
 export interface DueMeta {
   /** `overdue` and `today` are the two states that ask for action.
@@ -65,9 +80,9 @@ export interface DueMeta {
 
 /** Describes a task's due date for display.
  *
- * The one place the app decides what a due date means relative to today. The
- * card reads it, and the due-date filter asks it whether a task is overdue
- * rather than working that out again, so the two cannot disagree.
+ * The one place the app decides how a due date reads relative to today. Its
+ * overdue state comes from `isOverdue`, which the due-date filter asks too, so
+ * the card and the filter cannot disagree about which tasks are late.
  *
  * @param task The task; its due date and status are read.
  * @param now The moment to measure against, taken once per render by the caller.
@@ -102,7 +117,7 @@ export function dueMeta(task: Pick<TaskDTO, "dueAt" | "status">, now: Date): Due
 
   // Passed means the due moment has gone - for a date-only due date, the end of
   // its day - so a task due today with no time is never overdue during today.
-  if (at.getTime() < now.getTime()) {
+  if (isOverdue(task, now)) {
     const label =
       days === 0 ? `Overdue${suffix}` : days === -1 ? "1 day overdue" : `${-days} days overdue`;
     return { state: "overdue", label, icon: "alert", full };
@@ -115,6 +130,42 @@ export function dueMeta(task: Pick<TaskDTO, "dueAt" | "status">, now: Date): Due
     return { state: "soon", label: `Due ${weekday}${suffix}`, icon, full };
   }
   return { state: "future", label: `Due ${short}${suffix}`, icon, full };
+}
+
+/** The due-date filter's options, in the order the filter lists them. */
+export const DUE_BUCKETS = ["overdue", "today", "week", "none"] as const;
+
+/** One of the due-date filter's options. */
+export type DueBucket = (typeof DUE_BUCKETS)[number];
+
+/** How far ahead "Next 7 days" reaches, counting today as day 0. Seven rather
+ * than six, so a task given the form's "+1 week" quick date falls inside it. */
+const WEEK_AHEAD_DAYS = 7;
+
+/** Whether a task falls in one of the due-date filter's options.
+ *
+ * The options overlap and leave gaps on purpose: a task due earlier today is
+ * both overdue and due today, and one due next month is in none of them. A
+ * closed task is only ever in "No due date", since the rest ask what still
+ * needs doing.
+ *
+ * @param task The task; its due date and status are read.
+ * @param bucket The option to test.
+ * @param now The moment "today" is measured from, taken once by the caller.
+ * @returns Whether the task belongs in it.
+ */
+export function inDueBucket(
+  task: Pick<TaskDTO, "dueAt" | "status">,
+  bucket: DueBucket,
+  now: Date
+): boolean {
+  if (bucket === "none") return !task.dueAt;
+  if (!task.dueAt || task.status === "closed") return false;
+  if (bucket === "overdue") return isOverdue(task, now);
+
+  const days = daysFromToday(task.dueAt.slice(0, 10), now);
+  if (bucket === "today") return days === 0;
+  return days >= 0 && days <= WEEK_AHEAD_DAYS && !isOverdue(task, now);
 }
 
 /** A stored due date taken apart into the two fields the form edits. */

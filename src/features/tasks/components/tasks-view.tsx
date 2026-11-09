@@ -89,17 +89,21 @@ export function TasksView({
 
   const { value: sort, set: setSort } = useTaskSort(initialSort);
 
-  // Bucket once per data change rather than filtering the list once per section,
-  // then put each bucket in the chosen order.
-  const { byStatus, matchCount } = useMemo(() => {
-    const matched = narrowTasks(tasks, narrowing.narrowing);
-    const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
-    for (const task of matched) buckets.get(task.status)?.push(task);
-    return {
-      byStatus: new Map([...buckets].map(([status, bucket]) => [status, sortTasks(bucket, sort)])),
-      matchCount: matched.length,
-    };
-  }, [tasks, narrowing.narrowing, sort]);
+  // One "now" per render, so every card measures its due date against the same
+  // moment the due-date filter does.
+  const now = new Date();
+
+  // Bucket once per render rather than filtering the list once per section, then
+  // put each bucket in the chosen order. Not memoised: the due-date filter reads
+  // the clock, so the result can change on any render, and narrowing a list
+  // already in memory costs less than deciding when it may be reused.
+  const matched = narrowTasks(tasks, narrowing.narrowing, now);
+  const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
+  for (const task of matched) buckets.get(task.status)?.push(task);
+  const byStatus = new Map(
+    [...buckets].map(([status, bucket]) => [status, sortTasks(bucket, sort)])
+  );
+  const matchCount = matched.length;
 
   /** Creates or updates a task, depending on whether one is being edited.
    *
@@ -158,9 +162,6 @@ export function TasksView({
   }
 
   const noMatches = describeNoMatches(narrowing.query, narrowing.categoryIds.size > 0);
-
-  // One "now" per render, so every card measures its due date against the same moment.
-  const now = new Date();
 
   return (
     <section>
