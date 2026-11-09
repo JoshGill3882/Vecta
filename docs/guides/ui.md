@@ -94,6 +94,9 @@ A narrow desktop window still has a mouse and a keyboard; a laptop with a touch 
 - **The hook answers "mouse" on the server**, which has no pointer to ask about.
   That never shows inside a dialog, whose content only mounts in the browser once it opens.
   On markup the server renders, a touch screen would see the mouse version until hydration swaps it, so prefer the variant there.
+- **Buttons get the pointer cursor from one base rule** in `app/globals.css`, covering every enabled `button` and `[role="button"]`, shadcn's and hand-rolled alike.
+  Tailwind's Preflight would otherwise leave them on the default arrow.
+  Something clickable that is not a button still needs `cursor-pointer` of its own, as the task card's `<article>` has (`task-card.tsx`).
 
 ## Toasts
 
