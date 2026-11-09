@@ -96,6 +96,7 @@ So that [some reason or benefit].
 - [ ] Code reviewed and approved (per branch/PR policy)
 - [ ] The tests written actually cover this change (unit / integration / E2E as appropriate)
 - [ ] Documentation updated (README, API docs, Confluence, etc.)
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]`, if a user of the app would notice the change
 - [ ] Code is appropriately commented — especially non-obvious logic
 - [ ] Suitable error handling and user-facing error messages in place
 - [ ] Observability in place (logs, metrics, alerts where applicable)
