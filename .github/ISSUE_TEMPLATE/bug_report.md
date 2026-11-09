@@ -174,6 +174,7 @@ Paste stack trace or log output here
 - [ ] Error handling reviewed and improved where the bug originated
 - [ ] Logging / observability confirmed — this failure mode will be visible in future
 - [ ] Documentation updated if behaviour change affects expected usage
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]`, if a user of the app would notice the change
 - [ ] Fix tested in staging / pre-prod environment
 
 ---

@@ -9,6 +9,33 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Added
+
+- **Due dates on tasks**, with an optional time of day, set from the task form.
+  With a mouse and keyboard, type the date — `24/9/26`, `24 sep`, `tomorrow` and `+3` all work, read day first — or pick it from a calendar with **Today**, **Tomorrow** and **+1 week** shortcuts.
+  On a touch screen, the device's own date and time pickers are used instead.
+  A line under the field previews how the date will show on the card, and the date and its time can each be cleared
+- **Due dates on task cards**, as "Due today", "Due Thu" or "Due 4 Oct", with the full date on hover.
+  A task with a date but no time stays due until the end of that day
+- **Overdue tasks stand out**, in red with an alert icon and a count such as "2 days overdue", and a task due today is picked out in orange.
+  A closed task is never shown as overdue: its date reads "Was due" instead
+- **Sort by due date**, with the **Due soonest** order putting tasks with no due date last
+- **Delete a task from the task view**, through the same confirmation as the card's menu, rather than closing it and finding its card first
+
+### Changed
+
+- **On a phone, the task toolbar is a single row**: the search field and a filter button, which opens a sheet holding the category filter and the sort.
+  A badge on the button counts the filters in use.
+  From 720px wide upwards the toolbar is unchanged
+- **Buttons show the pointer cursor** on hover, not the default arrow
+- Per-commit images are tagged `main-<sha>` rather than `develop-<sha>`.
+  `:latest`, `:unstable` and the version tags are unaffected, and older `develop-<sha>` images age out under the usual retention
+
+### Fixed
+
+- On a narrow screen, a **long category name** on the Categories page pushed its task count onto two lines.
+  The name now truncates instead, with the full name on hover
+
 ## [1.1.0] - 2026-09-21
 
 Making a longer task list usable: search, filter and sort.
