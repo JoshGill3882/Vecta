@@ -1,13 +1,13 @@
 name: CI
 
 on:
+  # Every pull request, whatever its base, so a branch stacked on another is
+  # checked before it merges into that branch rather than only once the stack
+  # reaches main. The three checks this workflow provides are the ones the
+  # ruleset requires on the default branch; a base-branch filter added here
+  # must keep matching it, or every pull request into it becomes unmergeable —
+  # including the one that would correct the filter.
   pull_request:
-    # Matched against the base branch. The three checks this workflow provides
-    # are the ones the ruleset requires, so a filter that stops matching the
-    # branch pull requests target leaves every one of them unmergeable —
-    # including the pull request that would correct the filter. Change this and
-    # the ruleset together.
-    branches: [main]
 
 permissions:
   contents: read

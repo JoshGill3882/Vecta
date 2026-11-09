@@ -17,6 +17,7 @@ making the case against the reason given is a fair opening move, and a better on
 
 - CI is green — lint, typecheck, and both test suites pass
 - Behaviour changes come with tests (see the [testing guide](./docs/guides/testing.md))
+- A change a user of the app would notice adds its entry under `[Unreleased]` in [`CHANGELOG.md`](./CHANGELOG.md), written as they would experience it
 - The change reads like the code around it rather than introducing a new style
 - The scope matches whatever the issue agreed — unrelated drive-by changes get asked out again
 
@@ -34,6 +35,23 @@ Please include:
 
 Open a [GitHub Issue](https://github.com/JoshGill3882/Vecta/issues/new/choose) and select the **Feature request** template.
 Check the [roadmap](./ROADMAP.md) first — your idea may already be planned, or already ruled out with a reason.
+
+## Raising a decision
+
+Some questions have to be answered before anything can be built — which of two approaches to take, or whether something belongs in Vecta at all.
+Those go in a **Decision** issue rather than a feature request, so the work that follows starts from a settled answer instead of an open question.
+The template asks for the question, why it matters, the options, and a recommendation.
+
+The answer is posted as a comment on the issue, saying what was decided and why the other options lost.
+A pull request then records it in whichever document raised the question — usually [`ARCHITECTURE.md`](./ARCHITECTURE.md) or [`ROADMAP.md`](./ROADMAP.md) — and closes the issue.
+
+## Once an issue is open
+
+**An issue's body is not rewritten after it is created — the only edit it gets is ticking its boxes.**
+Anything learned later goes in a comment: a change of plan, the answer to a question, or the reason a box will stay unticked.
+
+The body is what the work was agreed against.
+A body edited after the fact cannot be told apart from one that always said that, and the original wording — yours, if you opened the issue — is worth keeping as you wrote it.
 
 ---
 
@@ -193,13 +211,14 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 
 ## Branching strategy
 
-| Branch                  | Purpose                                                |
-| ----------------------- | ------------------------------------------------------ |
-| `main`                  | The only long-lived branch — protected, no direct push |
-| `<issue-number>-<slug>` | Work branches, cut from `main`                         |
+| Branch                  | Purpose                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `main`                  | The only long-lived branch — protected, no direct push                               |
+| `<issue-number>-<slug>` | Work branches, cut from `main`                                                       |
+| `<issue-number>-<part>` | One part of an issue that needs more than one pull request, cut from its work branch |
 
 Work branches are named after the issue they close — `73-tag-the-v010-release`.
-Create the branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
+Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
 Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
 
 Then check it out locally:
@@ -209,11 +228,28 @@ git fetch origin
 git switch <issue-number>-<slug>
 ```
 
-All changes go through a pull request into `main`.
+All changes reach `main` through a pull request.
 
 Releases are cut by tagging `main` directly.
 There is no second long-lived branch to merge into first — a release is reproducible because its tag is immutable, not because a branch pointed at it.
 Publishing a release attaches `docker-compose.prod.yml` and `.env.example` to it, which is where the install instructions in [`README.md`](./README.md) fetch them from.
+
+### An issue that needs more than one pull request
+
+Most issues are one branch and one pull request.
+When an issue needs more than that — a fix found partway through, or work that reads better reviewed in parts — each part gets a branch of its own.
+Unlike the work branch, a part is cut locally from the work branch, and merged back into it:
+
+```bash
+git switch <issue-number>-<slug>
+git switch -c <issue-number>-<part>
+```
+
+- **The part's pull request targets the work branch, not `main`,** and says "Part of #n" rather than "Closes #n".
+  The work branch's own pull request into `main` is the one that closes the issue, so the issue stays open until all of its work has reached `main`.
+- **CI runs on a part's pull request like any other**, so each part is checked before it merges into the work branch rather than only once the whole issue reaches `main`.
+- **Name the part for what it holds.**
+  A test fix found while working on `183-cursor-pointer-on-button-hover` would be `183-test-clock`.
 
 ### Fixing a released version urgently
 
