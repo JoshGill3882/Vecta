@@ -79,6 +79,7 @@
 
 - [ ] I have reviewed my own diff before requesting review
 - [ ] New or changed logic is covered by tests
+- [ ] A change a user of the app would notice has an entry under `[Unreleased]` in `CHANGELOG.md`
 - [ ] I have not introduced debug code, commented-out blocks, or console/debug logs
 - [ ] Error handling is appropriate for new code paths
 - [ ] Any hardcoded values, magic numbers, or non-obvious decisions are commented

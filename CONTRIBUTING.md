@@ -17,6 +17,7 @@ making the case against the reason given is a fair opening move, and a better on
 
 - CI is green — lint, typecheck, and both test suites pass
 - Behaviour changes come with tests (see the [testing guide](./docs/guides/testing.md))
+- A change a user of the app would notice adds its entry under `[Unreleased]` in [`CHANGELOG.md`](./CHANGELOG.md), written as they would experience it
 - The change reads like the code around it rather than introducing a new style
 - The scope matches whatever the issue agreed — unrelated drive-by changes get asked out again
 
