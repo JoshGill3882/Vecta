@@ -193,13 +193,14 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 
 ## Branching strategy
 
-| Branch                  | Purpose                                                |
-| ----------------------- | ------------------------------------------------------ |
-| `main`                  | The only long-lived branch — protected, no direct push |
-| `<issue-number>-<slug>` | Work branches, cut from `main`                         |
+| Branch                  | Purpose                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `main`                  | The only long-lived branch — protected, no direct push                               |
+| `<issue-number>-<slug>` | Work branches, cut from `main`                                                       |
+| `<issue-number>-<part>` | One part of an issue that needs more than one pull request, cut from its work branch |
 
 Work branches are named after the issue they close — `73-tag-the-v010-release`.
-Create the branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
+Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
 Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
 
 Then check it out locally:
@@ -209,11 +210,28 @@ git fetch origin
 git switch <issue-number>-<slug>
 ```
 
-All changes go through a pull request into `main`.
+All changes reach `main` through a pull request.
 
 Releases are cut by tagging `main` directly.
 There is no second long-lived branch to merge into first — a release is reproducible because its tag is immutable, not because a branch pointed at it.
 Publishing a release attaches `docker-compose.prod.yml` and `.env.example` to it, which is where the install instructions in [`README.md`](./README.md) fetch them from.
+
+### An issue that needs more than one pull request
+
+Most issues are one branch and one pull request.
+When an issue needs more than that — a fix found partway through, or work that reads better reviewed in parts — each part gets a branch of its own.
+Unlike the work branch, a part is cut locally from the work branch, and merged back into it:
+
+```bash
+git switch <issue-number>-<slug>
+git switch -c <issue-number>-<part>
+```
+
+- **The part's pull request targets the work branch, not `main`,** and says "Part of #n" rather than "Closes #n".
+  The work branch's own pull request into `main` is the one that closes the issue, so the issue stays open until all of its work has reached `main`.
+- **CI runs on a part's pull request like any other**, so each part is checked before it merges into the work branch rather than only once the whole issue reaches `main`.
+- **Name the part for what it holds.**
+  A test fix found while working on `183-cursor-pointer-on-button-hover` would be `183-test-clock`.
 
 ### Fixing a released version urgently
 
