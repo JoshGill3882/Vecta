@@ -10,6 +10,7 @@ import {
   replaceBlock,
   parseArgs,
   isSuperseded,
+  issueUpdate,
 } from "@/scripts/update-dod.mjs";
 
 // An issue body shaped like the templates: a CI-owned fence, with human
@@ -238,6 +239,49 @@ describe("parseArgs", () => {
       expect(parseArgs([arg]).docsOnly).toBe(false);
     }
   );
+});
+
+describe("issueUpdate", () => {
+  it("patches the issue through the REST endpoint, reading the payload from stdin", () => {
+    const { args } = issueUpdate("JoshGill3882/Vecta", 166, "x");
+    expect(args).toEqual([
+      "api",
+      "--method",
+      "PATCH",
+      "repos/JoshGill3882/Vecta/issues/166",
+      "--input",
+      "-",
+    ]);
+  });
+
+  // Porcelain builds its own GraphQL query, which is what is being withdrawn.
+  it("does not go through gh issue edit", () => {
+    const { args } = issueUpdate("JoshGill3882/Vecta", 166, "x");
+    expect(args).not.toContain("issue");
+    expect(args).not.toContain("edit");
+  });
+
+  // A body that is encoded wrongly corrupts the issue rather than failing, so
+  // the payload must decode back to exactly the body, whatever it holds.
+  it("sends a JSON payload that decodes to the body unchanged", () => {
+    const awkward = [
+      body,
+      'A "quoted" phrase, a `code span`, and a backslash \\ in prose.',
+      "```bash",
+      "echo \"$HOME\" && printf '%s\\n' done",
+      "```",
+      "Unicode: — “curly” ✓, a tab\there, and a trailing newline",
+      "",
+    ].join("\n");
+
+    const { input } = issueUpdate("JoshGill3882/Vecta", 166, awkward);
+    expect(JSON.parse(input)).toEqual({ body: awkward });
+  });
+
+  it("sends nothing but the body", () => {
+    const { input } = issueUpdate("JoshGill3882/Vecta", 166, "x");
+    expect(Object.keys(JSON.parse(input))).toEqual(["body"]);
+  });
 });
 
 describe("isSuperseded", () => {
