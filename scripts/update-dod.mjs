@@ -65,6 +65,22 @@ function pullRequest(repo, prNumber) {
   return JSON.parse(out).data.repository.pullRequest;
 }
 
+// The write goes through the REST endpoint, not `gh issue edit`. Porcelain
+// commands build their own GraphQL queries, and `gh issue edit`'s asks for
+// `projectCards`, a field GitHub is withdrawing; its pull request sibling
+// already fails outright for that reason. REST sends only what it is given.
+//
+// The endpoint takes JSON, so the body is encoded with JSON.stringify rather
+// than passed as text: an issue body is full of backticks, quotes and newlines,
+// and anything less than a real encoder corrupts the issue instead of failing.
+// Returned rather than sent, so the request can be tested without the API.
+export function issueUpdate(repo, number, body) {
+  return {
+    args: ["api", "--method", "PATCH", `repos/${repo}/issues/${number}`, "--input", "-"],
+    input: JSON.stringify({ body }),
+  };
+}
+
 // Two runs for the same pull request can overlap: a job still waiting on its
 // dependencies is not yet in a concurrency group, so an older run's update can
 // be pending while a newer run clears the boxes. Writing then would tick a box
@@ -183,7 +199,20 @@ function main() {
       continue;
     }
 
-    gh(["issue", "edit", String(issue.number), "--repo", repo, "--body-file", "-"], updated);
+    const { args: request, input } = issueUpdate(repo, issue.number, updated);
+    try {
+      gh(request, input);
+    } catch (error) {
+      // This job is not a required check, so a failure here leaves the pull
+      // request green while the boxes silently stop being maintained. The
+      // annotation puts it on the pull request's checks summary, where it is
+      // seen without opening the log; the rethrow still fails the step.
+      console.log(
+        `::error title=Definition of Done not updated::#${issue.number} could not be written. ` +
+          "Its CI-owned boxes may not describe this commit until a later run succeeds."
+      );
+      throw error;
+    }
     console.log(`#${issue.number}: CI-owned Definition of Done updated.`);
   }
 }
