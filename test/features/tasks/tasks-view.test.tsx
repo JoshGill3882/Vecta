@@ -268,6 +268,22 @@ describe("TasksView due filter", () => {
     expect(screen.getByRole("status").textContent).toBe("2 of 3 tasks");
   });
 
+  it("says the due-date filter emptied the list, and clears it", async () => {
+    const user = userEvent.setup();
+    renderView([late, undated, lateButClosed]);
+
+    await user.click(screen.getByRole("button", { name: "Due" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Due today" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("heading", { name: "No matching tasks" })).toBeDefined();
+    expect(screen.getByText("No tasks in the selected due dates.")).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(screen.getByRole("status").textContent).toBe("3 tasks across 1 category");
+  });
+
   it("names the option as a chip, and Clear all takes the search with it", async () => {
     const user = userEvent.setup();
     renderView([late, undated, lateButClosed]);
