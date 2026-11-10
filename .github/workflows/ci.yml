@@ -13,16 +13,57 @@ permissions:
   contents: read
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Whether this pull request changes only documentation: Markdown, and the
+  # images under docs/. If it does, nothing the build, typecheck, tests or
+  # Compose check read has changed, so those are skipped and only the
+  # documentation checks run.
+  #
+  # The jobs below run unless this reports exactly "true". A classification
+  # that fails, or never answers, therefore means the full run. That ordering
+  # matters: a job whose `needs` failed is skipped by default, and a skipped job
+  # satisfies a required check, so without `!cancelled()` on each of them a
+  # crash here would turn the whole run green.
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+
+    steps:
+      # Full history, so the merge base of the two commits below is present.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Three dots: what this pull request changes since it left its base, not
+      # everything the base has gained since. Without rename detection, a file
+      # moved from code to Markdown is listed under both names, and the old one
+      # keeps it a code change.
+      - name: Classify the changed files
+        id: classify
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA" | node scripts/classify-changes.mjs
+
   # Static checks + build. Runs in parallel with the `test` job below.
   checks:
     name: Lint, Typecheck & Build
     runs-on: ubuntu-latest
+    needs: changes
+    # Always runs: its documentation steps are the ones a documentation-only
+    # pull request is checked by.
+    if: ${{ !cancelled() }}
 
     # resolve-provider.mjs and the build read DATABASE_URL; SQLite is the
     # committed default, so a file: URL is enough here. The generated Prisma
     # client lives in /generated/ (gitignored), so it must be generated in CI.
     env:
       DATABASE_URL: "file:./data/app.db"
+      DOCS_ONLY: ${{ needs.changes.outputs.docs_only }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,15 +78,18 @@ jobs:
       # names, so this compares two Node processes that really started rather
       # than two strings read out of two files. The script needs no dependencies.
       - name: Check the Node version pins agree
+        if: env.DOCS_ONLY != 'true'
         run: npm run check:node -- --with-image
 
       - name: Install dependencies
         run: npm ci
 
       - name: Generate Prisma client
+        if: env.DOCS_ONLY != 'true'
         run: npm run db:generate
 
       - name: Lint
+        if: env.DOCS_ONLY != 'true'
         run: npm run lint
 
       # Blocking, not continue-on-error. A check that can fail without
@@ -64,22 +108,32 @@ jobs:
         run: npm run format:check
 
       - name: Typecheck
+        if: env.DOCS_ONLY != 'true'
         run: npm run typecheck
 
       - name: Build
+        if: env.DOCS_ONLY != 'true'
         run: npm run build
 
-  # Unit + integration tests, via the reusable workflow the deploy pipelines
-  # will also gate on (Phase 6). Kept separate so tests aren't re-authored there.
+  # Unit, integration and component tests, via the reusable workflow publish.yml
+  # also gates on, so the tests are not written out twice.
   test:
     name: Tests
+    needs: changes
+    # Always called; a documentation-only run is skipped inside _test.yml, which
+    # explains why it cannot be skipped here.
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/_test.yml
+    with:
+      docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
 
   # Packaging config. Needs no Node toolchain, so it is its own job rather than
   # a step queued behind `npm ci` in `checks`.
   compose:
     name: Compose Files
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -144,7 +198,7 @@ jobs:
   dod-update:
     name: DoD — record results
     runs-on: ubuntu-latest
-    needs: [checks, test, compose, dod-reset]
+    needs: [changes, checks, test, compose, dod-reset]
     # `always()` so a failing job still gets recorded as a cleared box rather
     # than leaving whatever the previous run wrote.
     if: always()
@@ -161,6 +215,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      # --docs-only lets a job skipped for a documentation-only change tick its
+      # box. It is passed through as the classifier wrote it; the script counts
+      # only an exact "true", so a failed classification ticks nothing extra.
       - name: Record which checks passed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -168,4 +225,5 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node scripts/update-dod.mjs \
-            --results=checks:${{ needs.checks.result }},test:${{ needs.test.result }},compose:${{ needs.compose.result }}
+            --results=checks:${{ needs.checks.result }},test:${{ needs.test.result }},compose:${{ needs.compose.result }} \
+            --docs-only=${{ needs.changes.outputs.docs_only }}

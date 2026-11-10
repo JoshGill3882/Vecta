@@ -1,9 +1,19 @@
 name: Tests
 
-# Reusable workflow: the test gate. Called by ci.yml on PRs, and (from Phase 6)
-# by the deploy pipelines via `needs: test` so a deploy can't ship untested code.
+# Reusable workflow: the test gate. Called by ci.yml on pull requests, and by
+# publish.yml so an image cannot ship untested code.
 on:
   workflow_call:
+    inputs:
+      # Set by ci.yml when a pull request changes only documentation. The skip
+      # has to happen here rather than on the calling job: skip the caller and
+      # this workflow never expands, so the required "Tests / Unit &
+      # Integration" check never reports and the pull request cannot merge.
+      # Skipped here, the job still reports, as skipped, which the ruleset
+      # accepts. Defaults to running, so a caller that passes nothing tests.
+      docs_only:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +26,7 @@ jobs:
     # ruleset together, or not at all — which is why it does not list the
     # component tier that runs below.
     name: Unit & Integration
+    if: ${{ !inputs.docs_only }}
     runs-on: ubuntu-latest
 
     # The generated Prisma client lives in /generated/ (gitignored), so it must
