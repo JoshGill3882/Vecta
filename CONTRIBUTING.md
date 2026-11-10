@@ -15,7 +15,7 @@ making the case against the reason given is a fair opening move, and a better on
 
 ## What gets merged
 
-- CI is green — lint, typecheck, and both test suites pass
+- CI is green — lint, typecheck, build and the test suites pass, or, for a pull request that changes only documentation, the [documentation checks](#ci-on-a-documentation-only-pull-request)
 - Behaviour changes come with tests (see the [testing guide](./docs/guides/testing.md))
 - A change a user of the app would notice adds its entry under `[Unreleased]` in [`CHANGELOG.md`](./CHANGELOG.md), written as they would experience it
 - The change reads like the code around it rather than introducing a new style
@@ -218,10 +218,16 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 | `<issue-number>-<part>`         | One part of an issue that needs more than one pull request, cut from its work branch |
 | `<issue-number>-release-vX.Y.0` | A release's preparation, cut by hand from `main`                                     |
 
-Work branches are named after the issue they close — `73-tag-the-v010-release`.
-Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
-Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
-A release branch is the one exception, for the reason given under [Cutting a release](#cutting-a-release).
+Work branches are named after the issue they close: its number, then a slug of a few words — `196-docs-only-ci`.
+Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or the GitHub CLI:
+
+```bash
+gh issue develop <number> --name <number>-<slug> --base main
+```
+
+Either way the branch is linked to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
+Pick the slug yourself rather than taking the default: both routes otherwise derive it from the whole issue title, which for a long title gives a branch name too long to read in a prompt or a pull request header.
+A release branch is the one branch not created from its issue, for the reason given under [Cutting a release](#cutting-a-release).
 
 Then check it out locally:
 
@@ -342,3 +348,14 @@ GitHub applies this automatically; to get the same locally, once per clone:
 ```bash
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
+
+### CI on a documentation-only pull request
+
+A pull request whose every changed file is Markdown, or an image under `docs/images/`, gets a shorter CI run.
+The `Lint, Typecheck & Build` job runs only its documentation steps — markdownlint, Prettier, and the Acceptance-Criteria and comment checks — and the tests and the Compose validation are skipped.
+Nothing in the app, its build or its tests reads those files, so the checks left out are ones the change cannot fail.
+The required checks still report, as passed or skipped, and the CI-owned Definition of Done boxes on the issue are ticked on the same ground.
+
+Change any other file, a workflow or `package.json` included, and everything runs.
+[`scripts/classify-changes.mjs`](./scripts/classify-changes.mjs) makes the call, and every doubt resolves towards the full run: a diff it cannot read, or a classification that fails, runs everything rather than nothing.
+A kind of file is added to its list only if nothing CI checks reads it.

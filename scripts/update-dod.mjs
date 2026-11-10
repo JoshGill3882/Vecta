@@ -78,14 +78,23 @@ export function isSuperseded(runSha, headSha) {
 // `results` maps job key to a GitHub job result string. Anything other than
 // "success" leaves the box unticked, so a cancelled, failed or skipped job all
 // read the same way: unproven.
-export function renderBlock(results, sha) {
+//
+// The one exception is `docsOnly`: the run's first job classified every changed
+// file as documentation, and the jobs that check code were skipped for that
+// reason alone. Their boxes describe code this pull request does not change,
+// so a skip there is ticked. Only "skipped" is: a failure is still a failure,
+// and without the classification a skip still proves nothing, since a job is
+// also skipped when one it depends on fails.
+export function renderBlock(results, sha, docsOnly = false) {
   const lines = JOBS.map((job) => {
-    const ticked = results[job.key] === "success";
+    const result = results[job.key];
+    const ticked = result === "success" || (docsOnly && result === "skipped");
     return `- [${ticked ? "x" : " "}] ${job.label}`;
   });
 
+  const scope = docsOnly ? ", which changes documentation only" : "";
   const provenance = sha
-    ? `\n_Maintained by CI. Last updated for commit \`${sha.slice(0, 7)}\`._`
+    ? `\n_Maintained by CI. Last updated for commit \`${sha.slice(0, 7)}\`${scope}._`
     : "\n_Maintained by CI._";
 
   return [START, "", ...lines, provenance, "", END].join("\n");
@@ -114,9 +123,12 @@ export function replaceBlock(body, block) {
 }
 
 export function parseArgs(argv) {
-  const args = { reset: false, results: {} };
+  const args = { reset: false, results: {}, docsOnly: false };
   for (const arg of argv) {
     if (arg === "--reset") args.reset = true;
+    // Exactly "true", as the classifier writes it. An empty value, which is
+    // what the workflow passes when the classifier failed, reads as false.
+    else if (arg.startsWith("--docs-only=")) args.docsOnly = arg === "--docs-only=true";
     else if (arg.startsWith("--results=")) {
       // e.g. --results=checks:success,test:failure
       for (const pair of arg.slice("--results=".length).split(",")) {
@@ -158,7 +170,7 @@ function main() {
 
   for (const issue of issues) {
     const body = issue.body ?? "";
-    const updated = replaceBlock(body, renderBlock(results, sha));
+    const updated = replaceBlock(body, renderBlock(results, sha, !args.reset && args.docsOnly));
 
     if (updated === null) {
       // An issue predating the fenced templates, or one whose markers were
