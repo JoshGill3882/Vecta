@@ -60,6 +60,50 @@ describe("renderBlock", () => {
     }
   );
 
+  describe("on a documentation-only run", () => {
+    // The code jobs were skipped because nothing they check changed, so the
+    // claims their boxes make still hold for the code as it stands.
+    it("ticks a job skipped because only documentation changed", () => {
+      const block = renderBlock(
+        { checks: "success", test: "skipped", compose: "skipped" },
+        "abc1234",
+        true
+      );
+      for (const job of JOBS) {
+        expect(block).toContain(`- [x] ${job.label}`);
+      }
+    });
+
+    it("still leaves a failed or cancelled job unticked", () => {
+      const block = renderBlock(
+        { checks: "failure", test: "cancelled", compose: "skipped" },
+        "abc1234",
+        true
+      );
+      expect(block).toContain("- [ ] Lint, typecheck and build pass");
+      expect(block).toContain("- [ ] Test suite passes — no new regressions");
+      expect(block).toContain("- [x] Compose files validate");
+    });
+
+    it("still leaves a job with no result unticked", () => {
+      expect(renderBlock({}, "abc1234", true)).not.toContain("- [x]");
+    });
+
+    it("says so in the provenance line", () => {
+      expect(renderBlock({}, "abc1234def", true)).toContain(
+        "commit `abc1234`, which changes documentation only."
+      );
+    });
+  });
+
+  // Without the classification, a skip is what a job gets when one it depends
+  // on failed, and must not tick anything.
+  it("leaves a skipped job unticked when the run is not documentation-only", () => {
+    const block = renderBlock({ checks: "skipped", test: "skipped", compose: "skipped" }, null);
+    expect(block).not.toContain("- [x]");
+    expect(block).not.toContain("documentation only");
+  });
+
   it("records the commit it describes", () => {
     const block = renderBlock({}, "abc1234def5678");
     expect(block).toContain("`abc1234`");
@@ -175,11 +219,25 @@ describe("parseArgs", () => {
     expect(parseArgs(["--results="]).results).toEqual({});
   });
 
-  it("defaults to no results and no reset", () => {
+  it("defaults to no results, no reset and not documentation-only", () => {
     const args = parseArgs([]);
     expect(args.results).toEqual({});
     expect(args.reset).toBe(false);
+    expect(args.docsOnly).toBe(false);
   });
+
+  it("reads a documentation-only run", () => {
+    expect(parseArgs(["--docs-only=true"]).docsOnly).toBe(true);
+  });
+
+  // The workflow passes the classifier's output straight through, so a failed
+  // classifier arrives as an empty value. Only an exact "true" may count.
+  it.each(["--docs-only=", "--docs-only=false", "--docs-only=TRUE", "--docs-only=1"])(
+    "reads %s as not documentation-only",
+    (arg) => {
+      expect(parseArgs([arg]).docsOnly).toBe(false);
+    }
+  );
 });
 
 describe("isSuperseded", () => {
