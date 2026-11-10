@@ -25,6 +25,7 @@ import {
   TasksEmptyState,
   tasksEmptyStateHeadingId,
 } from "@/src/features/tasks/components/tasks-empty-state";
+import { ActiveFilters } from "@/src/features/tasks/components/toolbar/active-filters";
 import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
 import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
@@ -186,17 +187,20 @@ export function TasksView({
       </header>
 
       {tasks.length > 0 && (
-        <TasksToolbar
-          query={narrowing.query}
-          onQueryChange={narrowing.setQuery}
-          categories={categories}
-          selectedCategoryIds={narrowing.categoryIds}
-          onSelectedCategoryIdsChange={narrowing.setCategoryIds}
-          selectedDueBuckets={narrowing.dueBuckets}
-          onSelectedDueBucketsChange={narrowing.setDueBuckets}
-          sort={sort}
-          onSortChange={setSort}
-        />
+        <>
+          <TasksToolbar
+            query={narrowing.query}
+            onQueryChange={narrowing.setQuery}
+            categories={categories}
+            selectedCategoryIds={narrowing.categoryIds}
+            onSelectedCategoryIdsChange={narrowing.setCategoryIds}
+            selectedDueBuckets={narrowing.dueBuckets}
+            onSelectedDueBucketsChange={narrowing.setDueBuckets}
+            sort={sort}
+            onSortChange={setSort}
+          />
+          <ActiveFilters narrowing={narrowing} categories={categories} />
+        </>
       )}
 
       {tasks.length === 0 ? (
