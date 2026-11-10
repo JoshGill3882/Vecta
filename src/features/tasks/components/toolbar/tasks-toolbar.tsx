@@ -50,6 +50,8 @@ export function TasksToolbar({
         categories={categories}
         selectedCategoryIds={selectedCategoryIds}
         onSelectedCategoryIdsChange={onSelectedCategoryIdsChange}
+        selectedDueBuckets={selectedDueBuckets}
+        onSelectedDueBucketsChange={onSelectedDueBucketsChange}
         sort={sort}
         onSortChange={onSortChange}
         className="min-[720px]:hidden"

@@ -10,9 +10,9 @@ interface DueOption {
    * state, so an option and the cards it finds look alike. */
   icon: LucideIcon;
   /** The text colour of the two options that ask for action, for the icon and
-   * the label alike. Both hold 4.5:1 against the menu. A highlighted row
-   * recolours its contents to the menu's own text, which matters: the overdue
-   * red falls short of 4.5:1 against the highlight. */
+   * the label alike. Both hold 4.5:1 against the menu and the sheet. Wherever
+   * a row is highlighted, the colour gives way to the row's own text, which
+   * matters: the overdue red falls short of 4.5:1 against the highlight. */
   tone?: string;
 }
 
