@@ -20,11 +20,16 @@ Internal refactors that change nothing observable are not listed.
 - **Overdue tasks stand out**, in red with an alert icon and a count such as "2 days overdue", and a task due today is picked out in orange.
   A closed task is never shown as overdue: its date reads "Was due" instead
 - **Sort by due date**, with the **Due soonest** order putting tasks with no due date last
+- **Filter the task list by due date**, from a **Due** menu offering **Overdue**, **Due today**, **Next 7 days** and **No due date**.
+  Tick several to see tasks in any of them; combined with search or a category, a task must match all of them.
+  Closed tasks are left out of every option but **No due date**, and when nothing matches, the message says which filters emptied the list
+- **The filters in use are shown as chips** above the list, each removable on its own, with **Clear all** to drop the search and every filter at once.
+  On a phone the chips stay on one line that scrolls sideways
 - **Delete a task from the task view**, through the same confirmation as the card's menu, rather than closing it and finding its card first
 
 ### Changed
 
-- **On a phone, the task toolbar is a single row**: the search field and a filter button, which opens a sheet holding the category filter and the sort.
+- **On a phone, the task toolbar is a single row**: the search field and a filter button, which opens a sheet holding the due-date and category filters and the sort.
   A badge on the button counts the filters in use.
   From 720px wide upwards the toolbar is unchanged
 - **Buttons show the pointer cursor** on hover, not the default arrow
