@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import type { TaskSort } from "@/src/features/tasks/lib/task-sort";
 import { FilterSheet } from "@/src/features/tasks/components/toolbar/filter-sheet";
 
@@ -12,26 +13,32 @@ const categories: CategoryDTO[] = [
   { id: "c2", name: "Frontend", color: "#e5545a", createdAt: "2026-09-01T00:00:00.000Z" },
 ];
 
-/** Holds the selection and sort the way the task view does, so the sheet is
+/** Holds the selections and sort the way the task view does, so the sheet is
  * exercised through real state changes rather than asserted against a mock.
  *
  * @param props.initialSelected The categories selected on first render.
+ * @param props.initialDue The due-date options selected on first render.
  * @param props.initialSort The order selected on first render.
  */
 function Harness({
   initialSelected = new Set(),
+  initialDue = new Set(),
   initialSort = "updated_desc",
 }: {
   initialSelected?: ReadonlySet<string | null>;
+  initialDue?: ReadonlySet<DueBucket>;
   initialSort?: TaskSort;
 }) {
   const [selected, setSelected] = useState(initialSelected);
+  const [due, setDue] = useState(initialDue);
   const [sort, setSort] = useState(initialSort);
   return (
     <FilterSheet
       categories={categories}
       selectedCategoryIds={selected}
       onSelectedCategoryIdsChange={setSelected}
+      selectedDueBuckets={due}
+      onSelectedDueBucketsChange={setDue}
       sort={sort}
       onSortChange={setSort}
     />
@@ -61,6 +68,12 @@ describe("FilterSheet button", () => {
     expect(screen.getByRole("button", { name: "Filter and sort, 2 active" })).toBeDefined();
   });
 
+  it("counts due-date options and categories together", () => {
+    render(<Harness initialSelected={new Set(["c1"])} initialDue={new Set(["overdue", "none"])} />);
+
+    expect(screen.getByRole("button", { name: "Filter and sort, 3 active" })).toBeDefined();
+  });
+
   // Sort reorders the list without hiding anything, so it is not a filter.
   it("does not count a non-default sort", () => {
     render(<Harness initialSort="title_asc" />);
@@ -75,6 +88,10 @@ describe("FilterSheet sheet", () => {
     render(<Harness />);
     const sheet = await openSheet(user);
 
+    expect(within(sheet).getByRole("button", { name: /^Due/ })).toHaveProperty(
+      "ariaExpanded",
+      "false"
+    );
     expect(within(sheet).getByRole("button", { name: /^Category/ })).toHaveProperty(
       "ariaExpanded",
       "false"
@@ -109,6 +126,42 @@ describe("FilterSheet sheet", () => {
     expect(document.querySelector('[aria-label="Filter and sort, 2 active"]')).not.toBeNull();
   });
 
+  it("lists Due first, in the order the desktop toolbar does", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const sheet = await openSheet(user);
+
+    const headers = within(sheet)
+      .getAllByRole("heading", { level: 3 })
+      // The first span is the title; the heading also holds the summary.
+      .map((heading) => heading.querySelector("span")?.textContent);
+    expect(headers).toEqual(["Due", "Category", "Sort by"]);
+  });
+
+  it("applies a due-date option as it is ticked and summarises the selection", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const sheet = await openSheet(user);
+
+    await user.click(within(sheet).getByRole("button", { name: /^Due/ }));
+    const options = within(sheet).getAllByRole("checkbox");
+    expect(options.map((option) => option.closest("label")?.textContent)).toEqual([
+      "Overdue",
+      "Due today",
+      "Next 7 days",
+      "No due date",
+    ]);
+
+    await user.click(within(sheet).getByRole("checkbox", { name: "Due today" }));
+
+    expect(within(sheet).getByRole("button", { name: "Due Due today" })).toBeDefined();
+
+    await user.click(within(sheet).getByRole("checkbox", { name: "Overdue" }));
+
+    expect(within(sheet).getByRole("button", { name: "Due 2 selected" })).toBeDefined();
+    expect(document.querySelector('[aria-label="Filter and sort, 2 active"]')).not.toBeNull();
+  });
+
   it("changes the sort and shows the new order in the section header", async () => {
     const user = userEvent.setup();
     render(<Harness />);
@@ -125,11 +178,18 @@ describe("FilterSheet sheet", () => {
 
   it("clears every filter but leaves the sort alone", async () => {
     const user = userEvent.setup();
-    render(<Harness initialSelected={new Set(["c1", "c2"])} initialSort="title_asc" />);
+    render(
+      <Harness
+        initialSelected={new Set(["c1", "c2"])}
+        initialDue={new Set(["week"])}
+        initialSort="title_asc"
+      />
+    );
     const sheet = await openSheet(user);
 
     await user.click(within(sheet).getByRole("button", { name: "Clear filters" }));
 
+    expect(within(sheet).getByRole("button", { name: /^Due$/ })).toBeDefined();
     expect(within(sheet).getByRole("button", { name: /^Category$/ })).toBeDefined();
     expect(within(sheet).getByRole("button", { name: "Clear filters" })).toHaveProperty(
       "disabled",

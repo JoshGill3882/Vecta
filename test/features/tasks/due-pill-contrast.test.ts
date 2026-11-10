@@ -96,9 +96,12 @@ describe("due filter option contrast against the menu", () => {
     expect(contrast(token(text), token("popover"))).toBeGreaterThanOrEqual(4.5);
   });
 
-  // Why a highlighted row drops the colour for the menu's own text: against the
-  // highlight, the overdue red falls short.
-  it("would fail as overdue text on a highlighted row", () => {
-    expect(contrast(token("destructive"), token("accent"))).toBeLessThan(4.5);
-  });
+  // Why a highlighted row drops the colour for the row's own text: against the
+  // highlight, in the menu and in the sheet, the overdue red falls short.
+  it.each(["accent", "surface-3"] as const)(
+    "would fail as overdue text on a row highlighted with %s",
+    (highlight) => {
+      expect(contrast(token("destructive"), token(highlight))).toBeLessThan(4.5);
+    }
+  );
 });
