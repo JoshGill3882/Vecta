@@ -228,3 +228,43 @@ describe("TasksView delete from the task view", () => {
     expect(within(dialog).queryByRole("button", { name: /Delete/ })).toBeNull();
   });
 });
+
+describe("TasksView due filter", () => {
+  // Due dates years in the past and none at all, so which option each task falls
+  // in does not depend on the day the test runs.
+  const late = task({ id: "t1", title: "Renew the TLS certificate", dueAt: "2020-01-01" });
+  const undated = task({ id: "t2", title: "Tidy the README" });
+  const lateButClosed = task({
+    id: "t3",
+    title: "Rotate the backup keys",
+    dueAt: "2020-01-01",
+    status: "closed",
+  });
+
+  it("narrows the list on its own, as search and categories do", async () => {
+    const user = userEvent.setup();
+    renderView([late, undated, lateButClosed]);
+
+    await user.click(screen.getByRole("button", { name: "Due" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Overdue" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("status").textContent).toBe("1 of 3 tasks");
+    expect(screen.getByRole("button", { name: "Renew the TLS certificate" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Tidy the README" })).toBeNull();
+    // A closed task is never overdue, so its section empties and drops.
+    expect(screen.queryByRole("heading", { name: /^Closed/ })).toBeNull();
+  });
+
+  it("shows every selected option's tasks, not only those in all of them", async () => {
+    const user = userEvent.setup();
+    renderView([late, undated, lateButClosed]);
+
+    await user.click(screen.getByRole("button", { name: "Due" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Overdue" }));
+    await user.click(screen.getByRole("menuitemcheckbox", { name: "No due date" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("status").textContent).toBe("2 of 3 tasks");
+  });
+});
