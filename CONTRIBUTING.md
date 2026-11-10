@@ -211,15 +211,17 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 
 ## Branching strategy
 
-| Branch                  | Purpose                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------ |
-| `main`                  | The only long-lived branch — protected, no direct push                               |
-| `<issue-number>-<slug>` | Work branches, cut from `main`                                                       |
-| `<issue-number>-<part>` | One part of an issue that needs more than one pull request, cut from its work branch |
+| Branch                          | Purpose                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| `main`                          | The only long-lived branch — protected, no direct push                               |
+| `<issue-number>-<slug>`         | Work branches, cut from `main`                                                       |
+| `<issue-number>-<part>`         | One part of an issue that needs more than one pull request, cut from its work branch |
+| `<issue-number>-release-vX.Y.0` | A release's preparation, cut by hand from `main`                                     |
 
 Work branches are named after the issue they close — `73-tag-the-v010-release`.
 Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
 Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
+A release branch is the one exception, for the reason given under [Cutting a release](#cutting-a-release).
 
 Then check it out locally:
 
@@ -230,9 +232,26 @@ git switch <issue-number>-<slug>
 
 All changes reach `main` through a pull request.
 
+### Cutting a release
+
+Each release is prepared and published from a **Release** issue, raised from its template and filed in the release's milestone.
+The template holds the whole sequence as a checklist: the changelog, the version, the roadmap, then the tag and the GitHub release.
+
 Releases are cut by tagging `main` directly.
 There is no second long-lived branch to merge into first — a release is reproducible because its tag is immutable, not because a branch pointed at it.
 Publishing a release attaches `docker-compose.prod.yml` and `.env.example` to it, which is where the install instructions in [`README.md`](./README.md) fetch them from.
+
+Two things set a Release issue apart from the others:
+
+- **It has no "blocked by" relationships.** GitHub blocks an issue only on other issues, not on a milestone, and a list kept in step with the milestone by hand would drift.
+  The milestone's own list is what it waits on: its first box is that every other issue in the milestone is closed.
+- **Its branch is cut by hand rather than from the issue.** A linked branch closes its issue as soon as its pull request merges, which for a release is before the tag and the GitHub release exist.
+  Name it after the issue as usual, have its pull request say "Part of #n", and close the issue by hand once the release is published:
+
+  ```bash
+  git fetch origin
+  git switch -c <issue-number>-release-vX.Y.0 origin/main
+  ```
 
 ### An issue that needs more than one pull request
 
