@@ -38,7 +38,6 @@ This project aims for a third option:
 - A team collaboration tool
 - A hosted SaaS (a hosted version may exist later — separate product)
 - A Trello/Jira clone — feature parity is not a goal
-- Ready for production use yet (see status above)
 
 For what is planned, what is being considered and what has been ruled out, see [`ROADMAP.md`](./ROADMAP.md).
 
