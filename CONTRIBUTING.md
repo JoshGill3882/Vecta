@@ -218,10 +218,16 @@ No extra configuration needed — the hook fires as long as `graphify` is on you
 | `<issue-number>-<part>`         | One part of an issue that needs more than one pull request, cut from its work branch |
 | `<issue-number>-release-vX.Y.0` | A release's preparation, cut by hand from `main`                                     |
 
-Work branches are named after the issue they close — `73-tag-the-v010-release`.
-Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or `gh issue develop <number> --base main`.
-Either way GitHub derives the name and links the branch to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
-A release branch is the one exception, for the reason given under [Cutting a release](#cutting-a-release).
+Work branches are named after the issue they close: its number, then a slug of a few words — `196-docs-only-ci`.
+Create a work branch from the issue rather than by hand, using **Create a branch** in the issue's sidebar or the GitHub CLI:
+
+```bash
+gh issue develop <number> --name <number>-<slug> --base main
+```
+
+Either way the branch is linked to the issue, so the issue tracks the branch and its eventual pull request without anyone wiring it up.
+Pick the slug yourself rather than taking the default: both routes otherwise derive it from the whole issue title, which for a long title gives a branch name too long to read in a prompt or a pull request header.
+A release branch is the one branch not created from its issue, for the reason given under [Cutting a release](#cutting-a-release).
 
 Then check it out locally:
 
