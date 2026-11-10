@@ -267,4 +267,24 @@ describe("TasksView due filter", () => {
 
     expect(screen.getByRole("status").textContent).toBe("2 of 3 tasks");
   });
+
+  it("names the option as a chip, and Clear all takes the search with it", async () => {
+    const user = userEvent.setup();
+    renderView([late, undated, lateButClosed]);
+
+    await user.type(screen.getByRole("searchbox", { name: "Search tasks" }), "renew");
+    await user.click(screen.getByRole("button", { name: "Due" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Overdue" }));
+    await user.keyboard("{Escape}");
+
+    const chips = screen.getByRole("list", { name: "Active filters" });
+    expect(within(chips).getByText("“renew”")).toBeDefined();
+    expect(within(chips).getByText("Overdue")).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(screen.queryByRole("list", { name: "Active filters" })).toBeNull();
+    expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveProperty("value", "");
+    expect(screen.getByRole("status").textContent).toBe("3 tasks across 1 category");
+  });
 });
