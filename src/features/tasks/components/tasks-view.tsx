@@ -162,7 +162,10 @@ export function TasksView({
     setFormOpen(true);
   }
 
-  const noMatches = describeNoMatches(narrowing.query, narrowing.categoryIds.size > 0);
+  const noMatches = describeNoMatches(narrowing.query, {
+    byDue: narrowing.dueBuckets.size > 0,
+    byCategory: narrowing.categoryIds.size > 0,
+  });
 
   return (
     <section>
