@@ -192,6 +192,8 @@ export function TasksView({
           categories={categories}
           selectedCategoryIds={narrowing.categoryIds}
           onSelectedCategoryIdsChange={narrowing.setCategoryIds}
+          selectedDueBuckets={narrowing.dueBuckets}
+          onSelectedDueBucketsChange={narrowing.setDueBuckets}
           sort={sort}
           onSortChange={setSort}
         />
