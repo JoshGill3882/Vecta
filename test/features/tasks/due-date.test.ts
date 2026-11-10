@@ -1,7 +1,16 @@
 import { afterEach, describe, it, expect } from "vitest";
 
 import type { TaskStatus } from "@/src/shared/lib/dtos/tasks";
-import { dueMeta, dueMoment, joinDueAt, splitDueAt } from "@/src/features/tasks/lib/due-date";
+import {
+  DUE_BUCKETS,
+  dueMeta,
+  dueMoment,
+  inDueBucket,
+  isOverdue,
+  joinDueAt,
+  splitDueAt,
+  type DueBucket,
+} from "@/src/features/tasks/lib/due-date";
 
 // Sunday 27 September 2026, 10:00 local. Every "today" below is measured from here,
 // so the tests mean the same thing whatever day they run on.
@@ -189,7 +198,10 @@ describe("dueMeta", () => {
 describe("dueMeta across timezones", () => {
   const original = process.env.TZ;
   afterEach(() => {
-    process.env.TZ = original;
+    // Assigning undefined would store the string "undefined", which Node reads
+    // as UTC, leaving every later test in the file in the wrong zone.
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
   });
 
   // The bug a DateTime column causes: a date read as UTC midnight shows as the day
@@ -220,4 +232,165 @@ describe("dueMeta across timezones", () => {
     expect(meta("2026-10-26", new Date(2026, 9, 24, 12, 0))?.label).toBe("Due Mon");
     expect(meta("2026-10-25", new Date(2026, 9, 24, 23, 30))?.label).toBe("Due tomorrow");
   });
+});
+
+describe("isOverdue", () => {
+  // The filter's Overdue option and the card's red pill must be the same set by
+  // construction, so this checks the one against the other across every kind
+  // of date and status rather than restating the rule.
+  it.each([
+    "2026-09-22",
+    "2026-09-26T23:00",
+    "2026-09-27T09:00",
+    "2026-09-27",
+    "2026-09-27T17:30",
+    "2026-10-04",
+  ])("agrees with the card's overdue state for %s", (dueAt) => {
+    for (const status of ["open", "in_progress", "closed"] as TaskStatus[]) {
+      expect(isOverdue({ dueAt, status }, NOW)).toBe(meta(dueAt, NOW, status)?.state === "overdue");
+    }
+  });
+
+  it("is false with no due date", () => {
+    expect(isOverdue({ dueAt: null, status: "open" }, NOW)).toBe(false);
+  });
+});
+
+describe("inDueBucket", () => {
+  /** Whether an open task due at `dueAt` is in `bucket`, measured from the fixed "now".
+   *
+   * @param dueAt The stored value, or null for none.
+   * @param bucket The option to test.
+   * @param status The task's status; open unless the case is about another.
+   * @param now The moment to measure from; the fixed Sunday unless overridden.
+   * @returns What `inDueBucket` answers.
+   */
+  function inBucket(
+    dueAt: string | null,
+    bucket: DueBucket,
+    status: TaskStatus = "open",
+    now: Date = NOW
+  ) {
+    return inDueBucket({ dueAt, status }, bucket, now);
+  }
+
+  it("lists the options in the order the filter shows them", () => {
+    expect(DUE_BUCKETS).toEqual(["overdue", "today", "week", "none"]);
+  });
+
+  describe("Overdue", () => {
+    it("is the card's overdue state", () => {
+      expect(inBucket("2026-09-22", "overdue")).toBe(true);
+      expect(inBucket("2026-09-27T09:00", "overdue")).toBe(true);
+      expect(inBucket("2026-09-27", "overdue")).toBe(false);
+    });
+
+    it("never holds a closed task", () => {
+      expect(inBucket("2026-09-22", "overdue", "closed")).toBe(false);
+    });
+  });
+
+  describe("Due today", () => {
+    it("holds a task due today, with or without a time", () => {
+      expect(inBucket("2026-09-27", "today")).toBe(true);
+      expect(inBucket("2026-09-27T17:30", "today")).toBe(true);
+    });
+
+    // A time earlier today that has passed is still due today: the card reads
+    // "Overdue · 09:00", and the task is in both options.
+    it("holds a task whose time passed earlier today, which is overdue as well", () => {
+      expect(inBucket("2026-09-27T09:00", "today")).toBe(true);
+      expect(inBucket("2026-09-27T09:00", "overdue")).toBe(true);
+    });
+
+    it("holds no task due on another day", () => {
+      expect(inBucket("2026-09-26", "today")).toBe(false);
+      expect(inBucket("2026-09-28", "today")).toBe(false);
+    });
+
+    it("never holds a closed task", () => {
+      expect(inBucket("2026-09-27", "today", "closed")).toBe(false);
+    });
+  });
+
+  describe("Next 7 days", () => {
+    it("runs from today to a week today, inclusive", () => {
+      expect(inBucket("2026-09-27", "week")).toBe(true);
+      expect(inBucket("2026-09-30T08:00", "week")).toBe(true);
+      // A week today is where the form's "+1 week" quick date lands.
+      expect(inBucket("2026-10-04", "week")).toBe(true);
+      expect(inBucket("2026-10-05", "week")).toBe(false);
+    });
+
+    it("holds nothing overdue, including a time passed earlier today", () => {
+      expect(inBucket("2026-09-26", "week")).toBe(false);
+      expect(inBucket("2026-09-27T09:00", "week")).toBe(false);
+    });
+
+    it("never holds a closed task", () => {
+      expect(inBucket("2026-09-30", "week", "closed")).toBe(false);
+    });
+  });
+
+  describe("No due date", () => {
+    it("holds every task without one, closed included", () => {
+      expect(inBucket(null, "none")).toBe(true);
+      expect(inBucket(null, "none", "closed")).toBe(true);
+    });
+
+    it("holds no task that has one", () => {
+      expect(inBucket("2026-09-27", "none")).toBe(false);
+    });
+  });
+
+  it("holds a task without a due date in no other option", () => {
+    for (const bucket of ["overdue", "today", "week"] as DueBucket[]) {
+      expect(inBucket(null, bucket)).toBe(false);
+    }
+  });
+
+  // A date-only due date is due by the end of its day, so it stays in the
+  // options for today until midnight and moves to Overdue after it.
+  it("keeps a date-only task due today until midnight, then makes it overdue", () => {
+    const lateEvening = new Date(2026, 8, 27, 23, 58);
+    expect(inBucket("2026-09-27", "today", "open", lateEvening)).toBe(true);
+    expect(inBucket("2026-09-27", "week", "open", lateEvening)).toBe(true);
+    expect(inBucket("2026-09-27", "overdue", "open", lateEvening)).toBe(false);
+
+    const afterMidnight = new Date(2026, 8, 28, 0, 1);
+    expect(inBucket("2026-09-27", "today", "open", afterMidnight)).toBe(false);
+    expect(inBucket("2026-09-27", "overdue", "open", afterMidnight)).toBe(true);
+  });
+});
+
+describe("inDueBucket across timezones", () => {
+  const original = process.env.TZ;
+  afterEach(() => {
+    // Assigning undefined would store the string "undefined", which Node reads
+    // as UTC, leaving every later test in the file in the wrong zone.
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
+  });
+
+  // "Today" and the week ahead are the reader's own calendar days. Run in one
+  // zone only, these would pass in the CI runner's zone and prove nothing about
+  // a reader either side of UTC.
+  it.each(["America/Los_Angeles", "UTC", "Asia/Tokyo"])(
+    "measures today and the week ahead on the local calendar in %s",
+    (zone) => {
+      process.env.TZ = zone;
+      const lateEvening = new Date(2026, 8, 27, 23, 58);
+      const afterMidnight = new Date(2026, 8, 28, 0, 1);
+
+      expect(inDueBucket({ dueAt: "2026-09-27", status: "open" }, "today", lateEvening)).toBe(true);
+      expect(inDueBucket({ dueAt: "2026-09-27", status: "open" }, "today", afterMidnight)).toBe(
+        false
+      );
+      expect(inDueBucket({ dueAt: "2026-10-04", status: "open" }, "week", lateEvening)).toBe(true);
+      expect(inDueBucket({ dueAt: "2026-10-05", status: "open" }, "week", afterMidnight)).toBe(
+        true
+      );
+      expect(inDueBucket({ dueAt: "2026-10-05", status: "open" }, "week", lateEvening)).toBe(false);
+    }
+  );
 });

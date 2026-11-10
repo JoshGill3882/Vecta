@@ -7,6 +7,7 @@ import {
   normaliseQuery,
   type TaskNarrowing,
 } from "@/src/features/tasks/lib/task-search";
+import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 
 /** The narrowing controls' state, and the criteria they add up to. */
@@ -19,6 +20,10 @@ export interface TaskNarrowingState {
   categoryIds: ReadonlySet<string | null>;
   /** Replaces the selection. Ids of categories that no longer exist are dropped. */
   setCategoryIds: (categoryIds: ReadonlySet<string | null>) => void;
+  /** Selected due-date options. */
+  dueBuckets: ReadonlySet<DueBucket>;
+  /** Replaces the due-date selection. */
+  setDueBuckets: (dueBuckets: ReadonlySet<DueBucket>) => void;
   /** The criteria to narrow a task list by. */
   narrowing: TaskNarrowing;
   /** Whether any control is currently narrowing the list. */
@@ -27,7 +32,8 @@ export interface TaskNarrowingState {
   clear: () => void;
 }
 
-/** Owns what narrows the task list: the query and the selected categories.
+/** Owns what narrows the task list: the query, the selected categories and the
+ * selected due-date options.
  *
  * The selection is pruned against the categories that exist rather than
  * corrected once one goes missing. A category deleted while selected would
@@ -42,6 +48,7 @@ export interface TaskNarrowingState {
 export function useTaskNarrowing(categories: CategoryDTO[]): TaskNarrowingState {
   const [query, setQuery] = useState("");
   const [categoryIds, setCategoryIds] = useState<ReadonlySet<string | null>>(() => new Set());
+  const [dueBuckets, setDueBuckets] = useState<ReadonlySet<DueBucket>>(() => new Set());
 
   const selected = useMemo(() => {
     const known = new Set<string | null>([null]);
@@ -51,8 +58,8 @@ export function useTaskNarrowing(categories: CategoryDTO[]): TaskNarrowingState 
 
   const needle = normaliseQuery(query);
   const narrowing = useMemo<TaskNarrowing>(
-    () => ({ needle, categoryIds: selected }),
-    [needle, selected]
+    () => ({ needle, categoryIds: selected, dueBuckets }),
+    [needle, selected, dueBuckets]
   );
 
   return {
@@ -60,11 +67,14 @@ export function useTaskNarrowing(categories: CategoryDTO[]): TaskNarrowingState 
     setQuery,
     categoryIds: selected,
     setCategoryIds,
+    dueBuckets,
+    setDueBuckets,
     narrowing,
     narrowed: isNarrowing(narrowing),
     clear: () => {
       setQuery("");
       setCategoryIds(new Set());
+      setDueBuckets(new Set());
     },
   };
 }

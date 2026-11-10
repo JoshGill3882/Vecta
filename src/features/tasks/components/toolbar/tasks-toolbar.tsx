@@ -1,11 +1,13 @@
 "use client";
 
-import { TaskSort } from "../../lib/task-sort";
-import { CategoryFilter } from "./category-filter";
-import { FilterSheet } from "./filter-sheet";
-import { SearchField } from "./search-field";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
-import { SortMenu } from "./sort-menu";
+import { CategoryFilter } from "@/src/features/tasks/components/toolbar/category-filter";
+import { DueFilter } from "@/src/features/tasks/components/toolbar/due-filter";
+import { FilterSheet } from "@/src/features/tasks/components/toolbar/filter-sheet";
+import { SearchField } from "@/src/features/tasks/components/toolbar/search-field";
+import { SortMenu } from "@/src/features/tasks/components/toolbar/sort-menu";
+import type { DueBucket } from "@/src/features/tasks/lib/due-date";
+import type { TaskSort } from "@/src/features/tasks/lib/task-sort";
 
 /** The row of controls above the task list.
  *
@@ -25,6 +27,8 @@ export function TasksToolbar({
   categories,
   selectedCategoryIds,
   onSelectedCategoryIdsChange,
+  selectedDueBuckets,
+  onSelectedDueBucketsChange,
   sort,
   onSortChange,
 }: {
@@ -33,6 +37,8 @@ export function TasksToolbar({
   categories: CategoryDTO[];
   selectedCategoryIds: ReadonlySet<string | null>;
   onSelectedCategoryIdsChange: (next: ReadonlySet<string | null>) => void;
+  selectedDueBuckets: ReadonlySet<DueBucket>;
+  onSelectedDueBucketsChange: (next: ReadonlySet<DueBucket>) => void;
   sort: TaskSort;
   onSortChange: (sort: TaskSort) => void;
 }) {
@@ -44,14 +50,18 @@ export function TasksToolbar({
         categories={categories}
         selectedCategoryIds={selectedCategoryIds}
         onSelectedCategoryIdsChange={onSelectedCategoryIdsChange}
+        selectedDueBuckets={selectedDueBuckets}
+        onSelectedDueBucketsChange={onSelectedDueBucketsChange}
         sort={sort}
         onSortChange={onSortChange}
         className="min-[720px]:hidden"
       />
 
       {/* `contents` removes the wrapper's own box, so on desktop the controls
-          are flex items of the row itself and wrap exactly as before. */}
+          are flex items of the row itself and wrap exactly as before. Due sits first
+          of the filters, as the one that answers what needs attention now. */}
       <div className="hidden min-[720px]:contents">
+        <DueFilter selected={selectedDueBuckets} onSelectedChange={onSelectedDueBucketsChange} />
         <CategoryFilter
           categories={categories}
           selected={selectedCategoryIds}

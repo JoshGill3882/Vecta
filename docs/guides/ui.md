@@ -4,9 +4,9 @@ How the frontend is put together:
 the component toolkit, where components live, how to add a page, and how theming works.
 Task-oriented — for what is planned next see [`ROADMAP.md`](../../ROADMAP.md).
 
-The interface is built to match a design file held in Claude Design:
-<https://claude.ai/design/p/959c7f14-0ec7-4102-a374-1d60ad78582e?via=share>.
-It covers the login screen, the app shell, the task list and its cards, the create and edit modal, and the categories view.
+The interface is built to match a design published as an artifact:
+<https://claude.ai/artifact/AHgAaTj88FQ7JagDMm29CG>.
+It covers the login screen, the app shell, the task list with its toolbar, filters and cards, the create and edit modal, and the categories view.
 Build new UI to match it, and change the design first where the built UI needs to diverge from it.
 
 ## Toolkit
@@ -174,7 +174,7 @@ The task list is narrowed **in the browser, never on the server**.
 The trigger for revisiting that is the payload of fetching every task becoming a problem — not filtering feeling slow.
 
 **The matching logic lives in `src/features/tasks/lib/task-search.ts`, not in the view.**
-It is a pure module over `TaskDTO[]` — no state, no DOM, no clock.
+It is a pure module over `TaskDTO[]` — no state, no DOM, no clock: the due-date filter is handed the moment to measure from rather than reading it.
 That is deliberate: a pure module is tested by calling it, with nothing to render or mock.
 Logic left inside a component can only be reached through a [component test](./testing.md#component-tests-react-in-jsdom) that renders it, which is slower to write and further from the case under test.
 Anything with an edge case worth pinning down belongs in that module; the component keeps the wiring only.
@@ -202,6 +202,26 @@ Several things here are easy to get wrong.
   None of those rules is about search, so none of them should test a query directly.
   A control that narrows the list adds a criterion to `TaskNarrowing` and the rules follow; a control that tests its own state is a control the other rules do not know about.
   Uncategorised is `null` in the selected set rather than a sentinel string, because `TaskDTO.categoryId` is already `string | null` and a set holding `null` matches an uncategorised task directly.
+- **Options within one filter widen the list; separate filters narrow it.**
+  Ticking Overdue and No due date shows tasks in either, while a query, a due-date option and a category must all match at once.
+  Reading two ticks in one menu as "both" would make most pairs of options match nothing.
+- **Every due-date decision in a render is measured from one `now`.**
+  `tasks-view.tsx` takes the time once and passes the same value to `narrowTasks` and to every card.
+  Two clocks read a moment apart can straddle midnight or a due time, leaving a card marked overdue that the Overdue filter leaves out.
+- **The due-date options overlap and leave gaps, on purpose.**
+  `inDueBucket` in `src/features/tasks/lib/due-date.ts` is the single definition.
+  A task due earlier today is both overdue and due today.
+  Next 7 days runs from today to seven days ahead, so the task form's "+1 week" date falls inside it, and leaves out anything overdue.
+  A task due next month is in none of them.
+  A closed task is only ever in No due date, since the other options ask what still needs doing.
+- **A coloured option gives its colour up while its row is highlighted.**
+  Overdue's red and Due today's orange both hold 4.5:1 against the menu and the sheet, but the red falls short against the highlighted row, so the row's own text colour takes over there (`toneOnRow` in `filter-sheet.tsx`; Radix's highlight does the same in the menu).
+  The thresholds are pinned in `due-pill-contrast.test.ts`, so a palette change that breaks them fails a test rather than a reader.
+- **What narrows the list is named in a row of chips** (`active-filters.tsx`), each removable on its own, with Clear all at the end.
+  Chips follow the menus' order rather than the order they were picked, so a chip does not move as others come and go.
+  Removing one unmounts the button that was pressed, so focus moves first to the next chip, then the previous one, then the search field.
+  From 720px up the chips wrap; below it they stay on one line that scrolls sideways, with Clear all outside the scroll, so the row always costs one line above the list.
+  The scrolling list carries padding cancelled by a negative margin, because a scroll container clips the focus rings of what it holds.
 - **The no-results state names and clears whatever is actually narrowing.**
   A message blaming a search when a filter emptied the list is wrong, and a button that clears one control leaves a list that still looks broken.
   Both are derived from which controls are active, so adding a control means extending that description rather than leaving it describing the one case it was written for.

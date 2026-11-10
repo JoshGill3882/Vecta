@@ -11,6 +11,8 @@ import {
 } from "@/src/shared/components/ui/collapsible";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "@/src/shared/components/ui/sheet";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { DUE_OPTIONS } from "@/src/features/tasks/components/toolbar/due-options";
+import { DUE_BUCKETS, type DueBucket } from "@/src/features/tasks/lib/due-date";
 import { cn } from "@/src/shared/lib/utils";
 import { toggled } from "@/src/features/tasks/lib/selection";
 import { TASK_SORTS, type TaskSort } from "@/src/features/tasks/lib/task-sort";
@@ -20,9 +22,9 @@ type Selection = ReadonlySet<string | null>;
 
 /** Summarises a selection for a collapsed section's header.
  *
- * @param selection The selected option.
+ * @param selection The selected options.
  * @param labelOf Names one option.
- * @returns Nothing for an inactive filter, the options's name for one, a count for several.
+ * @returns Nothing for an inactive filter, the option's name for one, a count for several.
  */
 function summarise<T>(selection: ReadonlySet<T>, labelOf: (id: T) => string) {
   if (selection.size === 0) return "";
@@ -51,7 +53,7 @@ function SheetSection({
           <span className="text-foreground text-[14.5px] font-semibold tracking-[-0.01em]">
             {title}
           </span>{" "}
-          <span className="text-primary min-w-0 flex-1 truncate text-right text-[13,5px]">
+          <span className="text-primary min-w-0 flex-1 truncate text-right text-[13.5px]">
             {summary}
           </span>
           <ChevronDown className="text-text-3 size-4 shrink-0 transition-transform duration-[180ms] group-data-[state=open]:rotate-180" />
@@ -82,7 +84,7 @@ function OptionRow({
   children: ReactNode;
 }) {
   return (
-    <label className="text-text-2 hover:bg-surface-3 has-focus-visible:bg-surface-3 has-focus-visible:ring-ring flex min-h-11 cursor-pointer items-center gap-[9px] rounded-[7px] px-2.5 text-[13.5px] transition-colors has-checked:text-foreground has-focus-visible:ring-2">
+    <label className="group/option text-text-2 hover:bg-surface-3 has-focus-visible:bg-surface-3 has-focus-visible:ring-ring flex min-h-11 cursor-pointer items-center gap-[9px] rounded-[7px] px-2.5 text-[13.5px] transition-colors has-checked:text-foreground has-focus-visible:ring-2">
       <input type={type} name={name} checked={checked} onChange={onChange} className="sr-only" />
       {type === "checkbox" ? (
         <span
@@ -110,6 +112,18 @@ function OptionRow({
   );
 }
 
+/** A due-date option's colour, given up for the row's own text while the row is
+ * highlighted, as the desktop menu does: against the highlight, the overdue red
+ * falls short of 4.5:1.
+ *
+ * @param tone The option's colour class, if it has one.
+ * @returns The classes for its icon and label, or nothing for an uncoloured option.
+ */
+function toneOnRow(tone: string | undefined): string | undefined {
+  if (!tone) return undefined;
+  return cn(tone, "group-hover/option:text-inherit group-has-focus-visible/option:text-inherit");
+}
+
 /** Every filter and the sort order behind one button, for screens too narrow to hold them in a row.
  *
  * Changes apply as they are made rather than on Done: the list is right there
@@ -124,6 +138,8 @@ export function FilterSheet({
   categories,
   selectedCategoryIds,
   onSelectedCategoryIdsChange,
+  selectedDueBuckets,
+  onSelectedDueBucketsChange,
   sort,
   onSortChange,
   className,
@@ -131,6 +147,8 @@ export function FilterSheet({
   categories: CategoryDTO[];
   selectedCategoryIds: Selection;
   onSelectedCategoryIdsChange: (next: Selection) => void;
+  selectedDueBuckets: ReadonlySet<DueBucket>;
+  onSelectedDueBucketsChange: (next: ReadonlySet<DueBucket>) => void;
   sort: TaskSort;
   onSortChange: (sort: TaskSort) => void;
   className?: string;
@@ -139,7 +157,7 @@ export function FilterSheet({
 
   // Sort is left out: it reorders the list rather than narrowing it, so it
   // never hides anything a reader would need the badge to explain.
-  const active = selectedCategoryIds.size;
+  const active = selectedDueBuckets.size + selectedCategoryIds.size;
 
   /** Names a selected category, or Uncategorised for `null`.
    *
@@ -149,6 +167,12 @@ export function FilterSheet({
   function categoryName(id: string | null) {
     if (id === null) return "Uncategorised";
     return categories.find((category) => category.id === id)?.name ?? "";
+  }
+
+  /** Clears every filter, leaving the sort as it is. */
+  function clearFilters() {
+    onSelectedDueBucketsChange(new Set());
+    onSelectedCategoryIdsChange(new Set());
   }
 
   const sortLabel = (TASK_SORTS.find((option) => option.id === sort) ?? TASK_SORTS[0]).label;
@@ -201,6 +225,29 @@ export function FilterSheet({
         </div>
 
         <div className="min-h-0 overflow-y-auto overscroll-contain px-2.5 pb-2.5">
+          <SheetSection
+            title="Due"
+            summary={summarise(selectedDueBuckets, (bucket) => DUE_OPTIONS[bucket].label)}
+          >
+            {DUE_BUCKETS.map((bucket) => {
+              const { label, icon: Icon, tone } = DUE_OPTIONS[bucket];
+              return (
+                <OptionRow
+                  key={bucket}
+                  type="checkbox"
+                  checked={selectedDueBuckets.has(bucket)}
+                  onChange={() => onSelectedDueBucketsChange(toggled(selectedDueBuckets, bucket))}
+                >
+                  <Icon
+                    aria-hidden
+                    className={cn("size-3.5 shrink-0", toneOnRow(tone) ?? "text-text-3")}
+                  />
+                  <span className={toneOnRow(tone)}>{label}</span>
+                </OptionRow>
+              );
+            })}
+          </SheetSection>
+
           <SheetSection title="Category" summary={summarise(selectedCategoryIds, categoryName)}>
             {categories.map((category) => (
               <OptionRow
@@ -252,7 +299,7 @@ export function FilterSheet({
             variant="outline"
             className="h-11"
             disabled={active === 0}
-            onClick={() => onSelectedCategoryIdsChange(new Set())}
+            onClick={clearFilters}
           >
             Clear filters
           </Button>

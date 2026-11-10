@@ -10,26 +10,50 @@ import { Button } from "@/src/shared/components/ui/button";
  */
 export const tasksEmptyStateHeadingId = "tasks-empty-state-heading";
 
+/** Which filters are narrowing the list, beside any search. */
+export interface NoMatchFilters {
+  /** Any due-date option is selected. */
+  byDue: boolean;
+  /** Any category is selected. */
+  byCategory: boolean;
+}
+
+/** Names the filters in force, in the toolbar's order.
+ *
+ * @param filters Which filters are in force.
+ * @returns A phrase such as "the selected due dates and categories", or null
+ *   when no filter is in force.
+ */
+function selectedFilters(filters: NoMatchFilters): string | null {
+  const names: string[] = [];
+  if (filters.byDue) names.push("due dates");
+  if (filters.byCategory) names.push("categories");
+  return names.length > 0 ? `the selected ${names.join(" and ")}` : null;
+}
+
 /** Copy for the no-results state.
  *
  * It names the controls actually narrowing the list, so the message cannot
- * blame a search when a filter is what emptied it, and the action says exactly
- * what it will clear.
+ * blame a search when a filter is what emptied it, or one filter for what
+ * another did, and the action says exactly what it will clear.
  *
  * @param query The query as typed.
- * @param byCategory Whether any category is selected.
+ * @param filters Which filters are in force.
  * @returns The sentence to show, and the label for the control that clears it.
  */
-export function describeNoMatches(query: string, byCategory: boolean) {
+export function describeNoMatches(query: string, filters: NoMatchFilters) {
   const trimmed = query.trim();
-  if (trimmed && byCategory) {
+  const selected = selectedFilters(filters);
+  if (trimmed && selected) {
     return {
-      detail: `Nothing matches “${trimmed}” in the selected categories.`,
+      detail: `Nothing matches “${trimmed}” in ${selected}.`,
       action: "Clear search and filters",
     };
   }
   if (trimmed) return { detail: `Nothing matches “${trimmed}”.`, action: "Clear search" };
-  return { detail: "No tasks in the selected categories.", action: "Clear filters" };
+  // Something must be narrowing for the list to be empty with tasks in it, so
+  // the fallback is never shown; it keeps the sentence whole if it ever is.
+  return { detail: `No tasks in ${selected ?? "the selected filters"}.`, action: "Clear filters" };
 }
 
 /** The task list standing in for itself when it has nothing to show.

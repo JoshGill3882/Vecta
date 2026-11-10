@@ -1,8 +1,7 @@
 "use client";
 
-import { ChevronDownIcon, TagIcon } from "lucide-react";
+import { TagIcon } from "lucide-react";
 
-import { Button } from "@/src/shared/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -12,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/src/shared/components/ui/dropdown-menu";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { FilterTrigger } from "@/src/features/tasks/components/toolbar/filter-trigger";
 import { toggled } from "@/src/features/tasks/lib/selection";
 
 /** `null` is the Uncategorised option, matching how a task stores its absence. */
@@ -47,16 +47,7 @@ export function CategoryFilter({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={selected.size > 0 ? "secondary" : "outline"}>
-          <TagIcon />
-          Category
-          {selected.size > 0 && (
-            <span className="bg-foreground/10 min-w-[18px] rounded-full px-1.5 text-[11px] leading-[18px] font-semibold">
-              {selected.size}
-            </span>
-          )}
-          <ChevronDownIcon className="text-text-3 transition-transform duration-150 group-aria-expanded/button:rotate-180" />
-        </Button>
+        <FilterTrigger icon={TagIcon} label="Category" count={selected.size} />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent className="max-h-[280px] w-[232px]">

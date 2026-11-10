@@ -25,6 +25,7 @@ import {
   TasksEmptyState,
   tasksEmptyStateHeadingId,
 } from "@/src/features/tasks/components/tasks-empty-state";
+import { ActiveFilters } from "@/src/features/tasks/components/toolbar/active-filters";
 import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
 import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
@@ -89,17 +90,21 @@ export function TasksView({
 
   const { value: sort, set: setSort } = useTaskSort(initialSort);
 
-  // Bucket once per data change rather than filtering the list once per section,
-  // then put each bucket in the chosen order.
-  const { byStatus, matchCount } = useMemo(() => {
-    const matched = narrowTasks(tasks, narrowing.narrowing);
-    const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
-    for (const task of matched) buckets.get(task.status)?.push(task);
-    return {
-      byStatus: new Map([...buckets].map(([status, bucket]) => [status, sortTasks(bucket, sort)])),
-      matchCount: matched.length,
-    };
-  }, [tasks, narrowing.narrowing, sort]);
+  // One "now" per render, so every card measures its due date against the same
+  // moment the due-date filter does.
+  const now = new Date();
+
+  // Bucket once per render rather than filtering the list once per section, then
+  // put each bucket in the chosen order. Not memoised: the due-date filter reads
+  // the clock, so the result can change on any render, and narrowing a list
+  // already in memory costs less than deciding when it may be reused.
+  const matched = narrowTasks(tasks, narrowing.narrowing, now);
+  const buckets = new Map(TASK_STATUSES.map((status) => [status.id, [] as TaskDTO[]]));
+  for (const task of matched) buckets.get(task.status)?.push(task);
+  const byStatus = new Map(
+    [...buckets].map(([status, bucket]) => [status, sortTasks(bucket, sort)])
+  );
+  const matchCount = matched.length;
 
   /** Creates or updates a task, depending on whether one is being edited.
    *
@@ -157,10 +162,10 @@ export function TasksView({
     setFormOpen(true);
   }
 
-  const noMatches = describeNoMatches(narrowing.query, narrowing.categoryIds.size > 0);
-
-  // One "now" per render, so every card measures its due date against the same moment.
-  const now = new Date();
+  const noMatches = describeNoMatches(narrowing.query, {
+    byDue: narrowing.dueBuckets.size > 0,
+    byCategory: narrowing.categoryIds.size > 0,
+  });
 
   return (
     <section>
@@ -185,15 +190,20 @@ export function TasksView({
       </header>
 
       {tasks.length > 0 && (
-        <TasksToolbar
-          query={narrowing.query}
-          onQueryChange={narrowing.setQuery}
-          categories={categories}
-          selectedCategoryIds={narrowing.categoryIds}
-          onSelectedCategoryIdsChange={narrowing.setCategoryIds}
-          sort={sort}
-          onSortChange={setSort}
-        />
+        <>
+          <TasksToolbar
+            query={narrowing.query}
+            onQueryChange={narrowing.setQuery}
+            categories={categories}
+            selectedCategoryIds={narrowing.categoryIds}
+            onSelectedCategoryIdsChange={narrowing.setCategoryIds}
+            selectedDueBuckets={narrowing.dueBuckets}
+            onSelectedDueBucketsChange={narrowing.setDueBuckets}
+            sort={sort}
+            onSortChange={setSort}
+          />
+          <ActiveFilters narrowing={narrowing} categories={categories} />
+        </>
       )}
 
       {tasks.length === 0 ? (

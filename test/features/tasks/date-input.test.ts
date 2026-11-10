@@ -192,7 +192,10 @@ describe("parseDateInput", () => {
 describe("parseDateInput across timezones", () => {
   const original = process.env.TZ;
   afterEach(() => {
-    process.env.TZ = original;
+    // Assigning undefined would store the string "undefined", which Node reads
+    // as UTC, leaving every later test in the file in the wrong zone.
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
   });
 
   // "Today" is the reader's own calendar day. Building the key from UTC would hand
