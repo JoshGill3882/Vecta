@@ -2,7 +2,8 @@
 
 > A self-hosted, open-source task management web app — built for individuals who want to own their data.
 
-**Status:** v1.0.0 released.
+[![Latest release](https://img.shields.io/github/v/release/JoshGill3882/Vecta)](https://github.com/JoshGill3882/Vecta/releases/latest)
+
 See [`ROADMAP.md`](./ROADMAP.md) for what comes next.
 
 ![Task list](./docs/images/task-list.png)
