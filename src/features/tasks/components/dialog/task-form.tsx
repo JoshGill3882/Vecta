@@ -9,7 +9,9 @@ import { Input } from "@/src/shared/components/ui/input";
 import { Label } from "@/src/shared/components/ui/label";
 import { Textarea } from "@/src/shared/components/ui/textarea";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import type { FailureHandler } from "@/src/shared/hooks/use-server-action";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
+import { splitFieldErrors } from "@/src/shared/lib/field-errors";
 import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 
 import { CategorySelect } from "@/src/features/tasks/components/dialog/category-select";
@@ -25,6 +27,19 @@ import { StatusPicker } from "@/src/features/tasks/components/dialog/status-pick
 export type TaskFormValues = z.output<typeof taskCreateSchema>;
 /** The form values before Zod parses them, which is what the resolver sees. */
 type TaskFormInput = z.input<typeof taskCreateSchema>;
+
+/** Saves the form's values, resolving the saved task or `null` when the save failed.
+ *
+ * `onFailure` is the form's own reporting, for the saver to hand a failure to:
+ * it places each field error under its field and returns what is left over.
+ */
+export type TaskSubmit = (
+  values: TaskFormValues,
+  onFailure: FailureHandler
+) => Promise<TaskDTO | null>;
+
+/** Every field the form shows, which is every field a server error can be placed under. */
+const TASK_FORM_FIELDS = taskCreateSchema.keyof().options;
 
 /** Shared styling for every field label in the form. */
 const LABEL_CLASS = "text-text-2 mb-[7px] text-[12.5px] font-medium";
@@ -43,7 +58,7 @@ export function TaskForm({
 }: {
   task?: TaskDTO;
   categories: CategoryDTO[];
-  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
+  onSubmit: TaskSubmit;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
   onSaved: (task: TaskDTO) => void;
   onCancel: () => void;
@@ -75,8 +90,17 @@ export function TaskForm({
   // rather than a button that silently does nothing.
   const saveDisabled = isSubmitting || (isEdit && !isDirty);
 
+  // A server error is set on its field like a client-side one, so it shows in
+  // the same place and clears the same way: once the form has been submitted,
+  // editing a field re-validates it, which replaces the server's message.
   const submit = form.handleSubmit(async (values) => {
-    const saved = await onSubmit(values);
+    const saved = await onSubmit(values, (failure) => {
+      const { placed, remainder } = splitFieldErrors(failure, TASK_FORM_FIELDS);
+      placed.forEach(([field, message], index) => {
+        form.setError(field, { type: "server", message }, { shouldFocus: index === 0 });
+      });
+      return remainder;
+    });
     if (saved) onSaved(saved);
   });
 

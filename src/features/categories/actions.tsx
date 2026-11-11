@@ -36,7 +36,7 @@ export async function createCategoryAction(
 
 /** Server Action for updating a Category
  *
- * @param id ID of the Category being deleted
+ * @param id ID of the Category being updated
  * @param _prev The previous form state, which this replaces.
  * @param formData Form data from the page
  * @returns ActionResult with new CategoryDTO or Error

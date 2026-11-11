@@ -8,11 +8,13 @@ they authenticate, [validate](./validation.md) untrusted input, call one service
 
 - `src/features/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
 - `src/features/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
-- `src/shared/lib/result.ts` — the `ActionResult<T>` / `FormState<T>` types + `toActionError()` translator
+- `src/shared/lib/result.ts` — the `ActionResult<T>` / `ActionFailure` / `FormState<T>` types + `toActionError()` translator
 - `src/shared/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
+- `src/shared/hooks/use-server-action.ts` — `useServerAction()`, which runs an action called as a promise and reports its outcome
 
 > **`"use server"`.** The directive at the top of each file is what turns every exported function into a Server Action.
-> It must be the first line — actions are co-located with the routes they serve (`app/(app)/`, `app/(app)/categories/`) rather than in a shared folder.
+> It must be the first line.
+> Each feature keeps its actions in its own `actions.tsx`, beside the components that call them.
 
 ## The return contract
 
@@ -29,11 +31,11 @@ export type ActionResult<T> =
 - **`ok: false`** — `error` is a user-facing message.
   Two optional companions:
   - `code` — a machine-readable code.
-    `"NOT_FOUND"` / `"CONFLICT"` come from an
-    anticipated `DomainError`; `"UNAUTHENTICATED"` is returned by the auth gate (see
-    below).
-  - `fieldErrors` — Zod's field-keyed messages, present when input validation
-    failed, so a form can render an error next to each input.
+    `"NOT_FOUND"` / `"CONFLICT"` come from an anticipated `DomainError`;
+    `"UNAUTHENTICATED"` is returned by the auth gate (see below).
+  - `fieldErrors` — Zod's field-keyed messages, present when input validation failed, so a form can render an error next to each input.
+
+`ActionFailure` names the `ok: false` half on its own, for code that only ever handles failures.
 
 Because the auth check **returns** rather than redirecting, the union is _total_:
 every path an action can take produces an `ActionResult`, so a caller never has a dead branch and never has to catch.
@@ -41,13 +43,18 @@ every path an action can take produces an `ActionResult`, so a caller never has 
 A client renders it like this — no `try/catch` needed:
 
 ```tsx
-const result = await createTaskAction(formData);
+const result = await createTaskAction(values);
 if (!result.ok) {
-  // show result.error (and result.fieldErrors under each field, if present)
+  // show result.error, and result.fieldErrors under each field if present
 } else {
   // use result.data (a TaskDTO)
 }
 ```
+
+In practice a component calling an action as a promise goes through `useServerAction()` rather than branching by hand.
+It toasts the error and stops on a failure, or toasts the success and refreshes the route.
+A form that places field errors itself passes `onFailure`: it receives the failure in place of the toast and returns what is still left to report, which is then toasted, or `null` if nothing is.
+How the task form uses it is in [Forms](./ui.md#forms).
 
 ## The anatomy of an action
 
@@ -57,16 +64,13 @@ Every mutation follows the same five steps.
 ```ts
 "use server";
 
-export async function createTaskAction(
-  _prev: FormState<TaskDTO>, // previous state, threaded in by useActionState (unused)
-  formData: FormData
-): Promise<ActionResult<TaskDTO>> {
+export async function createTaskAction(input: unknown): Promise<ActionResult<TaskDTO>> {
   // 1. auth gate — returns a result, never throws/redirects (keeps the union total)
   const session = await getSession();
   if (!session) return { ok: false, error: "You must be signed in", code: "UNAUTHENTICATED" };
 
   // 2. validate untrusted input against the Zod schema BEFORE the service
-  const result = validate(taskCreateSchema, Object.fromEntries(formData));
+  const result = validate(taskCreateSchema, input);
   if (!result.success)
     return { ok: false, error: "Invalid input", fieldErrors: result.fieldErrors };
 
@@ -80,8 +84,13 @@ export async function createTaskAction(
 }
 ```
 
-`update*` actions insert the `id` **before** `_prev` (`(id, _prev, formData)`) and guard it (`if (!id) return { ok: false, error: "Missing … ID" }`) before validating the partial body.
-`delete*` actions take **only an `id`** — see [Signatures & `useActionState`](#signatures--useactionstate) for why they skip `_prev`.
+`input` is `unknown` on purpose.
+A Server Action is a public endpoint anyone can call, so the client's own validation is a convenience and never a guarantee;
+`unknown` stops the compiler letting the action read a field before `validate()` has vouched for it.
+
+`update*` actions take the `id` first and guard it (`if (!id) return { ok: false, error: "Missing … ID" }`) before validating the partial body.
+`delete*` actions take **only an `id`**.
+What else an action takes depends on how its form calls it, below.
 
 ### The auth gate returns, it doesn't redirect
 
@@ -91,7 +100,21 @@ The `requireSession()` redirect helper is still the right tool for guarding **pa
 
 ### Signatures & `useActionState`
 
-The leading `_prev` exists so the create/update actions match the shape React's [`useActionState`](https://react.dev/reference/react/useActionState) hook calls them with — `(previousState, formData) => nextState`.
+An action's signature follows how its form submits, which is one of the two [form patterns](./ui.md#forms):
+
+| Action                                     | Signature               | Why                                                                       |
+| ------------------------------------------ | ----------------------- | ------------------------------------------------------------------------- |
+| `createTaskAction`                         | `(input)`               | called as a promise by the react-hook-form task form, with a plain object |
+| `updateTaskAction`                         | `(id, input)`           | same, with the `id` alongside                                             |
+| `createCategoryAction`                     | `(_prev, formData)`     | driven by `useActionState` in the category editor                         |
+| `updateCategoryAction`                     | `(id, _prev, formData)` | same, with `id` bound first via `action.bind(null, id)`                   |
+| `deleteTaskAction`, `deleteCategoryAction` | `(id)`                  | called directly from a confirmation — no form state, no field errors      |
+
+The task actions take a plain object because `FormData` carries only strings, so it has no way to say `categoryId: null`, the value that clears a task's category.
+A Server Action is an ordinary async function, and Next serialises whatever it is handed;
+`FormData` is only forced on an action by the hook.
+
+The leading `_prev` on the category actions exists so they match the shape React's [`useActionState`](https://react.dev/reference/react/useActionState) hook calls them with — `(previousState, formData) => nextState`.
 The hook feeds each action whatever it returned last time; on first render that's the initial state.
 Its type is:
 
@@ -100,24 +123,12 @@ Its type is:
 export type FormState<T> = ActionResult<T> | null; // null = idle / not yet submitted
 ```
 
-One generic alias covers every form — vary only `T`.
+One generic alias covers every such form — vary only `T`.
 The `null` is the idle value for the first render, before any submit has produced an `ActionResult`.
 
 The actions **never read `_prev`** (hence the underscore):
 each submit recomputes the full result from auth + validation + service, so nothing carries over.
-It's accepted only to satisfy the hook's calling convention.
-
-Three signature shapes, by how each is invoked:
-
-| Action   | Signature               | Why                                                     |
-| -------- | ----------------------- | ------------------------------------------------------- |
-| `create` | `(_prev, formData)`     | driven by `useActionState`                              |
-| `update` | `(id, _prev, formData)` | same, with `id` bound first via `action.bind(null, id)` |
-| `delete` | `(id)`                  | **not** driven by `useActionState` — no `_prev` needed  |
-
-`delete` keeps a bare `(id)` because a delete button doesn't need form state, field-level errors, or progressive-enhancement:
-it's called directly (e.g. inside a `useTransition`), so imposing the hook's `(prevState, formData)` shape on it would be noise.
-The `_prev` parameter is a requirement of the **hook**, never of being a Server Action.
+It's accepted only to satisfy the hook's calling convention, and is a requirement of the **hook**, never of being a Server Action.
 
 ### Why validate again when the service also validates?
 
@@ -207,7 +218,7 @@ They cover the full contract:
   an unexpected error yields the generic message;
   a signed-out call yields `{ ok: false, code: "UNAUTHENTICATED" }` — **nothing is ever thrown**.
 - **Revalidation** — the right tags are invalidated on success (`create` → list tag only; `update`/`delete` → list + `id` tag; category writes additionally bust `"tasks"`), and _nothing_ is invalidated on a validation failure or a service error.
-- **Previous state** — actions ignore `_prev`; each submit recomputes from scratch.
+- **Previous state** — the category actions ignore `_prev`; each submit recomputes from scratch.
 
 Mocking `updateTag` (rather than the helper) lets the tests verify the real tag names and the create-vs-update/delete distinction end-to-end.
 For the suite's broader conventions, see [Testing patterns](./testing.md).

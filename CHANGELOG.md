@@ -40,6 +40,8 @@ Internal refactors that change nothing observable are not listed.
 
 - On a narrow screen, a **long category name** on the Categories page pushed its task count onto two lines.
   The name now truncates instead, with the full name on hover
+- **A task the server refused to save** said only "Invalid input", without saying which field was wrong.
+  The message now appears under the field it is about, as the form's own checks do, and clears once that field is edited
 
 ## [1.1.0] - 2026-09-21
 

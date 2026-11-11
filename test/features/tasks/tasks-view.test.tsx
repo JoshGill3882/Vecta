@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
@@ -27,9 +28,10 @@ vi.mock("sonner", () => ({
 // The action modules reach Prisma through the service layer, which cannot load
 // in jsdom. Every action a rendered view can invoke is stubbed at the boundary.
 const deleteTaskAction = vi.fn(async () => ({ ok: true as const, data: undefined }));
+const updateTaskAction = vi.fn(async () => ({ ok: true as const, data: null }));
 vi.mock("@/src/features/tasks/actions", () => ({
   createTaskAction: vi.fn(async () => ({ ok: true, data: null })),
-  updateTaskAction: vi.fn(async () => ({ ok: true, data: null })),
+  updateTaskAction: (...args: unknown[]) => updateTaskAction(...(args as [])),
   deleteTaskAction: (...args: unknown[]) => deleteTaskAction(...(args as [])),
 }));
 vi.mock("@/src/features/categories/actions", () => ({
@@ -302,5 +304,92 @@ describe("TasksView due filter", () => {
     expect(screen.queryByRole("list", { name: "Active filters" })).toBeNull();
     expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveProperty("value", "");
     expect(screen.getByRole("status").textContent).toBe("3 tasks across 1 category");
+  });
+});
+
+describe("TasksView errors from a rejected save", () => {
+  /** Opens the task for editing and retitles it, ready to save.
+   *
+   * @param title What to type over the task's title.
+   * @returns The user driving the test, and the task dialog.
+   */
+  async function editTitle(title: string) {
+    const user = userEvent.setup();
+    renderView([task()]);
+
+    await user.click(screen.getByRole("button", { name: "Rate-limit failed login attempts" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Edit" }));
+
+    const input = within(dialog).getByRole("textbox", { name: /Title/ });
+    await user.clear(input);
+    if (title) await user.type(input, title);
+
+    return { user, dialog, input };
+  }
+
+  /** Makes the next update fail the way the server reports it.
+   *
+   * @param error The failure's own message.
+   * @param fieldErrors The field-keyed messages, if the failure has any.
+   */
+  function rejectNextUpdate(error: string, fieldErrors?: Record<string, string[]>) {
+    updateTaskAction.mockResolvedValueOnce({ ok: false, error, fieldErrors } as never);
+  }
+
+  it("shows a field's error under that field, with no toast", async () => {
+    rejectNextUpdate("Invalid input", { title: ["That title is already in use"] });
+    const { user, dialog, input } = await editTitle("Rotate the session secret");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    const message = await within(dialog).findByText("That title is already in use");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")).toBe(message.id);
+    expect(document.activeElement).toBe(input);
+    expect(toast.error).not.toHaveBeenCalled();
+    // A rejected save keeps the form open rather than returning to view mode.
+    expect(within(dialog).getByRole("heading", { name: "Edit task" })).toBeDefined();
+  });
+
+  it("clears the server's message once the field is edited", async () => {
+    rejectNextUpdate("Invalid input", { title: ["That title is already in use"] });
+    const { user, dialog, input } = await editTitle("Rotate the session secret");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+    await within(dialog).findByText("That title is already in use");
+
+    await user.type(input, " again");
+
+    expect(within(dialog).queryByText("That title is already in use")).toBeNull();
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+  });
+
+  it("still reports an error that names no field, as a toast", async () => {
+    rejectNextUpdate("Missing Task ID");
+    const { user, dialog } = await editTitle("Rotate the session secret");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Missing Task ID"));
+    expect(within(dialog).getByRole("heading", { name: "Edit task" })).toBeDefined();
+  });
+
+  it("reports an error for a field the form does not have, rather than dropping it", async () => {
+    rejectNextUpdate("Invalid input", { priority: ["Required"] });
+    const { user, dialog } = await editTitle("Rotate the session secret");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("priority: Required"));
+  });
+
+  it("catches what the client can check before anything is sent", async () => {
+    const { user, dialog } = await editTitle("");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    expect(await within(dialog).findByText("Title is required")).toBeDefined();
+    expect(updateTaskAction).not.toHaveBeenCalled();
   });
 });

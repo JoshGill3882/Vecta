@@ -26,6 +26,7 @@ export const taskCreateSchema = z.object({
   description: z.string().trim().max(2000).optional(),
   status: z.enum(TASK_STATUSES),
   categoryId: z.cuid().nullable().optional(), // string = assign, null = unassign, omitted = leave
+  dueAt: dueAtSchema.nullable().optional(), // the same three shapes, for a due date
 });
 export const taskUpdateSchema = taskCreateSchema.partial();
 ```
@@ -80,15 +81,19 @@ See [Database & service layer](./database.md#defensive-validation-at-the-seam).
 import { validate } from "@/src/shared/lib/validation";
 import { taskCreateSchema } from "@/src/shared/lib/schemas/tasks";
 
-export async function createTaskAction(_prev: unknown, formData: FormData) {
-  const result = validate(taskCreateSchema, Object.fromEntries(formData));
+export async function createTaskAction(input: unknown): Promise<ActionResult<TaskDTO>> {
+  // ...auth gate first
+  const result = validate(taskCreateSchema, input);
   if (!result.success) {
-    return { fieldErrors: result.fieldErrors }; // render next to each field
+    return { ok: false, error: "Invalid input", fieldErrors: result.fieldErrors };
   }
-  await createTask(result.data); // result.data is typed as TaskCreateInput
-  // ...revalidatePath(), redirect, etc.
+  const data = await createTask(result.data); // result.data is typed as TaskCreateInput
+  // ...revalidate, then return { ok: true, data }
 }
 ```
+
+The form places each of those messages under the field it names, and reports anything it cannot place some other way; see [Forms](./ui.md#forms).
+The whole action is in [Server Actions](./server-actions.md#the-anatomy-of-an-action).
 
 ## What validation does _not_ cover
 

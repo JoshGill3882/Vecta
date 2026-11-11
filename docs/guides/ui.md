@@ -36,14 +36,13 @@ The group's layout (`app/(app)/layout.tsx`) renders the top bar, the main conten
 ```text
 app/(app)/
   layout.tsx            top bar + <main> + <Toaster/>
-  page.tsx              Tasks route (/)   — thin: requireSession() → <TasksView/>
-  tasks-view.tsx        the Tasks view
-  actions.tsx           task server actions
-  categories/
-    page.tsx            Categories route (/categories)
-    categories-view.tsx
-    actions.tsx
+  tasks/page.tsx        Tasks route (/tasks) — thin: requireSession(), fetch, <TasksView/>
+  categories/page.tsx   Categories route (/categories)
 ```
+
+`/` redirects to `/tasks` (`next.config.ts`).
+Each route only authenticates, fetches and hands off:
+the view it renders and the actions it calls live with their feature, in `src/features/<feature>/`.
 
 The top bar (`src/shared/components/shell/top-bar.tsx`) is a Server Component.
 Its logout is a plain `<form action={logoutAction}>` — no client JS needed.
@@ -57,7 +56,7 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
 
    ```tsx
    import { requireSession } from "@/src/shared/lib/session";
-   import { WidgetsView } from "./widgets-view";
+   import { WidgetsView } from "@/src/features/widgets/components/widgets-view";
 
    export default async function WidgetsPage() {
      await requireSession(); // redirects to /login if signed out
@@ -65,10 +64,10 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
    }
    ```
 
-2. Put the markup in a co-located view file (`app/(app)/<route>/widgets-view.tsx`).
+2. Put the markup in a view file in the feature's folder (`src/features/widgets/components/widgets-view.tsx`).
    Keep it a Server Component; push only interactive bits into `"use client"` children beside it.
 3. If it needs a nav tab, add an entry to the `TABS` array in `src/shared/components/shell/nav-tabs.tsx`.
-4. Server actions for the route go in a co-located `actions.tsx` — see the [Server Actions guide](./server-actions.md).
+4. Server actions for the feature go in its `actions.tsx` (`src/features/widgets/actions.tsx`) — see the [Server Actions guide](./server-actions.md).
 
 ## Theming
 
@@ -112,8 +111,38 @@ toast.error("Something went wrong");
 
 ## Forms
 
-shadcn's `form` component wraps [react-hook-form](https://react-hook-form.com/).
-Pair it with the Zod schemas from the [validation guide](./validation.md) so the client mirrors the same rules the server enforces — one schema, both sides.
+Two submission patterns are in use, and each fits a different kind of form.
+Which one to reach for depends on where the form's errors come from.
+
+- **[react-hook-form](https://react-hook-form.com/)** for a form with several fields, rules the client can check on its own, and controls that are not native inputs.
+  The task form (`task-form.tsx`) is the reference.
+  Its resolver runs the Zod schema from the [validation guide](./validation.md) that the Server Action also runs, so most mistakes are reported inline before anything is sent — one schema, both sides.
+  `Controller` connects the status picker, the category select and the due-date field, none of which is an `<input>`.
+  The action is called as a promise with a plain object, which is what lets a value be `null`:
+  `FormData` carries only strings, so it has no way to send the `categoryId: null` that clears a task's category.
+- **React's [`useActionState`](https://react.dev/reference/react/useActionState)** for a small form whose main error only the server can find.
+  The category editor (`category-editor.tsx`) is the reference: a duplicate name comes back from the database as a conflict, and the hook hands the editor that result as state with no extra wiring.
+  The action takes `FormData`, in the `(previousState, formData)` shape the hook calls it with (see [Signatures & `useActionState`](./server-actions.md#signatures--useactionstate)).
+
+**A react-hook-form form still shows the server's errors**, because the client cannot check everything: a rule that depends on other rows, or a client schema that has drifted from the server's, gets past the resolver.
+The form hands the saver an `onFailure` for `useServerAction` ([Server Actions](./server-actions.md#the-return-contract)), and in it:
+
+- `splitFieldErrors` (`src/shared/lib/field-errors.ts`) sorts the failure's `fieldErrors` into those naming one of the form's fields and the rest.
+- Each placed error goes on its field with `setError`, focusing the first, so it shows in the same message element as a client-side error.
+  Once the form has been submitted, editing a field re-validates it, which clears the server's message along with any client one.
+- Whatever is left is returned and shown as a toast: an error naming no field, or one keyed to a field the form does not have, with the key attached.
+  A form that has fallen out of step with the server therefore still says what went wrong instead of silently doing nothing.
+
+The category editor reads its result as state instead, showing `fieldErrors.name` under the name field and falling back to the failure's own message.
+
+Neither one is a step towards the other.
+Moving the task form to `useActionState` would lose its inline checks and its `null`s;
+moving the category editor to react-hook-form would gain nothing, since its main error would still come from the server.
+
+`useActionState` is not chosen for progressive enhancement.
+A form can only be submitted without JavaScript if it is in the server-rendered page, and the category editor renders only after a button press.
+
+shadcn's `form` wrapper for react-hook-form is installed (`src/shared/components/ui/form.tsx`), though the task form uses react-hook-form directly with its own label and message markup.
 
 ## Confirmations & destructive actions
 

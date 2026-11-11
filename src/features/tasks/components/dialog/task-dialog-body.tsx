@@ -8,7 +8,7 @@ import { DialogClose, DialogTitle } from "@/src/shared/components/ui/dialog";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
-import { TaskForm, type TaskFormValues } from "@/src/features/tasks/components/dialog/task-form";
+import { TaskForm, type TaskSubmit } from "@/src/features/tasks/components/dialog/task-form";
 import { TaskView } from "@/src/features/tasks/components/dialog/task-view";
 
 /** The dialog contents: its header, and whichever of view or edit is showing.
@@ -27,7 +27,7 @@ export function TaskDialogBody({
 }: {
   task?: TaskDTO;
   categories: CategoryDTO[];
-  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
+  onSubmit: TaskSubmit;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
   onOpenChange: (open: boolean) => void;
   onDelete: (task: TaskDTO) => Promise<boolean>;
@@ -83,7 +83,7 @@ export function TaskDialogBody({
           onSubmit={onSubmit}
           onCreateCategory={onCreateCategory}
           // A save reveals the fresh row in view mode. On failure onSubmit
-          // resolves null, so the form stays put with its inline errors.
+          // resolves null, so the form stays put with its errors.
           onSaved={(saved) => {
             setCurrent(saved);
             setMode("view");

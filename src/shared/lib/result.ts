@@ -9,6 +9,9 @@ export type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; code?: string; fieldErrors?: Record<string, string[]> };
 
+/** The failure half of an action result, for code that only ever handles failures. */
+export type ActionFailure = Extract<ActionResult<never>, { ok: false }>;
+
 /** Turns a thrown error into a failure a caller can report.
  *
  * @param e Whatever was thrown.
