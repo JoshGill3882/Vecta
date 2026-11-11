@@ -104,6 +104,10 @@ in Safari on iOS, tap **Share**, then **Add to Home Screen**.
 Chrome only installs a site from a secure origin, and from a plain `http://` address — a LAN IP included — it adds a bookmark shortcut instead, with a generic icon it draws itself.
 `localhost` counts as secure, but a phone never reaches your server by that name, so in practice the reverse proxy described under [Security](#security) is what makes installing work.
 
+**If something signs you in before Vecta does** — Cloudflare Access, Authelia, Authentik — let `/manifest.webmanifest`, `/icons/*` and `/apple-icon.png` through without it.
+Browsers fetch the manifest without your cookies, so a sign-in in front of it turns the request into a redirect, and the browser falls back to a bookmark shortcut as if there were no manifest at all.
+Those paths serve only the app's name, colours and icons, and Vecta itself already leaves them public.
+
 ---
 
 ## Configuration
