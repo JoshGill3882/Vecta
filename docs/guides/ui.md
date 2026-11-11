@@ -36,14 +36,13 @@ The group's layout (`app/(app)/layout.tsx`) renders the top bar, the main conten
 ```text
 app/(app)/
   layout.tsx            top bar + <main> + <Toaster/>
-  page.tsx              Tasks route (/)   — thin: requireSession() → <TasksView/>
-  tasks-view.tsx        the Tasks view
-  actions.tsx           task server actions
-  categories/
-    page.tsx            Categories route (/categories)
-    categories-view.tsx
-    actions.tsx
+  tasks/page.tsx        Tasks route (/tasks) — thin: requireSession(), fetch, <TasksView/>
+  categories/page.tsx   Categories route (/categories)
 ```
+
+`/` redirects to `/tasks` (`next.config.ts`).
+Each route only authenticates, fetches and hands off:
+the view it renders and the actions it calls live with their feature, in `src/features/<feature>/`.
 
 The top bar (`src/shared/components/shell/top-bar.tsx`) is a Server Component.
 Its logout is a plain `<form action={logoutAction}>` — no client JS needed.
@@ -57,7 +56,7 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
 
    ```tsx
    import { requireSession } from "@/src/shared/lib/session";
-   import { WidgetsView } from "./widgets-view";
+   import { WidgetsView } from "@/src/features/widgets/components/widgets-view";
 
    export default async function WidgetsPage() {
      await requireSession(); // redirects to /login if signed out
@@ -65,10 +64,10 @@ they read `usePathname()` to highlight the active route, and collapse to a segme
    }
    ```
 
-2. Put the markup in a co-located view file (`app/(app)/<route>/widgets-view.tsx`).
+2. Put the markup in a view file in the feature's folder (`src/features/widgets/components/widgets-view.tsx`).
    Keep it a Server Component; push only interactive bits into `"use client"` children beside it.
 3. If it needs a nav tab, add an entry to the `TABS` array in `src/shared/components/shell/nav-tabs.tsx`.
-4. Server actions for the route go in a co-located `actions.tsx` — see the [Server Actions guide](./server-actions.md).
+4. Server actions for the feature go in its `actions.tsx` (`src/features/widgets/actions.tsx`) — see the [Server Actions guide](./server-actions.md).
 
 ## Theming
 
