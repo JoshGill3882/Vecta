@@ -9,6 +9,10 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-11
+
+Due dates, and seeing what is late — and Vecta can now be installed to a phone's home screen.
+
 ### Added
 
 - **Due dates on tasks**, with an optional time of day, set from the task form.
@@ -137,7 +141,8 @@ Either keep the old directory name, or pass `-p task-management-solution` to `do
 - Login attempts are rate-limited, and the password comparison is timing-safe
 - The post-login redirect only accepts same-origin absolute paths
 
-[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v1.1.0...main
+[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v1.2.0...main
+[1.2.0]: https://github.com/JoshGill3882/Vecta/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/JoshGill3882/Vecta/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/JoshGill3882/Vecta/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/JoshGill3882/Vecta/releases/tag/v0.1.0

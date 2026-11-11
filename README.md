@@ -73,13 +73,13 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 Both files come from the newest release, so they match a version that was actually published rather than whatever is currently unreleased.
-Swap `latest` for a version — `releases/download/v1.1.0/…` — to fetch the pair a specific release shipped with.
+Swap `latest` for a version — `releases/download/v1.2.0/…` — to fetch the pair a specific release shipped with.
 
 `-L` is not optional.
 These URLs redirect to the asset, and `curl` without it writes an empty file and exits successfully, which surfaces later as a confusing compose error rather than a download failure.
 
 The app is on <http://localhost:3000>.
-To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.1.0` in `.env`.
+To pin a version instead of tracking `:latest`, set `VECTA_VERSION=v1.2.0` in `.env`.
 
 ### Option 2 — Clone and build
 
@@ -229,7 +229,7 @@ Tags behave as follows:
 | Tag         | Moves                              | Use it if                                         |
 | ----------- | ---------------------------------- | ------------------------------------------------- |
 | `:latest`   | on each non-prerelease release     | you want the newest stable version                |
-| `:v1.0.0`   | never — a version tag is immutable | you want to control exactly when you upgrade      |
+| `:v1.2.0`   | never — a version tag is immutable | you want to control exactly when you upgrade      |
 | `:unstable` | on every push to `main`            | you are testing unreleased work, not self-hosting |
 
 ---

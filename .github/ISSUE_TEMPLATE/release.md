@@ -45,7 +45,7 @@ Prepares, tags and publishes **vX.Y.0**, the release the **vX.Y** milestone targ
 - [ ] **`CHANGELOG.md` links:** `[unreleased]` compares `vX.Y.0...main`, and a new `[X.Y.0]` compares the previous version to `vX.Y.0`
 - [ ] **Version:** `npm version X.Y.0 --no-git-tag-version`, which updates `package.json` and both places `package-lock.json` records it
 - [ ] **`ROADMAP.md`:** what this release ships leaves **Next**, and **Next** points at the following milestone
-- [ ] **Other docs:** nothing else states which version is current (the README shows it as a badge, and its example versions illustrate syntax)
+- [ ] **`README.md`:** the versions it recommends pinning name vX.Y.0, the version to run: the `releases/download/…` and `VECTA_VERSION` examples under Self-hosting, and the version-tag row under Upgrading. Nothing else states which version is current; the badge at the top shows the newest release by itself
 - [ ] Pull request merged into `main`
 
 ---

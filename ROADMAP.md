@@ -13,18 +13,8 @@ There are no dates — [see below](#why-there-are-no-dates).
 ## Next
 
 Planned, and the most likely candidates for the release after the current one.
+They are tracked in the [v1.3 milestone](https://github.com/JoshGill3882/Vecta/milestone/11).
 
-- **Due dates, and seeing what is late.** The most-requested shape of task metadata, and the one the list view has an obvious place to show.
-  A task gets an optional due date, set from the task form, with a time on it where the time matters.
-  The card shows it and the list can be sorted by it.
-  A date that has passed is marked on the card, and the list can be narrowed to what is overdue, due today, or due in the coming week.
-  Split across [#114](https://github.com/JoshGill3882/Vecta/issues/114), [#178](https://github.com/JoshGill3882/Vecta/issues/178), [#179](https://github.com/JoshGill3882/Vecta/issues/179), [#115](https://github.com/JoshGill3882/Vecta/issues/115) and [#158](https://github.com/JoshGill3882/Vecta/issues/158).
-- **Deleting a task from the task view.**
-  Delete is reachable only from the list card's overflow menu, so a task read in full has to be dismissed and found again before it can be removed.
-  [#138](https://github.com/JoshGill3882/Vecta/issues/138).
-- **Installing to a phone's home screen.** The layout already works on mobile;
-  what is missing is the manifest that lets a browser install it, so it opens in its own window under an icon that looks like the app rather than one a launcher invents for a bookmark.
-  [#117](https://github.com/JoshGill3882/Vecta/issues/117).
 - **Logging, and a record of what changed.** When something goes wrong on the server, the app says "Something went wrong" and nothing is kept that says why.
   Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
   Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
