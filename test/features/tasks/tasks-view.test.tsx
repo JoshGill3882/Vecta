@@ -29,8 +29,9 @@ vi.mock("sonner", () => ({
 // in jsdom. Every action a rendered view can invoke is stubbed at the boundary.
 const deleteTaskAction = vi.fn(async () => ({ ok: true as const, data: undefined }));
 const updateTaskAction = vi.fn(async () => ({ ok: true as const, data: null }));
+const createTaskAction = vi.fn(async () => ({ ok: true as const, data: null }));
 vi.mock("@/src/features/tasks/actions", () => ({
-  createTaskAction: vi.fn(async () => ({ ok: true, data: null })),
+  createTaskAction: (...args: unknown[]) => createTaskAction(...(args as [])),
   updateTaskAction: (...args: unknown[]) => updateTaskAction(...(args as [])),
   deleteTaskAction: (...args: unknown[]) => deleteTaskAction(...(args as [])),
 }));
@@ -391,5 +392,89 @@ describe("TasksView errors from a rejected save", () => {
 
     expect(await within(dialog).findByText("Title is required")).toBeDefined();
     expect(updateTaskAction).not.toHaveBeenCalled();
+  });
+});
+
+describe("TasksView saving from one dialog", () => {
+  /** Retitles the task in the open form.
+   *
+   * @param user The user driving the test.
+   * @param dialog The task dialog.
+   * @param title The new title.
+   */
+  async function retitle(
+    user: ReturnType<typeof userEvent.setup>,
+    dialog: HTMLElement,
+    title: string
+  ) {
+    const input = within(dialog).getByRole("textbox", { name: /Title/ });
+    await user.clear(input);
+    await user.type(input, title);
+  }
+
+  it("creates a task from New task", async () => {
+    const user = userEvent.setup();
+    renderView([]);
+
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    const dialog = await screen.findByRole("dialog");
+    await retitle(user, dialog, "Rotate the session secret");
+    await user.click(within(dialog).getByRole("button", { name: "Create task" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Task created"));
+    expect(createTaskAction).toHaveBeenCalledTimes(1);
+    expect(updateTaskAction).not.toHaveBeenCalled();
+  });
+
+  // A successful create leaves the dialog open in view mode on the new task, and
+  // its Edit button reopens the form on that task. A save from there once went
+  // to the create action again, writing a second task instead of changing the first.
+  it("updates the task just created when it is edited without reopening", async () => {
+    const created = task({ id: "t-new", title: "Rotate the session secret" });
+    createTaskAction.mockResolvedValueOnce({ ok: true, data: created } as never);
+    const user = userEvent.setup();
+    renderView([]);
+
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    const dialog = await screen.findByRole("dialog");
+    await retitle(user, dialog, created.title);
+    await user.click(within(dialog).getByRole("button", { name: "Create task" }));
+
+    await user.click(await within(dialog).findByRole("button", { name: "Edit" }));
+    await retitle(user, dialog, "Rotate the session secret quarterly");
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(updateTaskAction).toHaveBeenCalledWith(
+        "t-new",
+        expect.objectContaining({ title: "Rotate the session secret quarterly" })
+      )
+    );
+    expect(createTaskAction).toHaveBeenCalledTimes(1);
+    expect(toast.success).toHaveBeenLastCalledWith("Changes saved");
+  });
+
+  it("keeps updating the same task across saves from a dialog opened on it", async () => {
+    const titles = ["Rate-limit login attempts", "Rate-limit every login attempt"];
+    for (const title of titles) {
+      updateTaskAction.mockResolvedValueOnce({ ok: true, data: task({ title }) } as never);
+    }
+    const user = userEvent.setup();
+    renderView([task()]);
+
+    await user.click(screen.getByRole("button", { name: "Rate-limit failed login attempts" }));
+    const dialog = await screen.findByRole("dialog");
+
+    for (const title of titles) {
+      await user.click(await within(dialog).findByRole("button", { name: "Edit" }));
+      await retitle(user, dialog, title);
+      await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+      await waitFor(() =>
+        expect(updateTaskAction).toHaveBeenLastCalledWith("t1", expect.objectContaining({ title }))
+      );
+    }
+
+    expect(updateTaskAction).toHaveBeenCalledTimes(2);
+    expect(createTaskAction).not.toHaveBeenCalled();
   });
 });
