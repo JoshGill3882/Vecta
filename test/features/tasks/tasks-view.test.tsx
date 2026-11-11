@@ -433,13 +433,25 @@ describe("TasksView saving from one dialog", () => {
     const created = task({ id: "t-new", title: "Rotate the session secret" });
     createTaskAction.mockResolvedValueOnce({ ok: true, data: created } as never);
     const user = userEvent.setup();
-    renderView([]);
+    const view = renderView([]);
 
     await user.click(screen.getByRole("button", { name: "New task" }));
-    const dialog = await screen.findByRole("dialog");
-    await retitle(user, dialog, created.title);
-    await user.click(within(dialog).getByRole("button", { name: "Create task" }));
+    await retitle(user, await screen.findByRole("dialog"), created.title);
+    await user.click(screen.getByRole("button", { name: "Create task" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
 
+    // What the refresh does in the app: the route renders the view again with
+    // the created task in the list. The dialog has to survive that.
+    view.rerender(
+      <TasksView
+        tasks={[created]}
+        categories={categories}
+        initialSort="updated_desc"
+        initialCollapsed={SECTION_COLLAPSE_DEFAULTS}
+      />
+    );
+
+    const dialog = screen.getByRole("dialog");
     await user.click(await within(dialog).findByRole("button", { name: "Edit" }));
     await retitle(user, dialog, "Rotate the session secret quarterly");
     await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
