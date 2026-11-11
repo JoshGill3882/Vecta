@@ -94,6 +94,16 @@ docker compose up -d
 
 Either way the container applies database migrations on start, so there is no separate setup step.
 
+### Adding it to a home screen
+
+Vecta can be installed to a phone's home screen, where it opens in a window of its own with no address bar.
+In Chrome on Android, open the menu and choose **Install app** (or **Add to home screen**);
+in Safari on iOS, tap **Share**, then **Add to Home Screen**.
+
+**Serve your instance over HTTPS to install it.**
+Chrome only installs a site from a secure origin, and from a plain `http://` address — a LAN IP included — it adds a bookmark shortcut instead, with a generic icon it draws itself.
+`localhost` counts as secure, but a phone never reaches your server by that name, so in practice the reverse proxy described under [Security](#security) is what makes installing work.
+
 ---
 
 ## Configuration
@@ -131,6 +141,7 @@ Three things are your responsibility as the deployer:
   Reusing the example value from `.env.example` means anyone who has read this repository can forge a session cookie.
 - **Terminate HTTPS yourself.** The container serves plain HTTP.
   Put a reverse proxy (Caddy, nginx, Traefik) in front of it before exposing it beyond your own network — otherwise the password and session cookie travel in the clear.
+  HTTPS is also what lets the app [install to a home screen](#adding-it-to-a-home-screen).
 
 The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NODE_ENV=production` (which the image sets), so it will only be sent over HTTPS in a deployed instance.
 
