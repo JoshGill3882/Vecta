@@ -4,7 +4,10 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import type { ActionResult } from "@/src/shared/lib/result";
+import type { ActionFailure, ActionResult } from "@/src/shared/lib/result";
+
+/** Takes over reporting a failure, returning whatever is still left to report, or null. */
+export type FailureHandler = (failure: ActionFailure) => string | null;
 
 /** What a caller wants done with an action's outcome. */
 export interface RunOptions<T> {
@@ -16,6 +19,13 @@ export interface RunOptions<T> {
    * happen before the list re-renders without the row that had it.
    */
   beforeRefresh?: (data: T) => void;
+  /** Reports a failure in place of the default toast.
+   *
+   * A form uses it to show field errors under the fields they belong to. What
+   * it returns is still shown as a toast, so an error the form cannot place is
+   * reported instead of lost; null means it reported everything itself.
+   */
+  onFailure?: FailureHandler;
 }
 
 /** Runs Server Actions, reporting the outcome and refreshing the route.
@@ -45,7 +55,8 @@ export function useServerAction() {
       const result = await action;
 
       if (!result.ok) {
-        toast.error(result.error);
+        const message = options.onFailure ? options.onFailure(result) : result.error;
+        if (message !== null) toast.error(message);
         return null;
       }
 
