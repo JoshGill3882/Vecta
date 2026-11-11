@@ -26,6 +26,8 @@ Internal refactors that change nothing observable are not listed.
 - **The filters in use are shown as chips** above the list, each removable on its own, with **Clear all** to drop the search and every filter at once.
   On a phone the chips stay on one line that scrolls sideways
 - **Delete a task from the task view**, through the same confirmation as the card's menu, rather than closing it and finding its card first
+- **Install Vecta to your phone's home screen**, where it opens in its own window with no address bar, under its own icon on the app's dark background.
+  Installing needs your instance served over HTTPS; see the README for how
 
 ### Changed
 

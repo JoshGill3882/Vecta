@@ -2,11 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/shared/lib/fonts";
 import { FaviconThemeSync } from "@/src/shared/components/shell/favicon-theme-sync";
-
-/** Product name, used in the document title and the social cards. */
-const title = "Vecta";
-/** One-line description, used in the meta tags and the social cards. */
-const description = "Self-hosted, single-user task management.";
+import { APP_DESCRIPTION as description, APP_NAME as title } from "@/src/shared/lib/app-identity";
 
 /** Document metadata for every route beneath this layout. */
 export const metadata: Metadata = {
