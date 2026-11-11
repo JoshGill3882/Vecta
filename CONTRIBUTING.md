@@ -45,6 +45,21 @@ The template asks for the question, why it matters, the options, and a recommend
 The answer is posted as a comment on the issue, saying what was decided and why the other options lost.
 A pull request then records it in whichever document raised the question — usually [`ARCHITECTURE.md`](./ARCHITECTURE.md) or [`ROADMAP.md`](./ROADMAP.md) — and closes the issue.
 
+## An issue's kind
+
+Every issue template applies a label saying what kind of issue it is, and that label is the only place the kind is recorded:
+
+| Label      | For                                                                     |
+| ---------- | ----------------------------------------------------------------------- |
+| `feature`  | Something new the app should do                                         |
+| `bug`      | Something the app does wrong                                            |
+| `decision` | A question to settle before work can start                              |
+| `chore`    | Maintenance with no change a user of the app would notice, and releases |
+
+GitHub's issue types are not used.
+The types available here are only Task, Bug and Feature, which have no place for a decision and would file a chore as a Task, and setting a type alongside the label would show the same fact twice.
+To list issues of one kind, filter by its label, such as `label:bug`.
+
 ## Once an issue is open
 
 **An issue's body is not rewritten after it is created — the only edit it gets is ticking its boxes.**
