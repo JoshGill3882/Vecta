@@ -125,6 +125,17 @@ Which one to reach for depends on where the form's errors come from.
   The category editor (`category-editor.tsx`) is the reference: a duplicate name comes back from the database as a conflict, and the hook hands the editor that result as state with no extra wiring.
   The action takes `FormData`, in the `(previousState, formData)` shape the hook calls it with (see [Signatures & `useActionState`](./server-actions.md#signatures--useactionstate)).
 
+**A react-hook-form form still shows the server's errors**, because the client cannot check everything: a rule that depends on other rows, or a client schema that has drifted from the server's, gets past the resolver.
+The form hands the saver an `onFailure` for `useServerAction` ([Server Actions](./server-actions.md#the-return-contract)), and in it:
+
+- `splitFieldErrors` (`src/shared/lib/field-errors.ts`) sorts the failure's `fieldErrors` into those naming one of the form's fields and the rest.
+- Each placed error goes on its field with `setError`, focusing the first, so it shows in the same message element as a client-side error.
+  Once the form has been submitted, editing a field re-validates it, which clears the server's message along with any client one.
+- Whatever is left is returned and shown as a toast: an error naming no field, or one keyed to a field the form does not have, with the key attached.
+  A form that has fallen out of step with the server therefore still says what went wrong instead of silently doing nothing.
+
+The category editor reads its result as state instead, showing `fieldErrors.name` under the name field and falling back to the failure's own message.
+
 Neither one is a step towards the other.
 Moving the task form to `useActionState` would lose its inline checks and its `null`s;
 moving the category editor to react-hook-form would gain nothing, since its main error would still come from the server.
