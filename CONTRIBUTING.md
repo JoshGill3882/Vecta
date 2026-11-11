@@ -173,6 +173,30 @@ Every `db:*` command resolves the datasource provider from `DATABASE_URL` first,
 New to the codebase?
 [`ARCHITECTURE.md`](./ARCHITECTURE.md) is the fastest way in, and [`docs/guides/`](./docs/guides/README.md) covers each area in detail.
 
+### Checking a production build
+
+There is no `npm start`.
+`next.config.ts` sets `output: "standalone"`, and the image runs that server through `docker-entrypoint.sh`, which resolves the datasource provider and applies migrations first.
+`next start` serves a different server, and a script that assembled the standalone output by hand would be a second copy of the Dockerfile, free to drift from it.
+To see how a change behaves in production, build and run the image itself:
+
+```bash
+PORT=3002 docker compose -p vecta-check up --build -d
+```
+
+`-p` gives the stack its own Compose project.
+Without it the project is named after the clone's folder, `vecta`, which is also what an installed copy on the same machine is likely to be called, and Compose would treat the two as one.
+`PORT` moves the host port, so a dev server on 3000 can keep running.
+The stack keeps its data in its own volume, apart from both `data/app.db` and any installed copy.
+
+The build needs several gigabytes of free disk space while it runs, most of it for installing dependencies, so on a small disk check `df -h` first.
+Once you are done, remove the stack with its data and image, then the build cache it left behind:
+
+```bash
+docker compose -p vecta-check down -v --rmi all
+docker builder prune
+```
+
 ---
 
 ## AI assistant knowledge graph (Graphify)
