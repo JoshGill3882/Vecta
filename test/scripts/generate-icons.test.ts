@@ -15,8 +15,11 @@ import {
   buildIco,
   buildSvg,
   contentBox,
-  maskableWindow,
+  furthestVisible,
+  iconWindow,
+  markCentre,
   parseIco,
+  solidPieces,
   squareTrimBox,
   toHex,
 } from "@/scripts/generate-icons.mjs";
@@ -83,25 +86,66 @@ describe("contentBox", () => {
   });
 });
 
-describe("maskableWindow", () => {
-  const box = { left: 30, top: 53, width: 414, height: 368 };
-  const frame = maskableWindow(box);
-
-  // The corners of the mark's box are its furthest points from the centre, so
-  // the box's diagonal is what has to fit the safe circle.
-  it("sizes the window so the mark's diagonal spans the safe circle", () => {
-    const diagonal = Math.hypot(box.width, box.height);
-    expect(diagonal / frame.size).toBeCloseTo(SAFE_FRACTION, 2);
+describe("solidPieces", () => {
+  it("finds each separate shape, largest first", () => {
+    const data = canvas(10, 10, [0, 0, 3, 3]); // 16 pixels
+    for (const [x, y] of [
+      [8, 8],
+      [9, 8],
+    ])
+      data[(y * 10 + x) * 4 + 3] = 255; // 2 pixels, apart from the first
+    const pieces = solidPieces(data, 10, 10);
+    expect(pieces.map((p) => p.pixels)).toEqual([16, 2]);
+    expect(pieces[1]).toMatchObject({ left: 8, top: 8, right: 9, bottom: 8 });
   });
 
-  it("centres the window on the mark, not on the source", () => {
-    expect(frame.left + frame.size / 2).toBeCloseTo(box.left + box.width / 2, 0);
-    expect(frame.top + frame.size / 2).toBeCloseTo(box.top + box.height / 2, 0);
+  it("ignores pixels at or below the solid threshold, so glow joins nothing", () => {
+    const data = canvas(6, 6, [0, 0, 1, 1]);
+    data[(5 * 6 + 5) * 4 + 3] = 100;
+    expect(solidPieces(data, 6, 6, 128)).toHaveLength(1);
+  });
+});
+
+describe("markCentre", () => {
+  // A ring of shapes with a small piece off to one side, as the logo's squares
+  // are: the centre must be the main shape's, not pulled towards the piece.
+  it("centres on the main shapes and ignores small detached pieces", () => {
+    const data = canvas(20, 20, [2, 2, 11, 11]); // 100 pixels, centred on (7, 7)
+    data[(18 * 20 + 18) * 4 + 3] = 255; // one stray pixel in the far corner
+    expect(markCentre(data, 20, 20)).toEqual({ x: 7, y: 7 });
   });
 
-  it("reaches past a source edge when the mark is near one, leaving the caller to pad", () => {
-    expect(frame.left).toBeLessThan(0);
-    expect(frame.top).toBeLessThan(0);
+  it("throws when nothing in the source is solid", () => {
+    expect(() => markCentre(new Uint8Array(4 * 4 * 4), 4, 4)).toThrow(/no solid shape/);
+  });
+});
+
+describe("furthestVisible", () => {
+  it("measures to the furthest pixel above the threshold, not to a box corner", () => {
+    const data = new Uint8Array(9 * 9 * 4);
+    data[(4 * 9 + 8) * 4 + 3] = 255; // one pixel at the middle of the right edge
+    expect(furthestVisible(data, 9, 9, { x: 4.5, y: 4.5 })).toBeCloseTo(4, 5);
+  });
+});
+
+describe("iconWindow", () => {
+  const centre = { x: 245.5, y: 251.5 };
+
+  it("sizes the window so the radius fills the given fraction of it", () => {
+    const frame = iconWindow(centre, 200, SAFE_FRACTION);
+    expect((2 * 200) / frame.size).toBeCloseTo(SAFE_FRACTION, 2);
+  });
+
+  // Within a pixel: the window's edges are whole pixels, so its centre can
+  // round half a pixel away from a point that falls between two.
+  it("centres the window on the given point", () => {
+    const frame = iconWindow(centre, 200, SAFE_FRACTION);
+    expect(Math.abs(frame.left + frame.size / 2 - centre.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(frame.top + frame.size / 2 - centre.y)).toBeLessThanOrEqual(1);
+  });
+
+  it("reaches past the source's edges when the window is larger, leaving the caller to pad", () => {
+    expect(iconWindow(centre, 300, SAFE_FRACTION).left).toBeLessThan(0);
   });
 });
 
@@ -244,7 +288,9 @@ describe("the shipped maskable icons", () => {
   it.each(LAUNCHER_SIZES)("is %ipx square and fully opaque", async (size) => {
     const { data, info } = await pixelsOf(`public/icons/maskable-${size}.png`);
     expect([info.width, info.height]).toEqual([size, size]);
-    for (let i = 0; i < size * size; i++) expect(data[i * 4 + 3]).toBe(255);
+    let short = 0;
+    for (let i = 0; i < size * size; i++) if (data[i * 4 + 3] !== 255) short++;
+    expect(short).toBe(0);
   });
 
   it.each(LAUNCHER_SIZES)(
@@ -263,6 +309,18 @@ describe("the shipped maskable icons", () => {
       expect(outside).toBe(0);
     }
   );
+
+  // Centred on the ring and check, which is what the eye lines up. The mark's
+  // solid shapes are found by their distance from the ground, the opaque
+  // equivalent of the alpha the generator centred them by.
+  it.each(LAUNCHER_SIZES)("centres the mark at %ipx", async (size) => {
+    const { data } = await pixelsOf(`public/icons/maskable-${size}.png`);
+    const solidness = Buffer.alloc(data.length);
+    for (let i = 0; i < size * size; i++) solidness[i * 4 + 3] = distanceFromGround(data, i);
+    const centre = markCentre(solidness, size, size);
+    expect(Math.abs(centre.x - size / 2)).toBeLessThan(size * 0.01);
+    expect(Math.abs(centre.y - size / 2)).toBeLessThan(size * 0.01);
+  });
 
   // The guard above passes trivially for an icon that is all ground, so this
   // checks the mark is actually there.
@@ -292,6 +350,8 @@ describe("the shipped app/apple-icon.png", () => {
   it(`is ${APPLE_SIZE}px square and fully opaque`, async () => {
     const { data, info } = await pixelsOf("app/apple-icon.png");
     expect([info.width, info.height]).toEqual([APPLE_SIZE, APPLE_SIZE]);
-    for (let i = 0; i < APPLE_SIZE * APPLE_SIZE; i++) expect(data[i * 4 + 3]).toBe(255);
+    let short = 0;
+    for (let i = 0; i < APPLE_SIZE * APPLE_SIZE; i++) if (data[i * 4 + 3] !== 255) short++;
+    expect(short).toBe(0);
   });
 });
