@@ -5,12 +5,12 @@ import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 import { TaskDialogBody } from "@/src/features/tasks/components/dialog/task-dialog-body";
-import type { TaskFormValues } from "@/src/features/tasks/components/dialog/task-form";
+import type { TaskFormValues, TaskSubmit } from "@/src/features/tasks/components/dialog/task-form";
 import { useVisibleViewport } from "@/src/features/tasks/hooks/use-visible-viewport";
 
 // Re-exported so callers reach the dialog and the shape it submits through one
 // module, rather than having to know the form is a separate file.
-export type { TaskFormValues };
+export type { TaskFormValues, TaskSubmit };
 
 /** The task dialog: one window serving both viewing a task and editing one. */
 export function TaskFormDialog({
@@ -33,7 +33,7 @@ export function TaskFormDialog({
    * included) without waiting on a refetch. `null` keeps the form open with its
    * errors.
    */
-  onSubmit: (values: TaskFormValues) => Promise<TaskDTO | null>;
+  onSubmit: TaskSubmit;
   onCreateCategory: (name: string) => Promise<CategoryDTO | null>;
   /** Resolves true when the task was deleted, which closes the dialog */
   onDelete: (task: TaskDTO) => Promise<boolean>;

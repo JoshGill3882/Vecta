@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ListIcon, Plus, SearchIcon } from "lucide-react";
 
 import { Button } from "@/src/shared/components/ui/button";
-import { useServerAction } from "@/src/shared/hooks/use-server-action";
+import { useServerAction, type FailureHandler } from "@/src/shared/hooks/use-server-action";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import type { TaskDTO, TaskStatus } from "@/src/shared/lib/dtos/tasks";
 import { suggestCategoryColor } from "@/src/shared/lib/palette";
@@ -109,11 +109,13 @@ export function TasksView({
   /** Creates or updates a task, depending on whether one is being edited.
    *
    * @param values The submitted form values.
+   * @param onFailure The form's own reporting, which places field errors under their fields.
    * @returns The saved task, or null if the save failed.
    */
-  function saveTask(values: TaskFormValues): Promise<TaskDTO | null> {
+  function saveTask(values: TaskFormValues, onFailure: FailureHandler): Promise<TaskDTO | null> {
     return runAction(editing ? updateTaskAction(editing.id, values) : createTaskAction(values), {
       success: editing ? "Changes saved" : "Task created",
+      onFailure,
     });
   }
 
