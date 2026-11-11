@@ -42,6 +42,8 @@ Internal refactors that change nothing observable are not listed.
   The name now truncates instead, with the full name on hover
 - **A task the server refused to save** said only "Invalid input", without saying which field was wrong.
   The message now appears under the field it is about, as the form's own checks do, and clears once that field is edited
+- **Editing a task straight after creating it** created a second task with the changes, leaving the first as it was.
+  Saving from the same window now updates the task you just created
 
 ## [1.1.0] - 2026-09-21
 
