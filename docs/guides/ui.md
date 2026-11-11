@@ -112,8 +112,27 @@ toast.error("Something went wrong");
 
 ## Forms
 
-shadcn's `form` component wraps [react-hook-form](https://react-hook-form.com/).
-Pair it with the Zod schemas from the [validation guide](./validation.md) so the client mirrors the same rules the server enforces — one schema, both sides.
+Two submission patterns are in use, and each fits a different kind of form.
+Which one to reach for depends on where the form's errors come from.
+
+- **[react-hook-form](https://react-hook-form.com/)** for a form with several fields, rules the client can check on its own, and controls that are not native inputs.
+  The task form (`task-form.tsx`) is the reference.
+  Its resolver runs the Zod schema from the [validation guide](./validation.md) that the Server Action also runs, so most mistakes are reported inline before anything is sent — one schema, both sides.
+  `Controller` connects the status picker, the category select and the due-date field, none of which is an `<input>`.
+  The action is called as a promise with a plain object, which is what lets a value be `null`:
+  `FormData` carries only strings, so it has no way to send the `categoryId: null` that clears a task's category.
+- **React's [`useActionState`](https://react.dev/reference/react/useActionState)** for a small form whose main error only the server can find.
+  The category editor (`category-editor.tsx`) is the reference: a duplicate name comes back from the database as a conflict, and the hook hands the editor that result as state with no extra wiring.
+  The action takes `FormData`, in the `(previousState, formData)` shape the hook calls it with (see [Signatures & `useActionState`](./server-actions.md#signatures--useactionstate)).
+
+Neither one is a step towards the other.
+Moving the task form to `useActionState` would lose its inline checks and its `null`s;
+moving the category editor to react-hook-form would gain nothing, since its main error would still come from the server.
+
+`useActionState` is not chosen for progressive enhancement.
+A form can only be submitted without JavaScript if it is in the server-rendered page, and the category editor renders only after a button press.
+
+shadcn's `form` wrapper for react-hook-form is installed (`src/shared/components/ui/form.tsx`), though the task form uses react-hook-form directly with its own label and message markup.
 
 ## Confirmations & destructive actions
 
