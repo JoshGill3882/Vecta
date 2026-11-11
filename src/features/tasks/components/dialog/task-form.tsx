@@ -30,10 +30,17 @@ type TaskFormInput = z.input<typeof taskCreateSchema>;
 
 /** Saves the form's values, resolving the saved task or `null` when the save failed.
  *
+ * `task` is the task the form is editing, or undefined for a new one, and is
+ * what decides between an update and a create. It is passed on every save,
+ * and never optional, because the dialog can move from creating to editing
+ * without reopening: once a create succeeds, the same form edits the task it
+ * just made, and only the form knows that.
+ *
  * `onFailure` is the form's own reporting, for the saver to hand a failure to:
  * it places each field error under its field and returns what is left over.
  */
 export type TaskSubmit = (
+  task: TaskDTO | undefined,
   values: TaskFormValues,
   onFailure: FailureHandler
 ) => Promise<TaskDTO | null>;
@@ -94,7 +101,7 @@ export function TaskForm({
   // the same place and clears the same way: once the form has been submitted,
   // editing a field re-validates it, which replaces the server's message.
   const submit = form.handleSubmit(async (values) => {
-    const saved = await onSubmit(values, (failure) => {
+    const saved = await onSubmit(task, values, (failure) => {
       const { placed, remainder } = splitFieldErrors(failure, TASK_FORM_FIELDS);
       placed.forEach(([field, message], index) => {
         form.setError(field, { type: "server", message }, { shouldFocus: index === 0 });

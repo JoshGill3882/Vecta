@@ -75,13 +75,15 @@ export function TasksView({
     target?.focus();
   }, [tasks]);
 
-  // One dialog serves create and edit; `editing` is what tells them apart —
-  // undefined creates, a task edits. The open flag is held separately from the
-  // task because Radix keeps content mounted through the close animation:
-  // clearing the task to close it would flip the dialog back to its create copy
-  // for the duration of the fade.
+  // One dialog serves create and edit; `openedOn` is the task it opens on -
+  // undefined opens the create form, a task opens it in view mode. It says
+  // nothing about what a save does: the dialog can create a task and then edit
+  // it without reopening, so each save is told by the form which task it is for.
+  // The open flag is held separately from the task because Radix keeps content
+  // mounted through the close animation: clearing the task to close it would
+  // flip the dialog back to its create copy for the duration of the fade.
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<TaskDTO | undefined>(undefined);
+  const [openedOn, setOpenedOn] = useState<TaskDTO | undefined>(undefined);
 
   const categoriesById = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
@@ -106,15 +108,20 @@ export function TasksView({
   );
   const matchCount = matched.length;
 
-  /** Creates or updates a task, depending on whether one is being edited.
+  /** Creates or updates a task, depending on whether the form is editing one.
    *
+   * @param task The task the form is editing, or undefined for a new one.
    * @param values The submitted form values.
    * @param onFailure The form's own reporting, which places field errors under their fields.
    * @returns The saved task, or null if the save failed.
    */
-  function saveTask(values: TaskFormValues, onFailure: FailureHandler): Promise<TaskDTO | null> {
-    return runAction(editing ? updateTaskAction(editing.id, values) : createTaskAction(values), {
-      success: editing ? "Changes saved" : "Task created",
+  function saveTask(
+    task: TaskDTO | undefined,
+    values: TaskFormValues,
+    onFailure: FailureHandler
+  ): Promise<TaskDTO | null> {
+    return runAction(task ? updateTaskAction(task.id, values) : createTaskAction(values), {
+      success: task ? "Changes saved" : "Task created",
       onFailure,
     });
   }
@@ -151,7 +158,7 @@ export function TasksView({
 
   /** Opens the task dialog with no task loaded, ready to create one. */
   function openCreate() {
-    setEditing(undefined);
+    setOpenedOn(undefined);
     setFormOpen(true);
   }
 
@@ -160,7 +167,7 @@ export function TasksView({
    * @param task The task to show.
    */
   function openEdit(task: TaskDTO) {
-    setEditing(task);
+    setOpenedOn(task);
     setFormOpen(true);
   }
 
@@ -246,7 +253,7 @@ export function TasksView({
       <TaskFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        task={editing}
+        task={openedOn}
         categories={categories}
         onSubmit={saveTask}
         onCreateCategory={createCategory}
