@@ -120,7 +120,7 @@
   --secondary: #171b22;
   --secondary-foreground: #e8ebf1;
   --muted: #171b22;
-  --muted-foreground: #7b8492; /* design --text-3 */
+  --muted-foreground: var(--text-3); /* the one quiet grey, defined below */
   --accent: #1d222b; /* design --surface-3 (hover fills) */
   --accent-foreground: #e8ebf1;
   /* Lightened from the design's #e0484d (4.28:1 as text on the popover surface —
@@ -153,12 +153,14 @@
      as one block rather than two stacked boxes. */
   --border-faint: #1b2029;
   --text-2: #aab2c0;
-  --text-3: #7b8492;
-  /* Bumped from the design's #5b636f (≈3:1 on the dark background — below WCAG
-     AA) so faint small text (card timestamps, counts, kbd hints) clears 4.5:1.
-     This sits close to --text-3 by necessity: AA on 11–13px text leaves little
-     room beneath it. See #26. */
-  --text-faint: #787f8b;
+  /* The one quiet grey: secondary text, hints, timestamps and placeholders.
+     It clears 4.5:1 on every surface such text sits on, the lightest being an
+     input field inside a dialog (4.59), so small text stays readable anywhere. */
+  --text-3: #858c98;
+  /* Faint text uses the same grey. A darker rung could not clear 4.5:1 on the
+     raised surfaces and still look different from --text-3, so the two are
+     one colour rather than two that only appear to differ. */
+  --text-faint: var(--text-3);
   --brand-orange: #fb7616;
   --status-open: #4f9dff;
   --status-prog: #fe7616;
