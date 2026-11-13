@@ -4,9 +4,8 @@ import { contrast, over, token } from "@/test/support/contrast";
 
 /*
  * Every due pill must meet WCAG AA (4.5:1) for its text, measured against what it
- * actually sits on: its own tint over the card. A closed task's pill sits on a
- * closed card, which is filled with the page background rather than the card
- * surface. The due-date filter's coloured options must meet it against the menu.
+ * actually sits on: its own tint over the card. The due-date filter's coloured
+ * options must meet it against the menu.
  *
  * The pairs below mirror DUE_STYLES in due-pill.tsx and DUE_OPTIONS in
  * due-options.ts. They are written out rather than parsed from the class
@@ -14,16 +13,17 @@ import { contrast, over, token } from "@/test/support/contrast";
  * to either should change these tables with it.
  */
 
-describe("due pill contrast against its card", () => {
+describe("due pill contrast against the card", () => {
   it.each([
-    // [state, text token, tint token, tint strength, card fill]
-    ["overdue", "destructive", "destructive", 0.1, "card"],
-    ["today", "brand-orange", "brand-orange", 0.15, "card"],
-    ["soon", "text-2", "surface-2", 1, "card"],
-    ["future", "text-3", null, 0, "card"],
-    ["done", "text-3", null, 0, "background"],
-  ] as const)("%s clears 4.5:1", (_, text, tint, strength, fill) => {
-    const ground = tint ? over(token(tint), token(fill), strength) : token(fill);
+    // [state, text token, tint token, tint strength]
+    ["overdue", "destructive", "destructive", 0.1],
+    ["today", "brand-orange", "brand-orange", 0.15],
+    ["soon", "text-2", "surface-2", 1],
+    ["future", "text-3", null, 0],
+    ["done", "text-3", null, 0],
+  ] as const)("%s clears 4.5:1", (_, text, tint, strength) => {
+    const card = token("card");
+    const ground = tint ? over(token(tint), card, strength) : card;
     expect(contrast(token(text), ground)).toBeGreaterThanOrEqual(4.5);
   });
 

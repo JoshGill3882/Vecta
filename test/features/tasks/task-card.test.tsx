@@ -37,20 +37,16 @@ function renderCard(status: TaskDTO["status"]): HTMLElement {
   return screen.getByRole("article");
 }
 
-/* How a closed card recedes. Its text is measured against these fills in
-   closed-card-contrast.test.ts; this pins that the card actually uses them. */
+/* How a closed card recedes. Its text is measured against the card surface in
+   closed-card-contrast.test.ts; this pins that the card actually sits on it. */
 describe("TaskCard's closed state", () => {
-  it("fills a closed card with the page background, without fading it", () => {
-    const card = renderCard("closed");
-    expect(classes(card)).toContain("bg-background");
-    expect(classes(card)).not.toContain("bg-card");
-    expect(classes(card).filter((name) => name.startsWith("opacity-"))).toEqual([]);
+  it.each(["open", "closed"] as const)("keeps a %s card on the card surface", (status) => {
+    expect(classes(renderCard(status))).toContain("bg-card");
   });
 
-  it("keeps an open card on the card surface", () => {
-    const card = renderCard("open");
-    expect(classes(card)).toContain("bg-card");
-    expect(classes(card)).not.toContain("bg-background");
+  it("never fades a closed card", () => {
+    const card = renderCard("closed");
+    expect(classes(card).filter((name) => name.startsWith("opacity-"))).toEqual([]);
   });
 
   it('draws a closed task\'s "Was due" pill in text-3', () => {
