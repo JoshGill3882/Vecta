@@ -15,6 +15,8 @@ Internal refactors that change nothing observable are not listed.
   HTML is now shown exactly as it was typed, as plain text that does nothing
 - On a desktop browser, **the whole page shifted sideways** when expanding or collapsing a section made the list start or stop scrolling.
   The page now keeps its place, and opening a dialog, the filter sheet or a menu doesn't move it either
+- **Text on closed task cards was too faint to read comfortably**: the whole card was faded, which took its timestamp and its "Closed" badge below the WCAG AA contrast minimum.
+  A closed card now sits on the page's darker background instead, so it still stands back from open tasks while all its text stays readable
 
 ## [1.2.0] - 2026-11-11
 
