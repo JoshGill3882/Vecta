@@ -49,7 +49,7 @@ function SectionHeading({
 
   return (
     <>
-      <span className={cn("size-2 shrink-0 rounded-full ring-3", accent.dot, accent.ring)} />
+      <span className={cn("size-2 shrink-0 rounded-full", accent.dot)} />
       <span className="text-[14.5px] font-semibold tracking-[-0.01em]">{label}</span>
       <span className="text-text-3 bg-surface-2 min-w-6 rounded-full border px-[9px] py-px text-center text-xs font-semibold">
         {count}
