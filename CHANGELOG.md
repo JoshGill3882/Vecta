@@ -13,6 +13,8 @@ Internal refactors that change nothing observable are not listed.
 
 - **HTML in a task's description disappeared** when the task was opened, so a description of just `<script> </script>` showed a blank space, and `Fix the <div> layout` lost its tag.
   HTML is now shown exactly as it was typed, as plain text that does nothing
+- On a desktop browser, **the whole page shifted sideways** when expanding or collapsing a section made the list start or stop scrolling.
+  The page now keeps its place, and opening a dialog, the filter sheet or a menu doesn't move it either
 
 ## [1.2.0] - 2026-11-11
 
