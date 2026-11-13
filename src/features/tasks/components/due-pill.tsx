@@ -4,8 +4,7 @@ import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 import { cn } from "@/src/shared/lib/utils";
 import { dueMeta, type DueMeta } from "@/src/features/tasks/lib/due-date";
 
-/** Pill colours per due state, each measured to clear WCAG AA against the card
- * it sits on, which for a closed task is the closed card's darker fill.
+/** Pill colours per due state, each measured to clear WCAG AA against the card.
  * Overdue reads as a problem and due today lighter, the one state still
  * actionable before it becomes one; everything else stays quiet. The overdue
  * tint is kept at 10%, where its text holds 4.5:1 - it falls below at 15%. */

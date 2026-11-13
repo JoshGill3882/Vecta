@@ -36,16 +36,14 @@ export function TaskCard({
     onEdit(task);
   }
 
+  // A closed card keeps the card surface, so its edge stands off the page as an
+  // open card's does. It recedes through its content instead: the grey,
+  // struck-through title and the grey badge. Fading the whole card would take
+  // its timestamp and status badge below 4.5:1.
   return (
     <article
       onClick={openFromCard}
-      className={cn(
-        "hover:border-ring/50 cursor-pointer rounded-[12px] border p-4 transition-colors",
-        // A closed card recedes by sitting on the page's own colour instead of
-        // the raised card surface. Fading the whole card instead would take its
-        // timestamp and status badge below 4.5:1.
-        closed ? "bg-background" : "bg-card"
-      )}
+      className="bg-card hover:border-ring/50 cursor-pointer rounded-[12px] border p-4 transition-colors"
     >
       <div className="flex items-start justify-between gap-2.5">
         <h3
