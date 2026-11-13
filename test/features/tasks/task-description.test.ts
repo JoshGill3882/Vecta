@@ -48,18 +48,49 @@ describe("TaskDescription", () => {
     expect(html).toContain('rel="noopener noreferrer nofollow"');
   });
 
-  it("never renders raw HTML embedded in the source", () => {
-    const html = render("before <script>alert(1)</script> <b>after</b>");
-    expect(html).not.toContain("<script");
-    expect(html).not.toContain("<b>");
-    // The surrounding Markdown still renders.
-    expect(html).toContain("before");
-    expect(html).toContain("after");
-  });
+  describe("raw HTML in the source", () => {
+    it("shows a script block as the text that was typed, in a paragraph", () => {
+      const html = render("<script> </script>");
+      expect(html).toBe('<div class="task-markdown"><p>&lt;script&gt; &lt;/script&gt;</p></div>');
+    });
 
-  it("neutralises an img onerror payload", () => {
-    const html = render('![x](https://e.com/a.png "t") <img src=x onerror="alert(1)">');
-    expect(html).not.toContain("onerror");
+    it("shows a tag inside a sentence where it was typed", () => {
+      expect(render("Fix the <div> layout")).toContain("<p>Fix the &lt;div&gt; layout</p>");
+    });
+
+    it("never makes an element from it", () => {
+      const html = render("before <script>alert(1)</script> <b>after</b>");
+      expect(html).not.toContain("<script");
+      expect(html).not.toContain("<b>");
+      expect(html).toContain(
+        "before &lt;script&gt;alert(1)&lt;/script&gt; &lt;b&gt;after&lt;/b&gt;"
+      );
+    });
+
+    it("neutralises an img onerror payload, showing it as text", () => {
+      const html = render('![x](https://e.com/a.png "t") <img src=x onerror="alert(1)">');
+      expect(html).not.toMatch(/<[^>]*\sonerror=/);
+      expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    });
+
+    it("treats a block inside a blockquote or a list item like any other text there", () => {
+      expect(render("> <div>quoted</div>")).toContain(
+        "<blockquote>\n<p>&lt;div&gt;quoted&lt;/div&gt;</p>\n</blockquote>"
+      );
+      // A tight list draws its items' paragraphs without <p>, as "- one" does.
+      expect(render("- <div>listed</div>")).toContain("<li>&lt;div&gt;listed&lt;/div&gt;</li>");
+      expect(render(["- <div>a</div>", "", "- b"].join("\n"))).toContain(
+        "<li>\n<p>&lt;div&gt;a&lt;/div&gt;</p>\n</li>"
+      );
+    });
+
+    it("leaves code spans, fenced code and autolinks as they were", () => {
+      expect(render("Use `<script>` tags")).toContain("<code>&lt;script&gt;</code>");
+      expect(render(["```html", "<b>x</b>", "```"].join("\n"))).toContain(
+        '<pre><code class="language-html">&lt;b&gt;x&lt;/b&gt;\n</code></pre>'
+      );
+      expect(render("<https://example.com>")).toContain('href="https://example.com"');
+    });
   });
 
   it("strips dangerous URL protocols from links and images", () => {

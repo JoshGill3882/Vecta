@@ -9,6 +9,11 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Fixed
+
+- **HTML in a task's description disappeared** when the task was opened, so a description of just `<script> </script>` showed a blank space, and `Fix the <div> layout` lost its tag.
+  HTML is now shown exactly as it was typed, as plain text that does nothing
+
 ## [1.2.0] - 2026-11-11
 
 Due dates, and seeing what is late — and Vecta can now be installed to a phone's home screen.
