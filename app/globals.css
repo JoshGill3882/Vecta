@@ -177,6 +177,11 @@
   }
   html {
     @apply font-sans;
+    /* A classic scrollbar takes its width from the page, so the centred layout
+       would jump sideways whenever the content grew past the window or shrank
+       back. Reserving the gutter keeps the width the same either way. Overlay
+       scrollbars, as on phones, take no width, so nothing is reserved there. */
+    scrollbar-gutter: stable;
   }
   /* Preflight leaves buttons on the browser's default arrow cursor.
      Restoring the pointer here covers every button, shadcn's and the
@@ -186,6 +191,18 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/*
+ * Radix locks page scrolling while a dialog, sheet or menu is open, and adds a
+ * right margin to <body> as wide as the scrollbar it hides, so the page does
+ * not shift. With the gutter reserved above, the page never gets that width
+ * back, so the margin would shift it left instead; it is cancelled here. The
+ * lock's own rule is `body[data-scroll-locked]` with !important, injected at
+ * runtime; the extra `html` outranks it whichever stylesheet loads last.
+ */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
 }
 
 /*
