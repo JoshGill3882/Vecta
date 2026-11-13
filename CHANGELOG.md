@@ -9,6 +9,13 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Changed
+
+- **A new, flat Vecta logo**, drawn as clean shapes without the glow, in the top bar, on the login screen and on every icon.
+  It always sits on the app's dark background, so the browser tab icon looks the same in a light or dark browser.
+  The desktop icon, which was small and looked off-centre, is now a rounded tile the logo fills, and the phone and iPhone home-screen icons show it larger
+- **The dots beside Open, In Progress and Closed** above each part of the task list are plain dots, without the faint ring around them
+
 ### Fixed
 
 - **HTML in a task's description disappeared** when the task was opened, so a description of just `<script> </script>` showed a blank space, and `Fix the <div> layout` lost its tag.
