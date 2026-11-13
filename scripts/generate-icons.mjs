@@ -1,57 +1,38 @@
-// Regenerates the browser and launcher icons from public/logo.png.
+// Regenerates the browser and launcher icons from public/logo.svg.
 //
-// The two tab icons are layers rather than alternatives:
+// Every icon is the flat mark on the app's dark background, #0a0c10, and is
+// centred on the ring rather than on the whole mark: the squares beside the
+// ring would otherwise pull the centre off the shape the eye lines up. Each is
+// framed as closely as its platform's shape allows.
 //
-//   app/favicon.ico  the floor. Flattened onto the app's own dark ground, so it
-//                    is legible on a light tab strip and a dark one alike. Every
-//                    browser gets this.
-//   app/icon.svg     the enhancement. A `prefers-color-scheme` query toggles that
-//                    ground, so browsers with SVG favicon support show the mark
-//                    floating in dark themes, as it was drawn.
+//   public/icons/icon-{192,512}.png      the desktop pair, the manifest's
+//                    `purpose: "any"` icons. A rounded tile, transparent outside
+//                    its curve, since a desktop shows the icon unmasked.
+//   public/icons/maskable-{192,512}.png  the phone pair. Opaque and full-bleed,
+//                    with the mark inside the centred safe circle, because a
+//                    launcher may crop to any shape from a circle to a squircle.
+//   app/apple-icon.png                   iOS's home-screen icon. Opaque and
+//                    full-bleed, framed closer than the phone pair, since iOS
+//                    only rounds the corners. Next links it itself.
+//   app/favicon.ico  the tab icon for every browser: the desktop tile at 16, 32
+//                    and 48px.
+//   app/icon.svg     the tab icon for browsers that take an SVG: the desktop
+//                    tile with the mark's shapes inline, sharp at any size.
 //
-// The launcher icons are what an installed app shows on a home screen, and are
-// listed by app/manifest.ts:
-//
-//   public/icons/maskable-{192,512}.png  opaque and full-bleed, for launchers
-//                    that crop to their own mask shape. The mark is kept inside
-//                    the centred safe circle every mask shape contains.
-//   public/icons/icon-{192,512}.png      the bare mark on transparency, for
-//                    surfaces that do not mask and would otherwise show a tile.
-//   app/apple-icon.png                   iOS's home-screen icon, opaque on the
-//                    dark ground with the maskable framing. Next links it itself.
-//
-// All three are centred on the ring and check rather than on the whole mark:
-// the small squares beside the ring, and the glow's uneven spread, would
-// otherwise pull the centre off the shape the eye lines up.
-//
-// They live in public/ rather than as app/icon*.png files because Next turns
-// every icon file under app/ into a <link rel="icon"> tag, and these are for
-// the manifest, not the tab.
-//
-// All of them exist because the source mark is drawn as ambient light against #0a0c10:
-// the overwhelming majority of it is soft bloom and only a few percent is solid,
-// so composited onto a light ground there is almost no mark left to read — and
-// the white check, the most identifiable part, disappears entirely.
-//
-// public/logo.png is NOT touched. It is used as an in-app <Image> by the top bar
-// and the login screen, where it sits on the background it was drawn for.
+// The launcher icons live in public/ rather than as app/icon*.png files because
+// Next turns every icon file under app/ into a <link rel="icon"> tag, and these
+// are for the manifest, not the tab.
 //
 // Run: `npm run icons:generate` — then commit whatever changed.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import sharp from "sharp";
 
-/** The app's background (`--background`), and the ground painted behind the mark. */
+/** The app's background (`--background`), and the ground behind the mark. */
 export const GROUND = { r: 0x0a, g: 0x0c, b: 0x10 };
 
-/** Entry sizes in the .ico, matching the file this replaced. */
+/** Entry sizes in the .ico. */
 export const ICO_SIZES = [16, 32, 48];
-
-/** Resolution of the raster embedded in the SVG. 96px keeps it under ~9KB. */
-export const SVG_SIZE = 96;
-
-/** Corner radius of the SVG's ground tile, ~19% — a conventional app-icon curve. */
-export const SVG_RADIUS = 18;
 
 /** Square sizes of the launcher icons the manifest lists. */
 export const LAUNCHER_SIZES = [192, 512];
@@ -59,84 +40,91 @@ export const LAUNCHER_SIZES = [192, 512];
 /** Size iOS asks for its home-screen icon. */
 export const APPLE_SIZE = 180;
 
-/** Diameter of the maskable safe circle, as a fraction of the icon's width.
+/** Corner radius of the desktop tile, as a fraction of its width.
  *
- * A launcher may crop a maskable icon to any shape, from a circle to a
- * squircle, and the circle this wide is the area every one of them keeps.
+ * About 19%, a conventional app-icon curve.
+ */
+export const TILE_RADIUS = 0.1875;
+
+/** How wide the mark's reach is on a phone icon, as a fraction of the icon.
+ *
+ * The reach is the circle through the mark's furthest solid point. A launcher
+ * may crop a maskable icon to any shape, and the centred circle 80% wide is the
+ * area every one of them keeps, so the whole mark stays inside it.
  */
 export const SAFE_FRACTION = 0.8;
 
-/** Alpha above which a pixel counts as solid when finding the mark's shapes.
+/** How wide the mark's reach is on the iPhone icon, as a fraction of the icon.
  *
- * High enough to leave the glow out, so the shapes found are the ones drawn.
+ * Above 1, so the reach runs past the icon's edges. That only happens at the
+ * corners, which the mark leaves empty except for the squares, and iOS rounds
+ * its icons by about 22%, a curve the squares stay inside at this framing.
  */
+export const APPLE_FRACTION = 1.04;
+
+/** How wide the mark's reach is on the desktop tile, as a fraction of the tile.
+ *
+ * Closer than the iPhone's, because the tile's own corners are rounded less.
+ * This is as close as the frame goes with the squares still inside its curve.
+ */
+export const ANY_FRACTION = 1.13;
+
+/** Alpha above which a rendered pixel counts as part of the mark's shapes. */
 export const SOLID_THRESHOLD = 128;
 
 /** How large a solid shape must be, as a fraction of the largest, to centre on.
  *
- * Small pieces detached from the main shape, such as the squares beside the
+ * Small pieces apart from the main shapes, such as the squares beside the
  * ring, are part of the mark but not what the eye centres it by.
  */
 export const MAIN_PIECE_FRACTION = 0.1;
 
-/** Alpha above which a pixel counts as part of the mark for trimming purposes.
+/** Width the mark is rendered at to measure it, in pixels. */
+export const MEASURE_SIZE = 1880;
+
+/** The viewBox and the drawing inside an SVG document.
  *
- * Deliberately low: the intent is to drop dead margin, not to crop into the
- * glow.
+ * @param {string} svg - The document's text.
+ * @returns {{ viewBox: { x: number, y: number, size: number }, body: string }}
+ *   The square viewBox, and everything between the root element's tags.
  */
-export const TRIM_THRESHOLD = 10;
+export function svgParts(svg) {
+  const open = svg.match(/<svg\b[^>]*>/);
+  const close = svg.lastIndexOf("</svg>");
+  if (!open || close < 0) throw new Error("Not an SVG document.");
 
-/** Bounding box of everything above `threshold` alpha, as it lies.
- *
- * @param {Buffer|Uint8Array} rgba - Raw RGBA pixels, 4 bytes per pixel.
- * @param {number} width
- * @param {number} height
- * @param {number} [threshold]
- * @returns {{ left: number, top: number, width: number, height: number }}
- */
-export function contentBox(rgba, width, height, threshold = TRIM_THRESHOLD) {
-  let x0 = width;
-  let y0 = height;
-  let x1 = -1;
-  let y1 = -1;
+  const box = open[0].match(/viewBox="([^"]+)"/);
+  if (!box) throw new Error("The mark's SVG has no viewBox.");
+  const [x, y, width, height] = box[1]
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
+  if (width !== height) throw new Error("The mark's viewBox must be square.");
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (rgba[(y * width + x) * 4 + 3] > threshold) {
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
-      }
-    }
-  }
-
-  if (x1 < 0) throw new Error("Source image is fully transparent — nothing to trim to.");
-  return { left: x0, top: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 };
+  const body = svg.slice(open.index + open[0].length, close).replace(/<!--[\s\S]*?-->/g, "");
+  return { viewBox: { x, y, size: width }, body: body.trim() };
 }
 
-/** Bounding box of everything above `threshold` alpha, squared off and re-centred.
+/** An SVG document showing one square of the mark, optionally grounded.
  *
- * Derived rather than hardcoded so the script still frames correctly if the logo
- * is ever replaced with art of a different shape. The result is square because a
- * favicon is, and clamped so a wide mark cannot push the box off the canvas.
- *
- * @param {Buffer|Uint8Array} rgba - Raw RGBA pixels, 4 bytes per pixel.
- * @param {number} width
- * @param {number} height
- * @param {number} [threshold]
- * @returns {{ left: number, top: number, size: number }}
+ * @param {object} opts
+ * @param {string} opts.body - The mark's drawing, from `svgParts`.
+ * @param {{ left: number, top: number, size: number }} opts.frame - The square of
+ *   the mark to show, in the mark's own units.
+ * @param {number} [opts.size] - Width and height to render at, in pixels. Left
+ *   out, the document scales to whatever shows it.
+ * @param {number | null} [opts.radius] - The ground's corner radius, as a
+ *   fraction of the frame. 0 is full-bleed; null leaves the ground out.
+ * @returns {string}
  */
-export function squareTrimBox(rgba, width, height, threshold = TRIM_THRESHOLD) {
-  const box = contentBox(rgba, width, height, threshold);
-  const x1 = box.left + box.width - 1;
-  const y1 = box.top + box.height - 1;
-
-  const size = Math.min(Math.max(box.width, box.height), Math.min(width, height));
-  const left = Math.max(0, Math.min(width - size, Math.round((box.left + x1) / 2 - size / 2)));
-  const top = Math.max(0, Math.min(height - size, Math.round((box.top + y1) / 2 - size / 2)));
-
-  return { left, top, size };
+export function framedSvg({ body, frame, size, radius = null }) {
+  const { left, top, size: span } = frame;
+  const dimensions = size === undefined ? "" : ` width="${size}" height="${size}"`;
+  const ground =
+    radius === null
+      ? ""
+      : `  <rect x="${left}" y="${top}" width="${span}" height="${span}" rx="${radius * span}" fill="${toHex(GROUND)}"/>\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${span} ${span}"${dimensions}>\n${ground}  ${body}\n</svg>\n`;
 }
 
 /** The mark's separate solid shapes, found by flood fill.
@@ -187,11 +175,11 @@ export function solidPieces(rgba, width, height, threshold = SOLID_THRESHOLD) {
   return pieces.sort((a, b) => b.pixels - a.pixels);
 }
 
-/** The point the eye centres the mark by, in source pixels.
+/** The point the eye centres the mark by, in pixels.
  *
  * The middle of the box around the mark's main shapes, ignoring pieces too
- * small to count as one. Derived rather than measured once and hardcoded, so it
- * still holds if the logo is replaced.
+ * small to count as one. Derived rather than hardcoded, so it still holds if
+ * the mark is redrawn.
  *
  * @param {Buffer|Uint8Array} rgba - Raw RGBA pixels, 4 bytes per pixel.
  * @param {number} width
@@ -200,7 +188,7 @@ export function solidPieces(rgba, width, height, threshold = SOLID_THRESHOLD) {
  */
 export function markCentre(rgba, width, height) {
   const pieces = solidPieces(rgba, width, height);
-  if (pieces.length === 0) throw new Error("Source image has no solid shape to centre on.");
+  if (pieces.length === 0) throw new Error("The mark has no solid shape to centre on.");
 
   const main = pieces.filter((p) => p.pixels >= pieces[0].pixels * MAIN_PIECE_FRACTION);
   const left = Math.min(...main.map((p) => p.left));
@@ -210,11 +198,11 @@ export function markCentre(rgba, width, height) {
   return { x: (left + right) / 2, y: (top + bottom) / 2 };
 }
 
-/** The distance from `centre` to the furthest pixel that is part of the mark.
+/** The distance from `centre` to the furthest solid pixel, the mark's reach.
  *
  * Measured over the pixels themselves rather than a bounding box: the mark is
- * round, so the corners of its box are empty, and a box would shrink the mark
- * to keep nothing inside the safe circle.
+ * round, so the corners of its box are empty, and a box would frame it smaller
+ * than it needs to be.
  *
  * @param {Buffer|Uint8Array} rgba - Raw RGBA pixels, 4 bytes per pixel.
  * @param {number} width
@@ -223,7 +211,7 @@ export function markCentre(rgba, width, height) {
  * @param {number} [threshold]
  * @returns {number}
  */
-export function furthestVisible(rgba, width, height, centre, threshold = TRIM_THRESHOLD) {
+export function furthestSolid(rgba, width, height, centre, threshold = SOLID_THRESHOLD) {
   let furthest = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -235,12 +223,10 @@ export function furthestVisible(rgba, width, height, centre, threshold = TRIM_TH
   return furthest;
 }
 
-/** The square of the source that becomes an icon, in source pixels.
+/** The square of the mark an icon shows.
  *
- * Centred on `centre`, and sized so a circle of `radius` fills `fraction` of
- * the icon's width: 0.8 keeps the mark inside a maskable icon's safe circle,
- * 1 lets it fill an icon that is not masked. The window can reach past the
- * source's edges, starting at a negative offset; the caller pads.
+ * Centred on `centre`, and sized so a circle of `radius` spans `fraction` of
+ * the icon's width. Above 1, the circle runs past the edges.
  *
  * @param {{ x: number, y: number }} centre
  * @param {number} radius
@@ -248,19 +234,14 @@ export function furthestVisible(rgba, width, height, centre, threshold = TRIM_TH
  * @returns {{ left: number, top: number, size: number }}
  */
 export function iconWindow(centre, radius, fraction) {
-  const size = Math.round((2 * radius) / fraction);
-  return {
-    left: Math.round(centre.x - size / 2),
-    top: Math.round(centre.y - size / 2),
-    size,
-  };
+  const size = (2 * radius) / fraction;
+  return { left: centre.x - size / 2, top: centre.y - size / 2, size };
 }
 
 /** Assemble PNG buffers into an .ico container.
  *
  * The format is a 6-byte ICONDIR, one 16-byte ICONDIRENTRY per image, then the
- * payloads. Entries are PNG rather than BMP, which browsers accept and which
- * matches the file this replaced.
+ * payloads. Entries are PNG rather than BMP, which browsers accept.
  *
  * @param {Buffer[]} pngs - One PNG per size, in the same order as `sizes`.
  * @param {number[]} sizes - Square edge lengths, 1-256.
@@ -316,144 +297,84 @@ export function parseIco(ico) {
   });
 }
 
-/** The theme-aware SVG favicon.
- *
- * The mark is embedded as a raster rather than redrawn as vector: the bloom is a
- * raster effect that does not translate, and a favicon SVG cannot fetch external
- * resources, so it cannot simply reference logo.png.
- *
- * @param {{ size: number, radius: number, ground: string, base64: string }} opts
- * @returns {string}
- */
-export function buildSvg({ size, radius, ground, base64 }) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
-  <!--
-    GENERATED by scripts/generate-icons.mjs from public/logo.png. Do not hand-edit;
-    run \`npm run icons:generate\` instead.
-
-    A light-themed tab gets the app's own ground painted behind the mark, because
-    the mark is mostly soft bloom and has almost nothing solid left to read once
-    composited onto a light surface. A dark theme needs no ground, so the mark
-    floats as it was drawn.
-
-    The browser rasterises this once and caches the bitmap, so the query below is
-    only evaluated at that point — src/components/shell/favicon-theme-sync.tsx is
-    what makes a live theme change take effect without a hard refresh.
-  -->
-  <style>
-    .ground { fill: ${ground}; }
-    @media (prefers-color-scheme: dark) { .ground { fill: none; } }
-  </style>
-  <rect class="ground" width="${size}" height="${size}" rx="${radius}"/>
-  <image href="data:image/png;base64,${base64}" width="${size}" height="${size}"/>
-</svg>
-`;
-}
-
 /** `#rrggbb` for a sharp-style colour object. */
 export function toHex({ r, g, b }) {
   return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
-async function main() {
-  const SOURCE = "public/logo.png";
-  const source = readFileSync(SOURCE);
-  const { width, height } = await sharp(source).metadata();
-  const { data } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+/** Renders an SVG document to an RGBA PNG at the size it declares.
+ *
+ * RGBA even where every pixel is opaque, because Next's .ico decoder rejects
+ * any entry whose PNG is not.
+ *
+ * @param {string} svg
+ * @returns {Promise<Buffer>}
+ */
+function render(svg) {
+  return sharp(Buffer.from(svg)).ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
+}
 
-  const box = squareTrimBox(data, width, height);
-  const crop = { left: box.left, top: box.top, width: box.size, height: box.size };
-  const pct = Math.round((100 * box.size) / width);
-  console.log(`${SOURCE}: ${width}x${height} -> trimmed to ${box.size}px square (${pct}%)`);
+async function main() {
+  const SOURCE = "public/logo.svg";
+  const { viewBox, body } = svgParts(readFileSync(SOURCE, "utf8"));
+
+  // Measured on a large render, then converted back to the mark's own units, so
+  // every icon is drawn from the vectors rather than scaled from a raster.
+  const scale = MEASURE_SIZE / viewBox.size;
+  const measured = framedSvg({
+    body,
+    frame: { left: viewBox.x, top: viewBox.y, size: viewBox.size },
+    size: MEASURE_SIZE,
+  });
+  const { data } = await sharp(Buffer.from(measured))
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const px = markCentre(data, MEASURE_SIZE, MEASURE_SIZE);
+  const centre = { x: viewBox.x + px.x / scale, y: viewBox.y + px.y / scale };
+  const reach = furthestSolid(data, MEASURE_SIZE, MEASURE_SIZE, px) / scale;
+  console.log(
+    `${SOURCE}: ring centred at (${centre.x}, ${centre.y}), reaching ${reach.toFixed(1)}`
+  );
+
+  const tile = iconWindow(centre, reach, ANY_FRACTION);
+  const phone = iconWindow(centre, reach, SAFE_FRACTION);
+  const apple = iconWindow(centre, reach, APPLE_FRACTION);
 
   // --- app/favicon.ico -------------------------------------------------------
-  // Flattening composites onto the ground and drops the alpha channel; the alpha
-  // is then put back fully opaque, because Next's .ico decoder rejects any entry
-  // whose PNG is not RGBA. Nothing is left semi-transparent either way.
   const pngs = [];
   for (const size of ICO_SIZES) {
-    pngs.push(
-      await sharp(source)
-        .extract(crop)
-        .resize(size, size)
-        .flatten({ background: GROUND })
-        .ensureAlpha(1)
-        .png({ compressionLevel: 9 })
-        .toBuffer()
-    );
+    pngs.push(await render(framedSvg({ body, frame: tile, size, radius: TILE_RADIUS })));
   }
   const ico = buildIco(pngs, ICO_SIZES);
   writeFileSync("app/favicon.ico", ico);
   console.log(`app/favicon.ico: ${ICO_SIZES.join("/")} at ${ico.length} B`);
 
   // --- app/icon.svg ----------------------------------------------------------
-  // Palette-quantised: full RGBA at this size is roughly three times larger for
-  // no visible difference on the gradients.
-  const raster = await sharp(source)
-    .extract(crop)
-    .resize(SVG_SIZE, SVG_SIZE)
-    .png({ compressionLevel: 9, palette: true })
-    .toBuffer();
-
-  const svg = buildSvg({
-    size: SVG_SIZE,
-    radius: SVG_RADIUS,
-    ground: toHex(GROUND),
-    base64: raster.toString("base64"),
-  });
+  const svg = framedSvg({ body, frame: tile, radius: TILE_RADIUS }).replace(
+    ">\n",
+    `>\n  <!-- GENERATED by scripts/generate-icons.mjs from ${SOURCE}. Do not hand-edit;\n       run \`npm run icons:generate\` instead. -->\n`
+  );
   writeFileSync("app/icon.svg", svg);
-  console.log(`app/icon.svg: ${SVG_SIZE}px raster at ${svg.length} B`);
+  console.log(`app/icon.svg: ${svg.length} B`);
 
   // --- launcher icons --------------------------------------------------------
-  const centre = markCentre(data, width, height);
-  const radius = furthestVisible(data, width, height, centre);
-  console.log(`mark centred at (${centre.x}, ${centre.y}), reaching ${Math.round(radius)}px`);
-
-  /** The source cut to `frame`, padded with transparency where the frame
-   * reaches past its edges. */
-  const framed = async (frame) => {
-    const pad = {
-      left: Math.max(0, -frame.left),
-      top: Math.max(0, -frame.top),
-      right: Math.max(0, frame.left + frame.size - width),
-      bottom: Math.max(0, frame.top + frame.size - height),
-    };
-    const padded = await sharp(source)
-      .extend({ ...pad, background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
-    return sharp(padded).extract({
-      left: frame.left + pad.left,
-      top: frame.top + pad.top,
-      width: frame.size,
-      height: frame.size,
-    });
-  };
-
-  const maskableFrame = iconWindow(centre, radius, SAFE_FRACTION);
-  const anyFrame = iconWindow(centre, radius, 1);
-
-  // Flattening paints the ground under everything, padding included, so no
-  // pixel is left short of opaque, which is what a launcher's mask needs.
-  const maskable = async (size) =>
-    (await framed(maskableFrame))
-      .resize(size, size)
-      .flatten({ background: GROUND })
-      .png({ compressionLevel: 9 })
-      .toBuffer();
-  const bare = async (size) =>
-    (await framed(anyFrame)).resize(size, size).png({ compressionLevel: 9 }).toBuffer();
-
   mkdirSync("public/icons", { recursive: true });
   for (const size of LAUNCHER_SIZES) {
     const maskablePath = `public/icons/maskable-${size}.png`;
-    writeFileSync(maskablePath, await maskable(size));
+    writeFileSync(maskablePath, await render(framedSvg({ body, frame: phone, size, radius: 0 })));
     const anyPath = `public/icons/icon-${size}.png`;
-    writeFileSync(anyPath, await bare(size));
+    writeFileSync(
+      anyPath,
+      await render(framedSvg({ body, frame: tile, size, radius: TILE_RADIUS }))
+    );
     console.log(`${maskablePath}, ${anyPath}`);
   }
 
-  writeFileSync("app/apple-icon.png", await maskable(APPLE_SIZE));
+  writeFileSync(
+    "app/apple-icon.png",
+    await render(framedSvg({ body, frame: apple, size: APPLE_SIZE, radius: 0 }))
+  );
   console.log(`app/apple-icon.png: ${APPLE_SIZE}px`);
 }
 

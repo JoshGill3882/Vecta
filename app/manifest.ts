@@ -36,9 +36,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: BACKGROUND,
     theme_color: BACKGROUND,
-    // Built by `npm run icons:generate`. The maskable pair is opaque and keeps
-    // the mark inside the circle every launcher's mask leaves; the plain pair
-    // is the bare mark, for surfaces that show an icon without masking it.
+    // Built by `npm run icons:generate`, all on the app's dark background. The
+    // maskable pair is full-bleed and keeps the mark inside the circle every
+    // launcher's mask leaves; the plain pair is a rounded tile, for desktops,
+    // which show an icon without masking it.
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
