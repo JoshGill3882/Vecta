@@ -40,8 +40,11 @@ export function TaskCard({
     <article
       onClick={openFromCard}
       className={cn(
-        "bg-card hover:border-ring/50 cursor-pointer rounded-[12px] border p-4 transition-colors",
-        closed && "opacity-[0.78]"
+        "hover:border-ring/50 cursor-pointer rounded-[12px] border p-4 transition-colors",
+        // A closed card recedes by sitting on the page's own colour instead of
+        // the raised card surface. Fading the whole card instead would take its
+        // timestamp and status badge below 4.5:1.
+        closed ? "bg-background" : "bg-card"
       )}
     >
       <div className="flex items-start justify-between gap-2.5">
