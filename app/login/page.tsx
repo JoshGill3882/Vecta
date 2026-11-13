@@ -32,7 +32,7 @@ export default async function LoginPage({
             wordmark sits beside the mark and already names the app. */}
         <div className="mb-5 -ml-1.5 flex items-center gap-2.5">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt=""
             width={52}
             height={52}
