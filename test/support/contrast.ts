@@ -10,14 +10,15 @@ import { resolve } from "node:path";
 const css = readFileSync(resolve(__dirname, "../../app/globals.css"), "utf8");
 const dark = css.slice(css.indexOf(".dark {"));
 
-/** Reads a hex colour token from the dark palette.
+/** Reads a colour token from the dark palette, following `var()` references.
  *
  * @param name The custom property, without its leading dashes.
  * @returns The colour as red, green and blue channels, 0-255.
  */
 export function token(name: string): number[] {
-  const match = dark.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
-  if (!match) throw new Error(`--${name} is not a hex colour in the .dark block`);
+  const match = dark.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6}|var\\(--([\\w-]+)\\))`));
+  if (!match) throw new Error(`--${name} is neither a hex colour nor a var() in the .dark block`);
+  if (match[2]) return token(match[2]);
   return [1, 3, 5].map((i) => parseInt(match[1].slice(i, i + 2), 16));
 }
 

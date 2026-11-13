@@ -17,6 +17,8 @@ Internal refactors that change nothing observable are not listed.
   The page now keeps its place, and opening a dialog, the filter sheet or a menu doesn't move it either
 - **Text on closed task cards was too faint to read comfortably**: the whole card was faded, which took its timestamp and its "Closed" badge below the WCAG AA contrast minimum.
   A closed card now sits on the page's darker background instead, so it still stands back from open tasks while all its text stays readable
+- **Placeholders and hints in the task form, and other quiet grey text in dialogs and menus, fell below the WCAG AA contrast minimum.**
+  The grey used for secondary text is now slightly lighter, and one shade throughout, so it is readable on every surface
 
 ## [1.2.0] - 2026-11-11
 
