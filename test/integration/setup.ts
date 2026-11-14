@@ -17,6 +17,7 @@ vi.mock("next/cache", () => ({
 }));
 
 import { prisma } from "@/src/server/db";
+import { flushLogs } from "@/src/server/logger";
 
 // Safety rail: the reset below wipes every row, so refuse to run against anything
 // that isn't the in-memory database. This can never nuke a real dev/prod file.
@@ -74,7 +75,10 @@ beforeAll(async () => {
 // Clean slate before every test (not just every suite): two tests in one file
 // pollute each other exactly as easily as two files do. FK-safe order — tasks
 // reference categories. Log entries reference nothing, so their place is free.
+// The logger writes in the background, so an entry the previous test caused may
+// still be on its way; waiting for it first keeps it out of this test's table.
 beforeEach(async () => {
+  await flushLogs();
   await prisma.task.deleteMany();
   await prisma.category.deleteMany();
   await prisma.log.deleteMany();

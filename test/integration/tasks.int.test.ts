@@ -1,6 +1,33 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/src/server/db";
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/src/features/tasks/actions";
+import { flushLogs } from "@/src/server/logger";
+import { listLogs } from "@/src/server/services/logs";
+
+// The real logger writes every entry to stdout too; keep that out of the output.
+beforeEach(() => {
+  vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** The activity entries written so far, sorted by event name.
+ *
+ * Entries written in the same millisecond have no reliable order between them,
+ * so the tests compare them sorted rather than as the log lists them.
+ *
+ * @returns Each entry's event and detail.
+ */
+async function activity(): Promise<{ event: string; detail: unknown }[]> {
+  await flushLogs();
+  const entries = await listLogs();
+  return entries
+    .filter((entry) => entry.kind === "activity")
+    .map(({ event, detail }) => ({ event, detail }))
+    .sort((a, b) => a.event.localeCompare(b.event));
+}
 
 // A valid, DB-shaped cuid that no row will ever own — for "missing" lookups.
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
@@ -145,5 +172,33 @@ describe("deleteTaskAction (integration)", () => {
     const res = await deleteTaskAction(ABSENT_ID);
 
     expect(res).toMatchObject({ ok: false, code: "NOT_FOUND" });
+  });
+});
+
+describe("task activity (integration)", () => {
+  it("records a create, an update and a delete against the real table", async () => {
+    const created = await createTaskAction({ title: "Buy milk", status: "open" });
+    if (!created.ok) throw new Error("create failed");
+    const id = created.data.id;
+
+    await updateTaskAction(id, { title: "Buy oat milk", status: "open", dueAt: "2026-09-15" });
+    await deleteTaskAction(id);
+
+    expect(await activity()).toEqual([
+      { event: "task.created", detail: { taskId: id, title: "Buy milk" } },
+      { event: "task.deleted", detail: { taskId: id, title: "Buy oat milk" } },
+      {
+        event: "task.updated",
+        detail: { taskId: id, title: "Buy oat milk", changed: ["title", "dueAt"] },
+      },
+    ]);
+  });
+
+  it("records nothing for a change that fails", async () => {
+    await createTaskAction({ title: "", status: "open" });
+    await updateTaskAction(ABSENT_ID, { title: "x" });
+    await deleteTaskAction(ABSENT_ID);
+
+    expect(await activity()).toEqual([]);
   });
 });
