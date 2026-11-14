@@ -90,6 +90,7 @@ Two things make that worth enforcing:
 
 Unlike the other services, `writeLog` has no Prisma error to translate, and it catches nothing:
 a caller that must not fail because logging did is the one to decide what to do instead.
+Application code logs through the shared logger rather than calling `writeLog` itself; the logger prepares and redacts each entry, writes it to stdout, and only then calls `writeLog`, in the background, reporting a failure on stdout. See [Logging](./logging.md).
 `listLogs` returns at most `MAX_LOG_LIST` (500) entries, `DEFAULT_LOG_LIST` (100) when no limit is given, and clamps an out-of-range limit into range rather than refusing it.
 Entries written in the same millisecond are ordered by id, so a listing reads the same every time.
 

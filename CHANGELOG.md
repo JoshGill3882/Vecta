@@ -9,6 +9,14 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Added
+
+- **Clearer server logs.** The container's output now has one JSON line per entry, with its time, level, event and message.
+  The app logs one as it starts, naming its version and database engine; one giving the reason when a configuration problem stops it starting; and one with the error's message and stack behind each "Something went wrong".
+  Passwords, the session secret, session and cookie values, and the credentials in a database URL are removed before anything is written
+- **`LOG_LEVEL`** sets how much is logged: `debug`, `info` (the default), `warn` or `error`.
+  Any other value stops the app from starting rather than being ignored
+
 ### Changed
 
 - **A new, flat Vecta logo**, drawn as clean shapes without the glow, in the top bar, on the login screen and on every icon.

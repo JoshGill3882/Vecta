@@ -14,6 +14,7 @@ These are task-oriented ("how do I protect a route?", "how do I add a model?") a
 | [Dual-provider DB & migrations](./dual-provider-migrations.md) | Running on SQLite or Postgres from one schema, the migration workflow               |
 | [Environment & boot-time contract](./environment.md)           | Required env vars and how the app validates them on startup                         |
 | [Input validation](./validation.md)                            | Zod schemas for tasks/categories, the shared `validate()` helper, structured errors |
+| [Logging](./logging.md)                                        | The shared logger, where entries go, the minimum level, redaction, testing          |
 | [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation       |
 | [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming   |
 | [Rate limiting](./rate-limiting.md)                            | Applying the in-memory attempt limiter to an action                                 |

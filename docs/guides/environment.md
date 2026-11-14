@@ -1,11 +1,12 @@
 # Environment & boot-time contract
 
-The app **refuses to start** if its required environment variables are missing or invalid, so misconfiguration fails fast and loudly rather than at the first request.
+The app **refuses to start** if its environment variables are missing or invalid, so misconfiguration fails fast and loudly rather than at the first request.
 This guide covers the contract and how to extend it.
 
 ## Key files
 
-- `instrumentation.ts` — boot-time validation (`register()`)
+- `instrumentation.ts` — `register()`, which Next.js runs as the server starts
+- `src/server/start-up.ts` — `configurationProblem()` and `startUp()`, the checks and the start-up entry
 - `.env.example` — the documented template
 - `src/server/db.ts` — a runtime check for `DATABASE_URL`
 - `next.config.ts` — reads `ALLOWED_DEV_ORIGINS` when the dev server starts
@@ -28,12 +29,21 @@ Copy `.env.example` to `.env` and fill these in before running the app.
 
 ## Optional variables
 
-| Var                   | Required | Rule                                                           |
-| --------------------- | -------- | -------------------------------------------------------------- |
-| `ALLOWED_DEV_ORIGINS` | no       | Comma-separated hostnames allowed to reach the **dev** server. |
+| Var                    | Required | Rule                                                                   |
+| ---------------------- | -------- | ---------------------------------------------------------------------- |
+| `LOG_LEVEL`            | no       | `debug`, `info`, `warn` or `error`. Unset or empty means `info`.       |
+| `ALLOWED_DEV_ORIGINS`  | no       | Comma-separated hostnames allowed to reach the **dev** server.         |
+| `VECTA_BUILD_VERSION`  | no       | Set by the image, not by you. The build's version, logged at start-up. |
+| `VECTA_BUILD_REVISION` | no       | Set by the image, not by you. The build's commit, logged at start-up.  |
 
-Nothing validates this one and nothing needs it.
-It is absent by default, and absent is a valid configuration — `register()` never sees it, because the list it guards is of variables the app cannot run without.
+Each is absent by default, and absent is a valid configuration.
+
+### `LOG_LEVEL`
+
+The minimum level an entry needs to be logged, to stdout and to the `Log` table alike.
+`debug` records the most and `error` the least.
+Unlike the other optional variables it is checked at start-up: a value that is not a level stops the server from starting, so a typo cannot silently change what is logged.
+See [Logging](./logging.md#the-minimum-level).
 
 ### `ALLOWED_DEV_ORIGINS`
 
@@ -55,34 +65,52 @@ Wildcards stand in for whole labels: `*` for exactly one, `**` for one or more a
 A tunnel whose hostname is regenerated on every run needs the wildcard form.
 
 This is read once, when `next dev` starts.
-It has no effect on `next build` or on the production image, and it is not part of the boot-time contract above.
+It has no effect on `next build` or on the production image, and nothing checks it at start-up.
+
+### `VECTA_BUILD_VERSION` and `VECTA_BUILD_REVISION`
+
+The `Dockerfile` sets these from the `VERSION` and `REVISION` build arguments CI passes, the same values as the image's labels.
+A plain `docker build` gives `dev` and `unknown`, and outside Docker they are unset, which the start-up entry also reports as `dev` and `unknown`.
+They are named apart from `VECTA_VERSION`, which Compose reads to choose the image tag to pull and the app never sees.
 
 ## How boot-time validation works
 
 `instrumentation.ts` exports `register()`, which Next.js runs **once when a server instance starts, before any request**.
-Throwing there aborts startup:
+Throwing there aborts startup.
 
-- Missing `ADMIN_PASSWORD` → throws.
-- Missing `SESSION_SECRET` → throws.
-- `SESSION_SECRET` shorter than 32 chars → throws.
+`register()` only does anything in the **Node.js runtime** (`process.env.NEXT_RUNTIME === "nodejs"`).
+`instrumentation.ts` is also built for the Edge runtime, where env-based secrets are not meaningful and the Node-only logger cannot load, so it imports `src/server/start-up.ts` from inside that check rather than at the top of the file.
 
-It only validates in the **Node.js runtime** (`process.env.NEXT_RUNTIME === "nodejs"`);
-env-based secrets aren't meaningful on the Edge runtime, so it returns early there.
+`startUp()` asks `configurationProblem()` for the first problem, checked in a fixed order:
 
-`DATABASE_URL` is validated separately at module load in `src/server/db.ts` (and its shape is checked by `detectProvider`), so it fails fast too — on first DB access if not before.
+1. Missing `ADMIN_PASSWORD`.
+2. Missing `SESSION_SECRET`.
+3. `SESSION_SECRET` shorter than 32 characters.
+4. `LOG_LEVEL` set to something that is not a level.
+
+On a problem, it logs `server.config_invalid` with the problem in `detail.problem`, waits for that entry's table write, and throws the problem as the error, which stops the server.
+Otherwise it logs one `server.started` entry with the build's version and revision and the database provider.
+Both go to stdout, so `docker compose logs` shows why a container will not start even when the database is the thing that is wrong.
+
+`DATABASE_URL` is validated separately: its shape by `detectProvider` when the container's entrypoint resolves the provider, and its presence at module load in `src/server/db.ts`, so it fails fast too — on first DB access if not before.
+The start-up entry names the provider as `unknown` rather than failing a second time.
 
 ## How to add a new required env var
 
 1. Add it to `.env.example` with a short comment describing it.
-2. Add a check to `register()` in `instrumentation.ts`:
+2. Add a check to `configurationProblem()` in `src/server/start-up.ts`, in the order it should be reported:
    ```ts
-   if (process.env.MY_NEW_VAR == null) {
-     throw new Error("MY_NEW_VAR environment variable is required.");
+   if (env.MY_NEW_VAR == null) {
+     return "MY_NEW_VAR environment variable is required.";
    }
    ```
-3. Document it in the table above and, if user-facing, in the root README.
+   It returns the problem rather than throwing, so `startUp()` can log it before the server stops.
+3. Add a case to `test/server/start-up.test.ts`.
+4. Document it in the table above and, if user-facing, in the root README.
+5. If its name could hold a secret the app logs, check it is caught by `prepareDetail()`; see [Logging](./logging.md#what-is-never-logged).
 
 ## Gotchas
 
 - **Edge runtime skips validation.** Anything that must hold on Edge needs its own guard at point of use.
-- **Keep `.env.example` in step with `register()`.** A required var that isn't in the example is a trap for the next person setting up.
+- **Keep `.env.example` in step with `configurationProblem()`.** A required var that isn't in the example is a trap for the next person setting up.
+- **Never put a secret's value in the problem message.** It is logged as `detail.problem`, and redaction goes by key: text under an ordinary key is only stripped of URL credentials, so a secret written into the sentence would be logged as it is.

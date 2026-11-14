@@ -149,10 +149,13 @@ export function toActionError(e: unknown): ActionResult<never> {
     return { ok: false, error: e.message, code: e.code };
   }
   // Unanticipated: log for observability, return a generic message — never leak internals.
-  console.error("[action] unexpected error", e);
+  logger.error("action.unexpected_error", "A server action failed unexpectedly", { error: e });
   return { ok: false, error: "Something went wrong. Please try again." };
 }
 ```
+
+The logger writes the error's name, message and stack to stdout and the `Log` table, with credentials removed, and never throws or makes the action wait; see [Logging](./logging.md).
+A `DomainError` is not logged: it is an expected outcome the user is told about, not a fault.
 
 Because services translate Prisma errors (`P2025 → NotFoundError`, `P2002 → ConflictError`) _before_ they reach the action, the action only ever sees domain errors or genuine surprises.
 See [Database & service layer](./database.md).
@@ -208,14 +211,14 @@ You don't invalidate _what you changed_, you invalidate _what's now stale becaus
 ## Tests
 
 The actions are unit-tested in `test/features/tasks/actions.test.ts` and `test/features/categories/actions.test.ts`.
-The tests keep `validate()`, the Zod schemas, **and the real `src/shared/lib/cache.ts` helper** in play (so the validation gate and the exact tag logic are genuinely exercised) and fake only the true side effects — `getSession`, the service module, and `next/cache`'s `updateTag` — via `vi.mock`.
+The tests keep `validate()`, the Zod schemas, **and the real `src/shared/lib/cache.ts` helper** in play (so the validation gate and the exact tag logic are genuinely exercised) and fake only the true side effects — `getSession`, the service module, `next/cache`'s `updateTag` and the logger — via `vi.mock`.
 They cover the full contract:
 
 - **Wrapping** — a valid call invokes the matching service function exactly once.
 - **Validation** — invalid input returns `fieldErrors` and the service is never called.
 - **Result shape** — success yields `{ ok: true, data }`;
   a `DomainError` yields `{ ok: false, error, code }`;
-  an unexpected error yields the generic message;
+  an unexpected error yields the generic message and is logged once, while a domain error is not logged;
   a signed-out call yields `{ ok: false, code: "UNAUTHENTICATED" }` — **nothing is ever thrown**.
 - **Revalidation** — the right tags are invalidated on success (`create` → list tag only; `update`/`delete` → list + `id` tag; category writes additionally bust `"tasks"`), and _nothing_ is invalidated on a validation failure or a service error.
 - **Previous state** — the category actions ignore `_prev`; each submit recomputes from scratch.

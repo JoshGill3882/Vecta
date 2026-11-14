@@ -43,6 +43,8 @@ src/
     db.ts                 Prisma singleton and adapter selection
     services/             The data-access seam — all DB access lives here
     errors.ts             Domain error types
+    logger.ts             The shared logger, to stdout and the Log table
+    start-up.ts           Configuration checks and the start-up entry
 prisma/
   schema.prisma           One schema, both engines
   migrations/sqlite/      Two histories, because the SQL differs per engine
@@ -248,12 +250,28 @@ Task cards render their category's name and colour, so a renamed category leaves
 ## Configuration
 
 The app **refuses to boot** without valid configuration rather than failing at the first request.
-`instrumentation.ts` runs once per server instance and throws if `ADMIN_PASSWORD` is missing, or if `SESSION_SECRET` is missing or shorter than 32 characters.
+`instrumentation.ts` runs once per server instance and hands over to `src/server/start-up.ts`, which throws if `ADMIN_PASSWORD` is missing, if `SESSION_SECRET` is missing or shorter than 32 characters, or if `LOG_LEVEL` is not a level — logging the reason first.
 `DATABASE_URL` is checked separately at module load in `src/server/db.ts`.
 
 Failing at boot means a misconfigured container crash-loops visibly instead of serving a broken app.
 
 → [Environment & boot-time contract](./docs/guides/environment.md) · [configuration reference](./README.md#configuration)
+
+---
+
+## Logging
+
+The server logs through one shared logger, `src/server/logger.ts`, to two destinations that are deliberately not equal.
+**stdout** gets every entry as a JSON line, before anything touches the database, because the failures most worth seeing — a bad `DATABASE_URL`, a failed migration, a container that will not start — are the ones where the database is what broke.
+**The `Log` table** gets the same entry in the background, best-effort: the caller never waits on it or sees it fail, and a failed write is reported on stdout only, so it cannot loop.
+
+Redaction is the logger's job, not each caller's.
+Every entry's detail passes through `src/server/log-detail.ts`, which hides sensitive keys, strips credentials from URLs and spells out errors, so a log that is later exported or shared does not carry a secret.
+
+The logger is hand-written rather than pino.
+Pino redacts values at paths listed ahead of time, where this needs a key such as `password` hidden wherever it appears and credentials stripped from any URL, so that part would be custom either way; what remained for pino, level filtering and writing JSON lines, is a few lines here.
+
+→ [Logging](./docs/guides/logging.md)
 
 ---
 

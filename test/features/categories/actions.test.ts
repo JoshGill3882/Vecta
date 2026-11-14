@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ConflictError, NotFoundError } from "@/src/server/errors";
 
-// See test/app/task-actions.test.ts for the rationale: real validate()/schemas
-// and the real src/lib/cache helper; faked auth + service + next/cache updateTag.
-// Categories additionally bust the "tasks" tag (a task row renders its category).
+// See test/features/tasks/actions.test.ts for the rationale: real validate()/schemas
+// and the real src/lib/cache helper; faked auth + service + next/cache updateTag
+// + logger. Categories additionally bust the "tasks" tag (a task row renders its
+// category).
 
 vi.mock("@/src/shared/lib/session", () => ({
   getSession: vi.fn(async () => ({ isLoggedIn: true })),
@@ -19,6 +20,10 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
+vi.mock("@/src/server/logger", () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
 import {
   createCategoryAction,
   updateCategoryAction,
@@ -26,6 +31,7 @@ import {
 } from "@/src/features/categories/actions";
 import { getSession } from "@/src/shared/lib/session";
 import { createCategory, updateCategory, deleteCategory } from "@/src/server/services/categories";
+import { logger } from "@/src/server/logger";
 import { updateTag } from "next/cache";
 
 const mockGetSession = vi.mocked(getSession);
@@ -33,6 +39,7 @@ const mockCreateCategory = vi.mocked(createCategory);
 const mockUpdateCategory = vi.mocked(updateCategory);
 const mockDeleteCategory = vi.mocked(deleteCategory);
 const mockUpdateTag = vi.mocked(updateTag);
+const mockLogError = vi.mocked(logger.error);
 
 const categoryDTO = {
   id: "c1",
@@ -142,16 +149,20 @@ describe("createCategoryAction", () => {
       code: "CONFLICT",
     });
     expect(mockUpdateTag).not.toHaveBeenCalled();
+    expect(mockLogError).not.toHaveBeenCalled(); // an anticipated outcome, not a fault
   });
 
   it("an unexpected error is swallowed into a generic message, not thrown", async () => {
-    mockCreateCategory.mockRejectedValue(new Error("boom"));
-    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("boom");
+    mockCreateCategory.mockRejectedValue(error);
 
     const result = await createCategoryAction(null, form(validCreate));
 
     expect(result).toEqual({ ok: false, error: "Something went wrong. Please try again." });
-    errSpy.mockRestore();
+    expect(mockLogError).toHaveBeenCalledOnce();
+    expect(mockLogError).toHaveBeenCalledWith("action.unexpected_error", expect.any(String), {
+      error,
+    });
   });
 });
 
