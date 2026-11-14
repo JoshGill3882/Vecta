@@ -19,7 +19,7 @@ export function TopBar() {
           {/* alt="" — the wordmark beside it names the app, so the mark is
               decorative and would otherwise be announced twice. */}
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt=""
             width={34}
             height={34}

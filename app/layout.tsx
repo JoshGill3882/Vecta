@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { geistSans, geistMono } from "@/src/shared/lib/fonts";
-import { FaviconThemeSync } from "@/src/shared/components/shell/favicon-theme-sync";
 import { APP_DESCRIPTION as description, APP_NAME as title } from "@/src/shared/lib/app-identity";
 
 /** Document metadata for every route beneath this layout. */
@@ -53,10 +52,7 @@ export default function RootLayout({
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <FaviconThemeSync />
-        {children}
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

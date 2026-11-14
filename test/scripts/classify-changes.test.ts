@@ -24,7 +24,7 @@ describe("isDocumentation", () => {
     ".markdownlint.jsonc",
     "docker-compose.yml",
     ".env.example",
-    "public/logo.png",
+    "public/logo.svg",
     // Only a trailing `.md` counts, not one anywhere in the name.
     "src/readme.md.ts",
     "docs/images.ts",

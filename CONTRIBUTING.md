@@ -160,7 +160,7 @@ See [`docs/guides/environment.md`](./docs/guides/environment.md#allowed_dev_orig
 | `npm run format`         | Format all files with Prettier                                      |
 | `npm run format:check`   | Check formatting without writing                                    |
 | `npm run typecheck`      | TypeScript type check                                               |
-| `npm run icons:generate` | Rebuild the tab icons and the launcher icons from `public/logo.png` |
+| `npm run icons:generate` | Rebuild the tab icons and the launcher icons from `public/logo.svg` |
 | `npm run db:generate`    | Generate the Prisma clients for both providers                      |
 | `npm run db:migrate`     | Create and apply a migration (development)                          |
 | `npm run db:deploy`      | Apply existing migrations (what the image runs)                     |

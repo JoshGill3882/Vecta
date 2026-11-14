@@ -6,26 +6,34 @@ import { describe, it, expect } from "vitest";
 // Pure helpers — the module guards its own main(), so importing it here never
 // reads or writes an image.
 import {
+  ANY_FRACTION,
+  APPLE_FRACTION,
   APPLE_SIZE,
   GROUND,
   ICO_SIZES,
   LAUNCHER_SIZES,
   SAFE_FRACTION,
-  SVG_SIZE,
+  TILE_RADIUS,
   buildIco,
-  buildSvg,
-  contentBox,
-  furthestVisible,
+  framedSvg,
+  furthestSolid,
   iconWindow,
   markCentre,
   parseIco,
   solidPieces,
-  squareTrimBox,
+  svgParts,
   toHex,
 } from "@/scripts/generate-icons.mjs";
 
-const icoPath = new URL("../../app/favicon.ico", import.meta.url);
-const svgPath = new URL("../../app/icon.svg", import.meta.url);
+/** iOS's home-screen corner radius, as a fraction of the icon's width. */
+const IOS_CORNER = 0.224;
+
+/** How far a pixel may stray from the ground and still count as ground.
+ *
+ * Covers the anti-aliasing at the mark's edges, which blends a few levels of
+ * colour into the pixels beside it.
+ */
+const VISIBLE = 12;
 
 /** An RGBA buffer with one opaque rectangle on a transparent field.
  *
@@ -43,46 +51,115 @@ function canvas(width: number, height: number, opaque: [number, number, number, 
   return data;
 }
 
-describe("squareTrimBox", () => {
-  it("squares off a wider-than-tall mark and centres the box on it", () => {
-    // Opaque from x 2..5, y 1..3 — 4 wide, 3 tall, so the square is 4.
-    expect(squareTrimBox(canvas(8, 8, [2, 1, 5, 3]), 8, 8)).toEqual({ left: 2, top: 0, size: 4 });
+/** Decodes a shipped PNG to raw RGBA.
+ *
+ * @param file The PNG's bytes.
+ * @returns The pixels and their dimensions.
+ */
+function pixels(file: Buffer) {
+  return sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+}
+
+/** Reads a shipped file.
+ *
+ * @param path The file, relative to the repository root.
+ * @returns Its bytes.
+ */
+function shipped(path: string): Buffer {
+  return readFileSync(new URL(`../../${path}`, import.meta.url));
+}
+
+/** How far a pixel is from the ground, in its most different channel, scaled
+ * by its opacity so a transparent pixel never counts.
+ *
+ * @param data RGBA pixels.
+ * @param i The pixel's index.
+ * @returns 0 for ground or nothing, up to 255.
+ */
+function markness(data: Buffer, i: number): number {
+  const far = Math.max(
+    Math.abs(data[i * 4] - GROUND.r),
+    Math.abs(data[i * 4 + 1] - GROUND.g),
+    Math.abs(data[i * 4 + 2] - GROUND.b)
+  );
+  return Math.round((far * data[i * 4 + 3]) / 255);
+}
+
+/** How far a pixel's centre lies beyond the curve of a rounded square the size of the icon.
+ *
+ * Only the corners curve, so a pixel anywhere else is never beyond it.
+ *
+ * @param x The pixel's column.
+ * @param y The pixel's row.
+ * @param size The icon's width.
+ * @param radius The corner radius, as a fraction of the width.
+ * @returns Pixels beyond the curve; negative inside it.
+ */
+function beyondCurve(x: number, y: number, size: number, radius: number): number {
+  const r = radius * size;
+  const px = x + 0.5;
+  const py = y + 0.5;
+  const cx = Math.min(Math.max(px, r), size - r);
+  const cy = Math.min(Math.max(py, r), size - r);
+  return Math.hypot(px - cx, py - cy) - r;
+}
+
+/** The point the mark is centred on in a shipped icon, found as the generator finds it.
+ *
+ * @param data RGBA pixels.
+ * @param size The icon's width.
+ * @returns The centre, in pixels.
+ */
+function centreOf(data: Buffer, size: number) {
+  const solidness = Buffer.alloc(data.length);
+  for (let i = 0; i < size * size; i++) solidness[i * 4 + 3] = markness(data, i);
+  return markCentre(solidness, size, size);
+}
+
+/** The mark's reach in a shipped icon, as a fraction of its width.
+ *
+ * @param data RGBA pixels.
+ * @param size The icon's width.
+ * @returns Twice the furthest solid pixel's distance from the centre, over the width.
+ */
+function reachOf(data: Buffer, size: number): number {
+  const solidness = Buffer.alloc(data.length);
+  for (let i = 0; i < size * size; i++) solidness[i * 4 + 3] = markness(data, i);
+  return (2 * furthestSolid(solidness, size, size, centreOf(data, size))) / size;
+}
+
+describe("svgParts", () => {
+  it("reads the square viewBox and the drawing inside the root element", () => {
+    const parts = svgParts('<svg viewBox="10 20 30 30"><!-- note --><rect/></svg>');
+    expect(parts).toEqual({ viewBox: { x: 10, y: 20, size: 30 }, body: "<rect/>" });
   });
 
-  it("squares off a taller-than-wide mark", () => {
-    // Opaque from x 3..4, y 1..6 — 2 wide, 6 tall, so the square is 6 and its
-    // left edge lands at round(3.5 - 3) = 1, keeping the mark centred.
-    expect(squareTrimBox(canvas(8, 8, [3, 1, 4, 6]), 8, 8)).toEqual({ left: 1, top: 1, size: 6 });
+  it("refuses a mark with no viewBox, which nothing could be framed from", () => {
+    expect(() => svgParts("<svg><rect/></svg>")).toThrow(/no viewBox/);
   });
 
-  it("clamps the box inside the canvas rather than letting it overflow", () => {
-    const box = squareTrimBox(canvas(8, 8, [0, 3, 7, 4]), 8, 8);
-    expect(box).toEqual({ left: 0, top: 0, size: 8 });
-  });
-
-  it("ignores pixels at or below the alpha threshold, so faint glow is not framed", () => {
-    const data = canvas(8, 8, [3, 3, 4, 4]);
-    data[0 * 4 + 3] = 5; // a corner pixel of near-nothing
-    expect(squareTrimBox(data, 8, 8, 10)).toEqual({ left: 3, top: 3, size: 2 });
-  });
-
-  it("throws on a fully transparent source rather than returning a bogus box", () => {
-    expect(() => squareTrimBox(new Uint8Array(8 * 8 * 4), 8, 8)).toThrow(/fully transparent/);
+  it("refuses a viewBox that is not square", () => {
+    expect(() => svgParts('<svg viewBox="0 0 30 20"><rect/></svg>')).toThrow(/square/);
   });
 });
 
-describe("contentBox", () => {
-  it("returns the mark's box as it lies, without squaring it", () => {
-    expect(contentBox(canvas(8, 8, [2, 1, 5, 3]), 8, 8)).toEqual({
-      left: 2,
-      top: 1,
-      width: 4,
-      height: 3,
-    });
+describe("framedSvg", () => {
+  const frame = { left: 5, top: 6, size: 100 };
+
+  it("shows exactly the frame, at the size asked for", () => {
+    const svg = framedSvg({ body: "<rect/>", frame, size: 48 });
+    expect(svg).toContain('viewBox="5 6 100 100" width="48" height="48"');
+    expect(svg).toContain("<rect/>");
   });
 
-  it("throws on a fully transparent source", () => {
-    expect(() => contentBox(new Uint8Array(4 * 4 * 4), 4, 4)).toThrow(/fully transparent/);
+  it("puts the ground under the mark, with its corners rounded by the given fraction", () => {
+    const svg = framedSvg({ body: "<path/>", frame, radius: 0.25 });
+    expect(svg).toContain(`rx="25" fill="${toHex(GROUND)}"`);
+    expect(svg.indexOf("rx=")).toBeLessThan(svg.indexOf("<path/>"));
+  });
+
+  it("leaves the ground out when there is no radius", () => {
+    expect(framedSvg({ body: "<path/>", frame })).not.toContain("<rect");
   });
 });
 
@@ -99,7 +176,7 @@ describe("solidPieces", () => {
     expect(pieces[1]).toMatchObject({ left: 8, top: 8, right: 9, bottom: 8 });
   });
 
-  it("ignores pixels at or below the solid threshold, so glow joins nothing", () => {
+  it("ignores pixels at or below the solid threshold, such as anti-aliased edges", () => {
     const data = canvas(6, 6, [0, 0, 1, 1]);
     data[(5 * 6 + 5) * 4 + 3] = 100;
     expect(solidPieces(data, 6, 6, 128)).toHaveLength(1);
@@ -107,7 +184,7 @@ describe("solidPieces", () => {
 });
 
 describe("markCentre", () => {
-  // A ring of shapes with a small piece off to one side, as the logo's squares
+  // A main shape with a small piece off to one side, as the mark's squares
   // are: the centre must be the main shape's, not pulled towards the piece.
   it("centres on the main shapes and ignores small detached pieces", () => {
     const data = canvas(20, 20, [2, 2, 11, 11]); // 100 pixels, centred on (7, 7)
@@ -120,32 +197,26 @@ describe("markCentre", () => {
   });
 });
 
-describe("furthestVisible", () => {
-  it("measures to the furthest pixel above the threshold, not to a box corner", () => {
+describe("furthestSolid", () => {
+  it("measures to the furthest solid pixel, not to a box corner", () => {
     const data = new Uint8Array(9 * 9 * 4);
     data[(4 * 9 + 8) * 4 + 3] = 255; // one pixel at the middle of the right edge
-    expect(furthestVisible(data, 9, 9, { x: 4.5, y: 4.5 })).toBeCloseTo(4, 5);
+    expect(furthestSolid(data, 9, 9, { x: 4.5, y: 4.5 })).toBeCloseTo(4, 5);
   });
 });
 
 describe("iconWindow", () => {
   const centre = { x: 245.5, y: 251.5 };
 
-  it("sizes the window so the radius fills the given fraction of it", () => {
+  it("sizes the window so the reach spans the given fraction of it", () => {
     const frame = iconWindow(centre, 200, SAFE_FRACTION);
-    expect((2 * 200) / frame.size).toBeCloseTo(SAFE_FRACTION, 2);
+    expect((2 * 200) / frame.size).toBeCloseTo(SAFE_FRACTION, 10);
   });
 
-  // Within a pixel: the window's edges are whole pixels, so its centre can
-  // round half a pixel away from a point that falls between two.
   it("centres the window on the given point", () => {
-    const frame = iconWindow(centre, 200, SAFE_FRACTION);
-    expect(Math.abs(frame.left + frame.size / 2 - centre.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(frame.top + frame.size / 2 - centre.y)).toBeLessThanOrEqual(1);
-  });
-
-  it("reaches past the source's edges when the window is larger, leaving the caller to pad", () => {
-    expect(iconWindow(centre, 300, SAFE_FRACTION).left).toBeLessThan(0);
+    const frame = iconWindow(centre, 200, ANY_FRACTION);
+    expect(frame.left + frame.size / 2).toBeCloseTo(centre.x, 10);
+    expect(frame.top + frame.size / 2).toBeCloseTo(centre.y, 10);
   });
 });
 
@@ -176,19 +247,6 @@ describe("buildIco / parseIco", () => {
   });
 });
 
-describe("buildSvg", () => {
-  const svg = buildSvg({ size: 96, radius: 18, ground: "#0a0c10", base64: "AAAA" });
-
-  it("paints the ground by default and drops it under a dark theme", () => {
-    expect(svg).toContain(".ground { fill: #0a0c10; }");
-    expect(svg).toContain("@media (prefers-color-scheme: dark) { .ground { fill: none; } }");
-  });
-
-  it("inlines the raster, since a favicon SVG cannot fetch external resources", () => {
-    expect(svg).toContain('href="data:image/png;base64,AAAA"');
-  });
-});
-
 describe("toHex", () => {
   it("pads each channel to two digits", () => {
     expect(toHex(GROUND)).toBe("#0a0c10");
@@ -196,162 +254,187 @@ describe("toHex", () => {
   });
 });
 
-// The regression guard. "The icon is legible" is a human judgement; the
-// property underneath it is not. A mark that is almost entirely semi-transparent
-// glow leaves nothing to read on a light tab strip, so this asserts the .ico is
-// fully opaque.
-describe("the shipped app/favicon.ico", () => {
-  const entries = parseIco(readFileSync(icoPath));
+// The logo is served as-is to the login screen before anyone signs in, and
+// next/image does not sanitise SVGs, so it must stay plain drawing.
+describe("the shipped public/logo.svg", () => {
+  const svg = shipped("public/logo.svg").toString("utf8");
+
+  it("has a square viewBox for the generator to frame from", () => {
+    expect(() => svgParts(svg)).not.toThrow();
+  });
+
+  it("holds no scripts, event handlers or external references", () => {
+    expect(svg).not.toMatch(/<script|\son[a-z]+=|href="(?!#)/i);
+  });
+});
+
+/** The checks every rounded tile must pass, at each of its sizes.
+ *
+ * @param name The icon, as the suite names it.
+ * @param sizes The sizes it ships at.
+ * @param load Reads the PNG at one size.
+ */
+function describeTile(name: string, sizes: number[], load: (size: number) => Promise<Buffer>) {
+  describe(name, () => {
+    // A pixel either side of the curve is anti-aliased, so each check leaves
+    // that one-pixel band out.
+    it.each(sizes)("is opaque inside the tile's curve at %ipx", async (size) => {
+      const { data, info } = await pixels(await load(size));
+      expect([info.width, info.height]).toEqual([size, size]);
+      let short = 0;
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          if (beyondCurve(x, y, size, TILE_RADIUS) < -1 && data[(y * size + x) * 4 + 3] < 255)
+            short++;
+        }
+      }
+      expect(short).toBe(0);
+    });
+
+    // Nothing drawn outside the curve proves the mark, squares included, stays
+    // inside it rather than spilling onto whatever is behind the icon.
+    it.each(sizes)("is transparent outside the tile's curve at %ipx", async (size) => {
+      const { data } = await pixels(await load(size));
+      let drawn = 0;
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          if (beyondCurve(x, y, size, TILE_RADIUS) > 1 && data[(y * size + x) * 4 + 3] > 0) drawn++;
+        }
+      }
+      expect(drawn).toBe(0);
+    });
+
+    it.each(sizes.filter((size) => size >= 48))("centres the mark at %ipx", async (size) => {
+      const { data } = await pixels(await load(size));
+      const centre = centreOf(data, size);
+      expect(Math.abs(centre.x - size / 2)).toBeLessThan(size * 0.01);
+      expect(Math.abs(centre.y - size / 2)).toBeLessThan(size * 0.01);
+    });
+  });
+}
+
+describeTile("the shipped desktop icons", LAUNCHER_SIZES, async (size) =>
+  shipped(`public/icons/icon-${size}.png`)
+);
+
+describeTile("the shipped app/favicon.ico", ICO_SIZES, async (size) => {
+  const entry = parseIco(shipped("app/favicon.ico")).find((e) => e.width === size);
+  if (!entry) throw new Error(`favicon.ico has no ${size}px entry`);
+  return Buffer.from(entry.png);
+});
+
+describe("the shipped desktop icons' framing", () => {
+  it.each(LAUNCHER_SIZES)("frames the mark as closely as the tile allows at %ipx", async (size) => {
+    const { data } = await pixels(shipped(`public/icons/icon-${size}.png`));
+    expect(reachOf(data, size)).toBeCloseTo(ANY_FRACTION, 1);
+  });
+});
+
+describe("the shipped app/favicon.ico's container", () => {
+  const entries = parseIco(shipped("app/favicon.ico"));
 
   it("carries the expected entry sizes", () => {
     expect(entries.map((e) => e.width)).toEqual(ICO_SIZES);
   });
 
-  it("stores every entry as a PNG", () => {
+  it("encodes every entry as an RGBA PNG, which Next's .ico decoder requires", () => {
     for (const entry of entries) {
       expect(entry.png.subarray(0, 4)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      // Byte 25 is the IHDR colour type: 6 is truecolour-with-alpha.
+      expect(entry.png[25]).toBe(6);
     }
-  });
-
-  it("encodes every entry as RGBA, which Next's .ico decoder requires", () => {
-    // Byte 25 is the IHDR colour type: 6 is truecolour-with-alpha.
-    for (const entry of entries) expect(entry.png[25]).toBe(6);
-  });
-
-  it.each(ICO_SIZES)("is fully opaque at %ipx, with no glow left to composite", async (size) => {
-    const entry = entries.find((e) => e.width === size)!;
-    const { data, info } = await sharp(entry.png)
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    const pixels = info.width * info.height;
-    let opaque = 0;
-    for (let i = 0; i < pixels; i++) if (data[i * 4 + 3] === 255) opaque++;
-
-    expect(opaque).toBe(pixels);
   });
 });
 
 describe("the shipped app/icon.svg", () => {
-  const svg = readFileSync(svgPath, "utf8");
+  const svg = shipped("app/icon.svg").toString("utf8");
 
-  it("is theme-aware, which is the whole reason it exists alongside the .ico", () => {
-    expect(svg).toContain("prefers-color-scheme: dark");
-    expect(svg).toContain(toHex(GROUND));
+  it("draws the mark as vectors, with nothing to fetch", () => {
+    expect(svg).not.toContain("<image");
+    expect(svg).not.toMatch(/href="(?!#)/);
   });
 
-  it("inlines its raster rather than referencing a file the browser cannot fetch", () => {
-    expect(svg).toContain("data:image/png;base64,");
-    expect(svg).not.toMatch(/href="(?!data:)/);
-  });
-
-  it("draws the raster at the size the viewBox declares", () => {
-    expect(svg).toContain(`viewBox="0 0 ${SVG_SIZE} ${SVG_SIZE}"`);
-    expect(svg).toContain(`width="${SVG_SIZE}" height="${SVG_SIZE}"`);
+  it("keeps its dark ground whatever the browser's theme", () => {
+    expect(svg).toContain(`fill="${toHex(GROUND)}"`);
+    expect(svg).not.toContain("prefers-color-scheme");
   });
 });
 
-/** Decodes a shipped PNG to raw RGBA.
+/** The checks every full-bleed icon must pass.
  *
- * @param path The file, relative to the repository root.
- * @returns The pixels and their dimensions.
+ * @param name The icon, as the suite names it.
+ * @param sizes The sizes it ships at.
+ * @param load Reads the PNG at one size.
+ * @param keep Where the mark must stay.
+ * @param keep.describe That area in words, for the test's name.
+ * @param keep.outside Whether a pixel lies outside it.
  */
-async function pixelsOf(path: string) {
-  const file = readFileSync(new URL(`../../${path}`, import.meta.url));
-  return sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-}
+function describeFullBleed(
+  name: string,
+  sizes: number[],
+  load: (size: number) => Buffer,
+  keep: { describe: string; outside: (x: number, y: number, size: number) => boolean }
+) {
+  describe(name, () => {
+    // A transparent pixel shows whatever is behind the icon, and iOS fills one
+    // with black, so the ground is painted in edge to edge.
+    it.each(sizes)("is %ipx square and fully opaque", async (size) => {
+      const { data, info } = await pixels(load(size));
+      expect([info.width, info.height]).toEqual([size, size]);
+      let short = 0;
+      for (let i = 0; i < size * size; i++) if (data[i * 4 + 3] !== 255) short++;
+      expect(short).toBe(0);
+    });
 
-/** How far a pixel is from the ground, in its most different channel.
- *
- * @param data RGBA pixels.
- * @param i The pixel's index.
- * @returns The largest channel difference, 0 to 255.
- */
-function distanceFromGround(data: Buffer, i: number) {
-  return Math.max(
-    Math.abs(data[i * 4] - GROUND.r),
-    Math.abs(data[i * 4 + 1] - GROUND.g),
-    Math.abs(data[i * 4 + 2] - GROUND.b)
-  );
-}
-
-// A launcher crops a maskable icon to its own shape, and a transparent pixel
-// there shows whatever is behind the icon. So these must be fully opaque, and
-// everything visible must sit inside the circle every mask shape keeps.
-describe("the shipped maskable icons", () => {
-  /** Ground pixels can differ by this much before they count as visible. Glow
-   * below the trim threshold is left outside the circle on purpose: at under 4%
-   * alpha on the ground it shifts a channel by a few levels at most. */
-  const VISIBLE = 12;
-
-  it.each(LAUNCHER_SIZES)("is %ipx square and fully opaque", async (size) => {
-    const { data, info } = await pixelsOf(`public/icons/maskable-${size}.png`);
-    expect([info.width, info.height]).toEqual([size, size]);
-    let short = 0;
-    for (let i = 0; i < size * size; i++) if (data[i * 4 + 3] !== 255) short++;
-    expect(short).toBe(0);
-  });
-
-  it.each(LAUNCHER_SIZES)(
-    "keeps everything visible inside the safe circle at %ipx",
-    async (size) => {
-      const { data } = await pixelsOf(`public/icons/maskable-${size}.png`);
-      const radius = (size * SAFE_FRACTION) / 2;
+    it.each(sizes)(`keeps the mark ${keep.describe} at %ipx`, async (size) => {
+      const { data } = await pixels(load(size));
       let outside = 0;
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          const fromCentre = Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2);
-          if (fromCentre > radius + 1 && distanceFromGround(data, y * size + x) > VISIBLE)
-            outside++;
+          if (keep.outside(x, y, size) && markness(data, y * size + x) > VISIBLE) outside++;
         }
       }
       expect(outside).toBe(0);
-    }
-  );
+    });
 
-  // Centred on the ring and check, which is what the eye lines up. The mark's
-  // solid shapes are found by their distance from the ground, the opaque
-  // equivalent of the alpha the generator centred them by.
-  it.each(LAUNCHER_SIZES)("centres the mark at %ipx", async (size) => {
-    const { data } = await pixelsOf(`public/icons/maskable-${size}.png`);
-    const solidness = Buffer.alloc(data.length);
-    for (let i = 0; i < size * size; i++) solidness[i * 4 + 3] = distanceFromGround(data, i);
-    const centre = markCentre(solidness, size, size);
-    expect(Math.abs(centre.x - size / 2)).toBeLessThan(size * 0.01);
-    expect(Math.abs(centre.y - size / 2)).toBeLessThan(size * 0.01);
+    it.each(sizes)("centres the mark at %ipx", async (size) => {
+      const { data } = await pixels(load(size));
+      const centre = centreOf(data, size);
+      expect(Math.abs(centre.x - size / 2)).toBeLessThan(size * 0.01);
+      expect(Math.abs(centre.y - size / 2)).toBeLessThan(size * 0.01);
+    });
+  });
+}
+
+describeFullBleed(
+  "the shipped phone icons",
+  LAUNCHER_SIZES,
+  (size) => shipped(`public/icons/maskable-${size}.png`),
+  {
+    describe: "inside the safe circle",
+    outside: (x, y, size) =>
+      Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2) > (size * SAFE_FRACTION) / 2 + 1,
+  }
+);
+
+describeFullBleed(
+  "the shipped app/apple-icon.png",
+  [APPLE_SIZE],
+  () => shipped("app/apple-icon.png"),
+  {
+    describe: "inside iOS's corner curve",
+    outside: (x, y, size) => beyondCurve(x, y, size, IOS_CORNER) > 0,
+  }
+);
+
+describe("the shipped launcher icons' framing", () => {
+  it.each(LAUNCHER_SIZES)("fills the phone icon's safe circle at %ipx", async (size) => {
+    const { data } = await pixels(shipped(`public/icons/maskable-${size}.png`));
+    expect(reachOf(data, size)).toBeCloseTo(SAFE_FRACTION, 1);
   });
 
-  // The guard above passes trivially for an icon that is all ground, so this
-  // checks the mark is actually there.
-  it.each(LAUNCHER_SIZES)("carries the mark at %ipx", async (size) => {
-    const { data } = await pixelsOf(`public/icons/maskable-${size}.png`);
-    let visible = 0;
-    for (let i = 0; i < size * size; i++) if (distanceFromGround(data, i) > VISIBLE) visible++;
-    expect(visible / (size * size)).toBeGreaterThan(0.1);
-  });
-});
-
-describe("the shipped any-purpose icons", () => {
-  // These are for surfaces that do not mask, and an opaque tile there would show
-  // as a dark square where the bare mark was wanted.
-  it.each(LAUNCHER_SIZES)("is %ipx square and keeps its transparency", async (size) => {
-    const { data, info } = await pixelsOf(`public/icons/icon-${size}.png`);
-    expect([info.width, info.height]).toEqual([size, size]);
-    let transparent = 0;
-    for (let i = 0; i < size * size; i++) if (data[i * 4 + 3] < 255) transparent++;
-    expect(transparent).toBeGreaterThan(0);
-  });
-});
-
-describe("the shipped app/apple-icon.png", () => {
-  // iOS fills any transparency in a home-screen icon with black, so the ground
-  // is painted in rather than left to it.
-  it(`is ${APPLE_SIZE}px square and fully opaque`, async () => {
-    const { data, info } = await pixelsOf("app/apple-icon.png");
-    expect([info.width, info.height]).toEqual([APPLE_SIZE, APPLE_SIZE]);
-    let short = 0;
-    for (let i = 0; i < APPLE_SIZE * APPLE_SIZE; i++) if (data[i * 4 + 3] !== 255) short++;
-    expect(short).toBe(0);
+  it("frames the iPhone icon closer than the phone's safe circle", async () => {
+    const { data } = await pixels(shipped("app/apple-icon.png"));
+    expect(reachOf(data, APPLE_SIZE)).toBeCloseTo(APPLE_FRACTION, 1);
   });
 });
