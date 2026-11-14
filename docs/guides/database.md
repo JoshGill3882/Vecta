@@ -7,7 +7,7 @@ For how one schema targets both SQLite and Postgres, see [Dual-provider DB & mig
 ## Key files
 
 - `src/server/db.ts` — the singleton Prisma client
-- `src/server/services/*.ts` — the service seam (e.g. `tasks.ts`, `categories.ts`)
+- `src/server/services/*.ts` — the service seam (`tasks.ts`, `categories.ts`, `logs.ts`)
 - `src/server/errors.ts` — domain error types (`NotFoundError`, `ConflictError`)
 - `src/shared/lib/dtos/*.ts` — DTO shapes + `toXDTO()` mappers (client-safe, no Prisma client)
 - `generated/prisma/*` — the generated client + model types (`npm run db:generate`)
@@ -32,7 +32,7 @@ Keep DB access on the server:
 
 - Call services from Server Components, Server Actions, or route handlers.
 - Do not import `db.ts` or a service into a `"use client"` file.
-- `src/shared/lib/session.ts` uses the `server-only` package to enforce this at build time;
+- `src/shared/lib/session.ts` and `src/server/services/logs.ts` use the `server-only` package to enforce this at build time;
   apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint if the Prisma client or the `prisma` singleton is imported anywhere outside `src/server/**`** (tests and the seed script are exempt).
 Model _types_ from `generated/prisma/models` stay allowed — that's how DTOs map rows.
@@ -70,13 +70,38 @@ deleteTask(id: string): Promise<void>                            // throws NotFo
 `src/server/services/categories.ts` mirrors this with `CreateCategoryInput { name; color? }` / `UpdateCategoryInput`, returning `CategoryDTO`.
 Its `createCategory` / `updateCategory` additionally throw **`ConflictError`** when the unique `name` collides.
 
+### The log service
+
+`src/server/services/logs.ts` reads and writes the `Log` table, which holds both **operational** entries (what happened on the server) and **activity** entries (what the user did to their data):
+
+```ts
+import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
+
+writeLog(input: LogWriteInput): Promise<LogEntryDTO>             // throws ZodError, TypeError, or the DB's error
+listLogs(options?: { kind?; level?; limit? }): Promise<LogEntryDTO[]> // newest first
+```
+
+It is the **only** code that touches `prisma.log`, and a second ESLint rule (`no-restricted-syntax`) fails the lint anywhere else, tests excepted.
+Two things make that worth enforcing:
+
+- **Every entry is validated on write** against `logWriteSchema`: a known `kind` and `level`, an `event` of lowercase dotted words such as `task.deleted`, a non-empty message, and `detail` as an object.
+- **`detail` is stored as JSON text**, because the schema has no `Json` column.
+  It is serialised in `writeLog` and parsed in `toLogEntryDTO`, so there is one place each way.
+
+Unlike the other services, `writeLog` has no Prisma error to translate, and it catches nothing:
+a caller that must not fail because logging did is the one to decide what to do instead.
+`listLogs` returns at most `MAX_LOG_LIST` (500) entries, `DEFAULT_LOG_LIST` (100) when no limit is given, and clamps an out-of-range limit into range rather than refusing it.
+Entries written in the same millisecond are ordered by id, so a listing reads the same every time.
+
 ## DTOs
 
 Services return **DTOs** — plain, JSON-safe shapes in `src/shared/lib/dtos/` — not Prisma models, so callers (and the eventual UI / JSON API) never couple to the schema.
-The mappers enforce two conversions:
+The mappers enforce these conversions:
 
 - **`Date` → ISO string.** `createdAt` / `updatedAt` go through `.toISOString()`, so a DTO can be handed straight to a Client Component.
-- **`status` is narrowed** from the model's plain `string` to the `TaskStatus` union.
+- **String columns holding a fixed set of values are narrowed** to their union: a task's `status` to `TaskStatus`, a log entry's `kind` and `level` to `LogKind` and `LogLevel`.
+- **A log entry's `detail` is parsed** from JSON text back into an object.
+  Stored text that is not a JSON object comes back as `{ unparsed: <the text> }` rather than throwing, so one damaged row cannot stop a listing.
 
 DTO files are **client-safe**:
 they `import type` the model (types erase at compile time), so importing a `TaskDTO` into a `"use client"` file never drags the Prisma client into the browser bundle.
@@ -130,6 +155,7 @@ Each create/update runs `schema.parse(input)` before touching the DB.
 The Server Action is the _primary_ validation gate (it produces friendly `fieldErrors`);
 the service `.parse()` is a **second line of defence** for non-action callers (future REST routes, scripts, seeds).
 It throws a `ZodError` — a programmer-error signal, not a user-facing one.
+Nothing passes user input to `writeLog` directly, so its `.parse()` is the only check an entry gets.
 
 ## How to add a DB-backed feature
 
@@ -145,3 +171,4 @@ It throws a `ZodError` — a programmer-error signal, not a user-facing one.
 - **Generated code lives in `generated/prisma`** and is produced by `npm run db:generate`.
   Import model types from there, not from `@prisma/client`.
 - **Field types are constrained** to `String/Int/DateTime/Boolean` for cross-provider parity (no `Json`, no native UUID).
+  Structured data goes in a `String` column as JSON text, serialised and parsed in one service, as the log's `detail` is.

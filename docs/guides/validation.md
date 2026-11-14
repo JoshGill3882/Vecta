@@ -1,12 +1,13 @@
 # Input validation
 
-All task and category input is validated with [Zod](https://zod.dev/) schemas at the server boundary.
+All task and category input, and every log entry, is validated with [Zod](https://zod.dev/) schemas at the server boundary.
 A schema is the single source of truth for both **run-time validation** and the **TypeScript type** of an input — `z.infer` derives the type from the schema, so the two can never drift apart.
 
 **Key files:**
 
 - `src/shared/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
 - `src/shared/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
+- `src/shared/lib/schemas/logs.ts` — `logWriteSchema`, with the `LOG_KINDS` and `LOG_LEVELS` lists
 - `src/shared/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
 
 > **Zod 4.** Some APIs differ from older tutorials:
@@ -14,7 +15,7 @@ A schema is the single source of truth for both **run-time validation** and the 
 
 ## The schemas
 
-Each model has a **create** schema and an **update** schema.
+Tasks and categories each have a **create** schema and an **update** schema.
 The update schema is derived with `.partial()` rather than retyped, so every field becomes optional while keeping the exact same rules — change a rule once and both honour it.
 
 ```ts
@@ -31,6 +32,12 @@ export const taskCreateSchema = z.object({
 export const taskUpdateSchema = taskCreateSchema.partial();
 ```
 
+A log entry is written once and never edited, so it has a single **write** schema.
+Its `kind` and `level` come from `LOG_KINDS` and `LOG_LEVELS`, the same `as const` pattern as `TASK_STATUSES`;
+`LogKind` and `LogLevel` in `src/shared/lib/dtos/logs.ts` are derived from those lists rather than retyped.
+`LOG_LEVELS` runs from least to most severe, and the order is part of the contract: a minimum level keeps every level at or after its position.
+An `event` must be lowercase words joined by dots (`task.deleted`, `action.unexpected_error`), at least two of them, and `detail` must be an object, never a bare value.
+
 Two conventions worth knowing:
 
 - **`.trim()` comes before length checks**, so `"   "` is treated as empty and the parsed output is the cleaned string (`.trim()` transforms, not just validates).
@@ -44,6 +51,7 @@ The inferred types are exported alongside each schema — import these instead o
 
 ```ts
 import type { TaskCreateInput, CategoryCreateInput } from "@/src/shared/lib/schemas/tasks";
+import type { LogWriteInput } from "@/src/shared/lib/schemas/logs";
 ```
 
 ## The `validate()` helper
@@ -95,6 +103,10 @@ export async function createTaskAction(input: unknown): Promise<ActionResult<Tas
 The form places each of those messages under the field it names, and reports anything it cannot place some other way; see [Forms](./ui.md#forms).
 The whole action is in [Server Actions](./server-actions.md#the-anatomy-of-an-action).
 
+`logWriteSchema` has only the programmer audience.
+Log entries are written by server code, never typed by the user, so nothing calls `validate()` with it;
+`writeLog` parses it and throws on a malformed entry, which is a bug in the code that wrote it.
+
 ## What validation does _not_ cover
 
 - **Uniqueness** (e.g. a category `name` must be unique) is a database concern, not a shape concern — enforce it in the service layer and translate the resulting DB error, since a schema can't know what other rows exist.
@@ -109,6 +121,8 @@ The schemas and helper are unit-tested with Vitest:
 
 - `test/shared/lib/schemas/tasks.test.ts`, `test/shared/lib/schemas/categories.test.ts` — one valid baseline per model, then one broken field per test;
   `it.each` tables drive the status enum and the valid/invalid colour cases.
+- `test/shared/lib/schemas/logs.test.ts` — the same pattern for `logWriteSchema`:
+  every kind and level, the order of the levels, the event-name shape, and `detail` as an object only.
 - `test/shared/lib/validation.test.ts` — the `validate()` contract:
   typed data on success, field-keyed errors on failure, absent keys for valid fields, and `formErrors` for cross-field `.refine()` issues.
 
