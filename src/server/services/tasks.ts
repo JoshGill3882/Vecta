@@ -3,8 +3,12 @@ import { taskCreateSchema, taskUpdateSchema } from "@/src/shared/lib/schemas/tas
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { NotFoundError } from "@/src/server/errors";
+import { logger } from "@/src/server/logger";
+import { changedFields } from "@/src/server/changed-fields";
 
-// Task service — the seam all task DB access flows through.
+// Task service — the seam all task DB access flows through. Each change is
+// recorded as an activity entry here, once it has succeeded, so every caller is
+// covered without having to remember to log.
 
 /** The fields needed to create a task. */
 export interface CreateTaskInput {
@@ -80,6 +84,10 @@ export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
   const data = taskCreateSchema.parse(input);
   try {
     const createdTask = await prisma.task.create({ data });
+    logger.activity.info("task.created", "Task created", {
+      taskId: createdTask.id,
+      title: createdTask.title,
+    });
     return toTaskDTO(createdTask);
   } catch (e) {
     // P2003 = FK constraint: the supplied categoryId points at no Category.
@@ -100,9 +108,18 @@ export async function createTask(input: CreateTaskInput): Promise<TaskDTO> {
 export async function updateTask(id: string, input: UpdateTaskInput): Promise<TaskDTO> {
   const data = taskUpdateSchema.parse(input);
   try {
-    const updatedTask = await prisma.task.update({
-      where: { id: id },
-      data,
+    // The read and the write run back to back in one transaction, so the fields
+    // recorded as changed are compared against the row as it stood just before
+    // this update. A missing task fails the read with the same P2025 the update
+    // would have thrown.
+    const [before, updatedTask] = await prisma.$transaction([
+      prisma.task.findUniqueOrThrow({ where: { id: id } }),
+      prisma.task.update({ where: { id: id }, data }),
+    ]);
+    logger.activity.info("task.updated", "Task updated", {
+      taskId: updatedTask.id,
+      title: updatedTask.title,
+      changed: changedFields(before, data),
     });
     return toTaskDTO(updatedTask);
   } catch (e) {
@@ -123,7 +140,12 @@ export async function updateTask(id: string, input: UpdateTaskInput): Promise<Ta
  */
 export async function deleteTask(id: string): Promise<void> {
   try {
-    await prisma.task.delete({ where: { id: id } });
+    // The deleted row comes back, so the entry can still name what was deleted.
+    const deletedTask = await prisma.task.delete({ where: { id: id } });
+    logger.activity.info("task.deleted", "Task deleted", {
+      taskId: deletedTask.id,
+      title: deletedTask.title,
+    });
   } catch (e) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
       throw new NotFoundError("Task", id);
