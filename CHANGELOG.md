@@ -11,10 +11,14 @@ Internal refactors that change nothing observable are not listed.
 
 ### Added
 
-- **Clearer server logs.** The container's output now has one JSON line per entry, with its time, level, event and message.
+- **Clearer server logs.** The container's output now has one JSON line per entry, with its time, kind, level, event and message.
   The app logs one as it starts, naming its version and database engine; one giving the reason when a configuration problem stops it starting; and one with the error's message and stack behind each "Something went wrong".
   Passwords, the session secret, session and cookie values, and the credentials in a database URL are removed before anything is written
-- **`LOG_LEVEL`** sets how much is logged: `debug`, `info` (the default), `warn` or `error`.
+- **Changes to your tasks and categories are recorded** in the same logs: each one created, edited or deleted, by its title or name, with which fields an edit changed but not what they now say.
+  Deleting a category also notes how many tasks it left uncategorised.
+  Signing in, signing out and each failed sign-in are recorded too; a failed one says only why it failed, never what was typed
+- **`LOG_LEVEL`** sets how many of the server's own entries are logged: `debug`, `info` (the default), `warn` or `error`.
+  Changes to your data and sign-ins are recorded whatever it is set to.
   Any other value stops the app from starting rather than being ignored
 
 ### Changed
