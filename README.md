@@ -112,17 +112,18 @@ Those paths serve only the app's name, colours and icons, and Vecta itself alrea
 
 ## Configuration
 
-Every variable the app reads.
+Every variable you can set.
 Set them in `.env`, which both compose files load.
 
-| Variable            | Required          | Default                 | Notes                                                                                 |
-| ------------------- | ----------------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                       |
-| `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.    |
-| `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you. |
-| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.             |
-| `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                          |
-| `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                      |
+| Variable            | Required          | Default                 | Notes                                                                                                  |
+| ------------------- | ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                                        |
+| `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.                     |
+| `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you.                  |
+| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.                              |
+| `LOG_LEVEL`         | no                | `info`                  | Least severe level logged: `debug`, `info`, `warn` or `error`. Any other value stops the app starting. |
+| `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                                           |
+| `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                                       |
 
 ### Using PostgreSQL instead of SQLite
 
@@ -246,6 +247,13 @@ docker compose logs -f
 ```
 
 Start-up logs show provider resolution and each migration applied, which is the first place to look if a container will not come up.
+After that, the app writes one JSON line per entry — its time, level, event, message and any detail — starting with a `server.started` line naming the version and the database engine.
+A configuration problem, such as a short `SESSION_SECRET`, is logged as `server.config_invalid` with the reason, just before the app refuses to start.
+An unexpected error behind the app's "Something went wrong" message is logged as `action.unexpected_error`, with its message and stack.
+
+`LOG_LEVEL` sets how much is logged.
+The same entries are also written to the app's own database, but stdout is the one to rely on: it keeps working when the database does not.
+Passwords, the session secret, session and cookie values, and the credentials in a database URL are removed from every entry before it is written anywhere.
 
 ---
 

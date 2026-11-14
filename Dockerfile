@@ -102,6 +102,10 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
 # plain `docker build` still produces a correctly attributed image.
 ARG VERSION=dev
 ARG REVISION=unknown
+# The same two values for the app itself, which logs them as it starts. Named
+# apart from VECTA_VERSION, which Compose reads to choose the image to pull.
+ENV VECTA_BUILD_VERSION=${VERSION} \
+    VECTA_BUILD_REVISION=${REVISION}
 LABEL org.opencontainers.image.source="https://github.com/JoshGill3882/Vecta" \
       org.opencontainers.image.title="Vecta" \
       org.opencontainers.image.description="Self-hosted, single-user task management." \

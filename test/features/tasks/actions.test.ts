@@ -6,8 +6,8 @@ import { NotFoundError } from "@/src/server/errors";
 // (and the modules they pull in) load. We keep `validate` + the Zod schemas AND
 // the real src/lib/cache helper REAL, so the tests exercise the genuine
 // validation gate and the real tag-invalidation logic. Only the true side
-// effects are faked: auth (getSession), the service, and next/cache's updateTag
-// (the primitive src/lib/cache calls under the hood).
+// effects are faked: auth (getSession), the service, next/cache's updateTag
+// (the primitive src/lib/cache calls under the hood), and the logger.
 
 vi.mock("@/src/shared/lib/session", () => ({
   // The action calls getSession() first; a truthy value = "signed in", null = not.
@@ -26,9 +26,14 @@ vi.mock("next/cache", () => ({
   updateTag: vi.fn(),
 }));
 
+vi.mock("@/src/server/logger", () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
 import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/src/features/tasks/actions";
 import { getSession } from "@/src/shared/lib/session";
 import { createTask, updateTask, deleteTask } from "@/src/server/services/tasks";
+import { logger } from "@/src/server/logger";
 import { updateTag } from "next/cache";
 
 const mockGetSession = vi.mocked(getSession);
@@ -36,6 +41,7 @@ const mockCreateTask = vi.mocked(createTask);
 const mockUpdateTask = vi.mocked(updateTask);
 const mockDeleteTask = vi.mocked(deleteTask);
 const mockUpdateTag = vi.mocked(updateTag);
+const mockLogError = vi.mocked(logger.error);
 
 // A DTO the service returns on the happy path (ISO-string dates, never Date models).
 const taskDTO = {
@@ -125,16 +131,20 @@ describe("createTaskAction", () => {
       code: "NOT_FOUND",
     });
     expect(mockUpdateTag).not.toHaveBeenCalled();
+    expect(mockLogError).not.toHaveBeenCalled(); // an anticipated outcome, not a fault
   });
 
   it("an unexpected error is swallowed into a generic message, not surfaced or thrown", async () => {
-    mockCreateTask.mockRejectedValue(new Error("boom — DB down"));
-    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("boom — DB down");
+    mockCreateTask.mockRejectedValue(error);
 
     const result = await createTaskAction(validCreate);
 
     expect(result).toEqual({ ok: false, error: "Something went wrong. Please try again." });
-    errSpy.mockRestore();
+    expect(mockLogError).toHaveBeenCalledOnce();
+    expect(mockLogError).toHaveBeenCalledWith("action.unexpected_error", expect.any(String), {
+      error,
+    });
   });
 });
 

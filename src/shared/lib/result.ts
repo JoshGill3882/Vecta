@@ -1,4 +1,5 @@
 import { DomainError } from "@/src/server/errors";
+import { logger } from "@/src/server/logger";
 
 /** What every Server Action resolves to: the data, or a reportable failure.
  *
@@ -24,8 +25,8 @@ export function toActionError(e: unknown): ActionResult<never> {
   if (e instanceof DomainError) {
     return { ok: false, error: e.message, code: e.code };
   }
-  // Unanticipated: record for observability, return a generic message
-  console.error("[action] unexpected error", e); // or your logger
+  // Unanticipated: record it, with its message and stack, and return a generic message
+  logger.error("action.unexpected_error", "A server action failed unexpectedly", { error: e });
   return { ok: false, error: "Something went wrong. Please try again." };
 }
 
