@@ -73,8 +73,9 @@ beforeAll(async () => {
 
 // Clean slate before every test (not just every suite): two tests in one file
 // pollute each other exactly as easily as two files do. FK-safe order — tasks
-// reference categories.
+// reference categories. Log entries reference nothing, so their place is free.
 beforeEach(async () => {
   await prisma.task.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.log.deleteMany();
 });

@@ -74,6 +74,24 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // The Log table has one gateway, src/server/services/logs.ts, which validates
+  // every entry and owns how `detail` is serialised and parsed. Code reaching
+  // `prisma.log` anywhere else would skip both. Tests are exempt: they seed rows
+  // the service would refuse, such as a damaged `detail`, to prove it reads them.
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    ignores: ["src/server/services/logs.ts", "test/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='prisma'][property.name='log']",
+          message:
+            "Read and write the Log table through src/server/services/logs.ts, which validates entries and handles `detail`.",
+        },
+      ],
+    },
+  },
   // Documentation conventions, per docs/guides/comments.md. Presence and shape
   // are checkable; whether a line is worth its space stays with review.
   //

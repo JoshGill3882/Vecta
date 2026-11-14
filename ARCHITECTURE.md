@@ -172,6 +172,7 @@ erDiagram
         string   categoryId FK "nullable"
         datetime createdAt
         datetime updatedAt
+        string   dueAt "nullable, local wall-clock"
     }
 
     Category {
@@ -180,13 +181,30 @@ erDiagram
         string   color
         datetime createdAt
     }
+
+    Log {
+        string   id PK
+        datetime createdAt
+        string   kind
+        string   level
+        string   event
+        string   message
+        string   detail "nullable, JSON"
+    }
 ```
 
 Deleting a category sets its tasks' `categoryId` to null rather than deleting them — losing a category should never lose work.
 
+`Log` holds two kinds of event in one table, so they can be listed, exported and aged out in one place:
+**operational** entries for what happened on the server, and **activity** entries for what the user did to their data.
+It has no relation to `Task` or `Category`, by design.
+An entry has to outlive the row it describes — "task deleted" is exactly the entry a cascade would remove — so any ids it refers to are kept in `detail`.
+Only `src/server/services/logs.ts` reads or writes it, and the lint enforces that.
+
 Two constraints on this schema come from supporting both engines.
 Column types are restricted to `String`, `Int`, `DateTime` and `Boolean`: no `Json`/`Jsonb`, no native UUID.
-And `status` is a `String` holding `"open" | "in_progress" | "closed"` rather than a database enum, with the union enforced in TypeScript and Zod instead.
+So `detail` is JSON serialised into a `String`, written and parsed in the log service alone.
+And `status`, `kind` and `level` are `String` columns holding a fixed set of values rather than database enums, with each union enforced in TypeScript and Zod instead.
 Both are the price of one schema compiling to both providers.
 
 ---

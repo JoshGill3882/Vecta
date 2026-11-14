@@ -38,3 +38,23 @@ model Category {
   tasks     Task[]
   createdAt DateTime @default(now())
 }
+
+// One recorded event: something that happened on the server ("operational"),
+// or a change the user made to their data ("activity"). Both kinds share a
+// table so they can be listed, exported and aged out in one place.
+//
+// There is deliberately no relation to Task or Category. An entry must outlive
+// the row it describes ("task deleted" would otherwise vanish with the task),
+// so any ids it refers to are kept in `detail`.
+model Log {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  kind      String    // "operational" | "activity", checked on write by the log service
+  level     String    // "debug" | "info" | "warn" | "error"
+  event     String    // A stable machine-readable name, e.g. "task.deleted"
+  message   String    // A human-readable line
+  detail    String?   // A JSON object, serialised on write and parsed on read by the log service
+
+  @@index([createdAt])        // Retention deletes and the newest-first listing
+  @@index([kind, createdAt])  // One kind, newest first
+}
