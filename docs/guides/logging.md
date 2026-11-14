@@ -1,16 +1,27 @@
 # Logging
 
-The server records what happens to it through one shared logger.
+The server records what happens through one shared logger.
 Every entry goes to **stdout** as a JSON line and to the **`Log` table**, and the two are deliberately not equal:
 stdout always works, while the table is best-effort.
-This guide covers how to log, what happens to an entry, and how to test code that logs.
+This guide covers how to log, the two kinds of entry, what happens to an entry, and how to test code that logs.
 
 ## Key files
 
 - `src/server/logger.ts` — `logger`, `flushLogs()` and `isLogLevel()`
 - `src/server/log-detail.ts` — `prepareDetail()`, which hides secrets and makes detail safe to serialise
+- `src/server/changed-fields.ts` — `changedFields()`, which names the fields an update changes
 - `src/server/start-up.ts` — the start-up checks and the `server.started` entry
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
+
+## Two kinds of entry
+
+- **Operational** entries record what happened on the server: start-up, a configuration problem, an unexpected error.
+  They answer "what went wrong".
+- **Activity** entries record a change the user made to their data, or a sign-in.
+  They answer "what happened to my data, and when".
+
+Both share the same shape, the same destinations and the same redaction.
+They differ in one rule: the minimum level drops operational entries, never activity ones.
 
 ## Logging an entry
 
@@ -18,12 +29,15 @@ This guide covers how to log, what happens to an entry, and how to test code tha
 import { logger } from "@/src/server/logger";
 
 logger.error("action.unexpected_error", "A server action failed unexpectedly", { error });
+logger.activity.info("task.deleted", "Task deleted", { taskId, title });
 ```
 
-Each of `logger.debug`, `info`, `warn` and `error` takes three things:
+`logger.debug`, `info`, `warn` and `error` write operational entries; `logger.activity.debug`, `info`, `warn` and `error` write activity ones.
+Each takes three things:
 
 - **An event name**, lowercase words joined by dots, at least two of them (`server.started`, `action.unexpected_error`).
   It is the stable, machine-readable part, so name what happened rather than describing it.
+  Activity events take the form `<entity>.<verb>`, such as `task.deleted`.
 - **A message**, a human-readable line.
 - **Optional detail**, an object of context.
   Pass an `Error` as it is: the logger spells it out as its name, message, stack and cause, which JSON alone would write as `{}`.
@@ -33,23 +47,53 @@ It is server-only (`import "server-only"`), so it cannot be imported into a Clie
 
 ### Events the app logs
 
-| Event                     | Level   | When                                                                    |
-| ------------------------- | ------- | ----------------------------------------------------------------------- |
-| `server.started`          | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider` |
-| `server.config_invalid`   | `error` | Start-up found a configuration problem, just before it refuses to start |
-| `action.unexpected_error` | `error` | `toActionError()` met an error that is not a `DomainError`              |
-| `log.write_failed`        | `error` | Writing an entry to the table failed. **stdout only**, never the table  |
+| Event                     | Kind        | Level   | When                                                                                      |
+| ------------------------- | ----------- | ------- | ----------------------------------------------------------------------------------------- |
+| `server.started`          | operational | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider`                   |
+| `server.config_invalid`   | operational | `error` | Start-up found a configuration problem, just before it refuses to start                   |
+| `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                |
+| `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                    |
+| `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                   |
+| `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed         |
+| `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                       |
+| `category.created`        | activity    | `info`  | A category was created. `detail` holds `categoryId` and `name`                            |
+| `category.updated`        | activity    | `info`  | A category was updated. `detail` adds `changed`                                           |
+| `category.deleted`        | activity    | `info`  | A category was deleted. `detail` adds `uncategorisedTasks`, how many tasks lost it        |
+| `auth.signed_in`          | activity    | `info`  | A sign-in succeeded. No detail                                                            |
+| `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else |
+| `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                            |
+
+## Recording activity
+
+Activity is recorded in the service layer, in `src/server/services`, where each change is actually made — not in the Server Actions or the UI.
+Anything that calls a service is then covered without having to remember to log.
+
+Each service logs straight after its Prisma call succeeds, inside the `try`.
+A validation failure or a domain error throws before that line, so a change that did not happen is never recorded;
+an unexpected error still reaches `toActionError()` and gets its operational entry.
+
+What an entry holds is chosen so it still makes sense after the row is gone:
+
+- **The id and the title or name at the time.** A delete gets both from the row Prisma returns, so no extra read is needed.
+- **For an update, the names of the fields that changed.** The service reads the row and writes it in one `$transaction`, and `changedFields()` compares the two.
+  A field counts when the update supplies it and its value differs, so a field sent unchanged is left out, and an update that changes nothing records `changed: []`.
+- **For a category delete, how many tasks were uncategorised.** The service counts the category's tasks in the same transaction, just before deleting it.
+
+Two things are left out by design.
+**A description's text** is never recorded, only that it changed, so the log does not become a second copy of the user's content.
+**A failed sign-in records only its reason** — never the submitted password, its length, or anything derived from it.
+`src/server/services/auth.ts` owns sign-in, so that rule lives in one file.
 
 ## Where an entry goes
 
-An entry below the minimum level is dropped.
+An operational entry below the minimum level is dropped.
 Anything else is prepared once and then written twice:
 
-1. **stdout**, as one line: `{"time":"…","level":"error","event":"…","message":"…","detail":{…}}`.
+1. **stdout**, as one line: `{"time":"…","kind":"activity","level":"info","event":"…","message":"…","detail":{…}}`.
    `detail` stays nested, so a detail key can never overwrite `time` or `level`, and is left out when there is none.
    This is what `docker compose logs` shows, and it is written before anything touches the database.
-2. **The `Log` table**, as an `operational` entry, in the background.
-   If the write fails, the logger writes a `log.write_failed` line to stdout naming the entry's event in `entryEvent`, and carries on.
+2. **The `Log` table**, under the entry's kind, in the background.
+   If the write fails, the logger writes an operational `log.write_failed` line to stdout naming the entry's event in `entryEvent`, and carries on.
    It does not retry, and it never writes its own failure to the table, so a broken database cannot set off a loop of entries about itself.
 
 The log service is loaded on the first table write, not when the logger is.
@@ -63,7 +107,10 @@ Start-up calls it before refusing to start, to give the `server.config_invalid` 
 ## The minimum level
 
 `LOG_LEVEL` sets it: `debug`, `info`, `warn` or `error`, defaulting to `info`.
-`LOG_LEVELS` in `src/shared/lib/schemas/logs.ts` lists them from least to most severe, and an entry is kept when its level is at or after the minimum's position.
+`LOG_LEVELS` in `src/shared/lib/schemas/logs.ts` lists them from least to most severe, and an operational entry is kept when its level is at or after the minimum's position.
+
+**Activity entries ignore the minimum level** and are always recorded.
+They are the record of what happened to the user's data, and a quieter `LOG_LEVEL` must not erase that history.
 
 The logger reads `LOG_LEVEL` each time it logs, and reads an invalid value as `info` rather than throwing.
 Start-up refuses an invalid value separately, so a typo stops the server from starting instead of being quietly ignored; see [Environment & boot-time contract](./environment.md).
@@ -90,17 +137,17 @@ Even so, do not put a secret in an event name, which is not redacted.
 
 ```ts
 vi.mock("@/src/server/logger", () => ({
-  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  logger: { activity: { info: vi.fn() } },
 }));
 // …
-expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
-  "action.unexpected_error",
-  expect.any(String),
-  { error }
-);
+expect(vi.mocked(logger.activity.info)).toHaveBeenCalledWith("task.deleted", "Task deleted", {
+  taskId: "t1",
+  title: "Write service tests",
+});
 ```
 
-The action tests do this, which also keeps their output free of log lines.
+The action and service tests do this, which also keeps their output free of log lines.
+Stand in for only the methods the code under test calls.
 
 **Run the real logger** when the test is about what reaches stdout.
 Stand in for the log service, capture `process.stdout.write`, and call `flushLogs()` before asserting on table writes:
@@ -114,8 +161,11 @@ vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
 });
 ```
 
-`test/server/logger.test.ts`, `test/shared/lib/result.test.ts` and `test/server/start-up.test.ts` follow this pattern.
+`test/server/logger.test.ts`, `test/server/services/auth.test.ts`, `test/shared/lib/result.test.ts` and `test/server/start-up.test.ts` follow this pattern.
 `test/server/logger-no-database.test.ts` makes the log service impossible to load, as a missing `DATABASE_URL` does, and `test/integration/logger.int.test.ts` writes to the real table.
+
+**In an integration test**, read entries back with `activityEntries()` from `test/support/activity.ts`.
+It waits for pending writes, then returns the activity entries sorted by event name, since entries written in the same millisecond have no reliable order.
 
 ## Gotchas
 
@@ -123,3 +173,4 @@ vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
 - **The browser's errors stay in the browser.** `app/(app)/error.tsx` and `app/global-error.tsx` report to the browser console, where a server-only logger cannot run.
   Of the server-side errors behind them, a failed Server Action reaches the logger through `toActionError()`; a page that fails while rendering on the server is reported by Next itself, as plain text on stderr, not through the logger.
 - **An entry written just before the process exits may not reach the table.** stdout has it either way. Call `flushLogs()` first where the table matters, as start-up does.
+- **`changedFields()` compares with `===`.** That suits every column it is used on today, which hold strings or null; a `Date` or other object would always count as changed.

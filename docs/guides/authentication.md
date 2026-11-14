@@ -8,6 +8,7 @@ there is no server-side session store.
 
 - `src/shared/lib/session.ts` — the session helper API (use this everywhere)
 - `proxy.ts` — the request perimeter
+- `src/server/services/auth.ts` — `signIn()` and `signOut()`: the password check, the rate limit, the session and what each attempt records
 - `src/features/auth/login-actions.tsx`, `src/features/auth/logout-actions.tsx` — the auth Server Actions
 - `src/features/auth/components/login-form.tsx` — the client form pattern
 
@@ -51,6 +52,8 @@ getSessionFromRequest(req: NextRequest): Promise<SessionData | null>
 `SessionData` is currently just `{ isLoggedIn: boolean }`.
 The cookie is named `Vecta-Auth` and encrypted with `SESSION_SECRET`.
 
+`createSession()` and `destroySession()` are called by the auth service, not by actions directly, so every sign-in and sign-out is recorded.
+
 ## How to protect a page (Server Component)
 
 ```tsx
@@ -88,11 +91,27 @@ if (await getSession()) redirect("/");
 
 ## The login/logout flow
 
-- **Login** (`src/features/auth/login-actions.tsx`) is a Server Action that rate-limits attempts (see [Rate limiting](./rate-limiting.md)), compares the submitted password against `ADMIN_PASSWORD` via `passwordMatches` (SHA-256 digests + `crypto.timingSafeEqual`), calls `createSession()`, then redirects to the post-login destination — the `next` form field validated by `safeRedirectTarget`, falling back to `/`.
-- **Logout** (`src/features/auth/logout-actions.tsx`) calls `destroySession()` then `redirect("/login")`.
+- **Login** (`src/features/auth/login-actions.tsx`) is a Server Action that reads the submitted password and hands it to `signIn()` in `src/server/services/auth.ts`.
+  `signIn()` checks the rate limit (see [Rate limiting](./rate-limiting.md)), compares the password against `ADMIN_PASSWORD` via `passwordMatches` (SHA-256 digests + `crypto.timingSafeEqual`), calls `createSession()`, and returns `signed_in`, `wrong_password` or `rate_limited`.
+  The action turns a failure into the message the form shows, and on success redirects to the post-login destination — the `next` form field validated by `safeRedirectTarget`, falling back to `/`.
+- **Logout** (`src/features/auth/logout-actions.tsx`) calls `signOut()`, which calls `destroySession()`, then `redirect("/login")`.
 - The form (`src/features/auth/components/login-form.tsx`) is the reference pattern for any action-backed form:
   `useActionState(action, initialState)` drives the returned error state and a `pending` flag, and the action's return type (`LoginState = { error?: string }`) is the error shape rendered inline.
   Note `redirect()` throws to unwind, so it must be the **last** statement on the success path.
+
+## What a sign-in records
+
+Each attempt is recorded as an activity entry; see [Logging](./logging.md#recording-activity).
+
+| Outcome          | Event                 | Level  | Detail                         |
+| ---------------- | --------------------- | ------ | ------------------------------ |
+| Signed in        | `auth.signed_in`      | `info` | none                           |
+| Wrong password   | `auth.sign_in_failed` | `warn` | `{ reason: "wrong_password" }` |
+| Refused, limited | `auth.sign_in_failed` | `warn` | `{ reason: "rate_limited" }`   |
+| Signed out       | `auth.signed_out`     | `info` | none                           |
+
+A failed attempt records that it happened, when, and why — never the submitted password, its length, or anything derived from it.
+The client's address is not recorded either: behind a reverse proxy it would mean trusting a header the client can set.
 
 ## Configuration
 
@@ -107,11 +126,13 @@ Both are required at boot — see [Environment & boot-time contract](./environme
 
 These call out decisions that are easy to get wrong if you extend the auth code.
 
+- **Signing in lives in a service, not the action.** `signIn()` and `signOut()` own the checks, the session and the activity entries, so a future entry point — an API route, say — gets the same rate limit and the same record by calling them.
+  The actions only translate the outcome for the form.
 - **The `secure` cookie flag is environment-gated.** iron-session defaults `cookieOptions.secure` to `true`, which browsers drop over plain `http://` on any non-`localhost` origin (e.g. a LAN IP) — presenting as a login that silently bounces back to `/login`.
   `sessionOptions` in `session.ts` sets `secure: process.env.NODE_ENV === "production"`, so dev works over http while production (behind HTTPS termination) stays locked down.
 - **The proxy reads cookies from the request, not `next/headers`.** `cookies()` is only contractual in Server Components / Server Functions / Route Handlers, so the perimeter uses `getSessionFromRequest(req)` — the iron-session `(req, res, options)` overload — instead.
   Both paths share one `sessionOptions` constant so they can never decrypt with mismatched `cookieName`/`password`.
-- **Password comparison is timing-safe over the full value.** `passwordMatches` hashes both sides to equal-length SHA-256 digests before `timingSafeEqual`, so the comparison never throws on a length mismatch and doesn't leak length.
+- **Password comparison is timing-safe over the full value.** `passwordMatches` in the auth service hashes both sides to equal-length SHA-256 digests before `timingSafeEqual`, so the comparison never throws on a length mismatch and doesn't leak length.
 - **Post-login `next` is open-redirect-guarded.** The proxy captures the bounced path as `?next=`, but the action treats it as untrusted:
   `safeRedirectTarget` only honours same-origin absolute paths and rejects `//host` / `/\host`, falling back to `/`.
   Never pass a `next` value to `redirect()` unchecked.

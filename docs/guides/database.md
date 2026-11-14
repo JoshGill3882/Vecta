@@ -7,7 +7,8 @@ For how one schema targets both SQLite and Postgres, see [Dual-provider DB & mig
 ## Key files
 
 - `src/server/db.ts` — the singleton Prisma client
-- `src/server/services/*.ts` — the service seam (`tasks.ts`, `categories.ts`, `logs.ts`)
+- `src/server/services/*.ts` — the service seam (`tasks.ts`, `categories.ts`, `logs.ts`, and `auth.ts`, which signs in and out)
+- `src/server/changed-fields.ts` — `changedFields()`, which an update's activity entry uses to name what changed
 - `src/server/errors.ts` — domain error types (`NotFoundError`, `ConflictError`)
 - `src/shared/lib/dtos/*.ts` — DTO shapes + `toXDTO()` mappers (client-safe, no Prisma client)
 - `generated/prisma/*` — the generated client + model types (`npm run db:generate`)
@@ -32,7 +33,7 @@ Keep DB access on the server:
 
 - Call services from Server Components, Server Actions, or route handlers.
 - Do not import `db.ts` or a service into a `"use client"` file.
-- `src/shared/lib/session.ts` and `src/server/services/logs.ts` use the `server-only` package to enforce this at build time;
+- `src/shared/lib/session.ts`, `src/server/logger.ts` and the `logs` and `auth` services use the `server-only` package to enforce this at build time;
   apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint if the Prisma client or the `prisma` singleton is imported anywhere outside `src/server/**`** (tests and the seed script are exempt).
 Model _types_ from `generated/prisma/models` stay allowed — that's how DTOs map rows.
@@ -46,8 +47,8 @@ Server Action / route handler  ->  service (src/server/services)  ->  prisma
 ```
 
 Components and actions call **services**, not `prisma` directly.
-A service does three jobs:
-run the Prisma query, **map the row to a DTO**, and **translate Prisma errors into domain errors**.
+A service does four jobs:
+run the Prisma query, **map the row to a DTO**, **translate Prisma errors into domain errors**, and **record each change it makes as an activity entry**.
 That keeps query logic out of UI code and keeps callers decoupled from the database schema.
 
 ### Service contract reference
@@ -57,8 +58,8 @@ That keeps query logic out of UI code and keeps callers decoupled from the datab
 ```ts
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
-interface CreateTaskInput { title: string; description?: string; status: TaskStatus; categoryId?: string | null; }
-interface UpdateTaskInput { title?: string; description?: string; status?: TaskStatus; categoryId?: string | null; }
+interface CreateTaskInput { title: string; description?: string; status: TaskStatus; categoryId?: string | null; dueAt?: string | null; }
+interface UpdateTaskInput { title?: string; description?: string; status?: TaskStatus; categoryId?: string | null; dueAt?: string | null; }
 
 getTasks(): Promise<TaskDTO[]>
 getTaskById(id: string): Promise<TaskDTO>                          // throws NotFoundError
@@ -69,6 +70,21 @@ deleteTask(id: string): Promise<void>                            // throws NotFo
 
 `src/server/services/categories.ts` mirrors this with `CreateCategoryInput { name; color? }` / `UpdateCategoryInput`, returning `CategoryDTO`.
 Its `createCategory` / `updateCategory` additionally throw **`ConflictError`** when the unique `name` collides.
+
+### Recording activity
+
+Each create, update and delete logs an activity entry through `logger.activity`, straight after the Prisma call succeeds and inside the `try`.
+A Zod failure or a translated domain error throws before that line, so a change that did not happen is never recorded.
+Recording it here rather than in the actions means any caller of a service is covered.
+
+Two of them need more than the one query, and run their queries as an array `prisma.$transaction([...])`, which works on both engines:
+
+- **An update** reads the row with `findUniqueOrThrow` and then writes it, so `changedFields()` can compare the two.
+  A missing row fails the read with the same `P2025` the update would have thrown, so the error translation is unchanged.
+- **A category delete** counts the category's tasks and then deletes it, so the entry can say how many tasks `onDelete: SetNull` uncategorised.
+
+A delete names what it removed from the row Prisma returns, with no extra read.
+What each entry holds, and what it deliberately leaves out, is in [Logging](./logging.md#recording-activity).
 
 ### The log service
 
@@ -88,7 +104,7 @@ Two things make that worth enforcing:
 - **`detail` is stored as JSON text**, because the schema has no `Json` column.
   It is serialised in `writeLog` and parsed in `toLogEntryDTO`, so there is one place each way.
 
-Unlike the other services, `writeLog` has no Prisma error to translate, and it catches nothing:
+Unlike the other services, `writeLog` has no Prisma error to translate, records no activity of its own, and catches nothing:
 a caller that must not fail because logging did is the one to decide what to do instead.
 Application code logs through the shared logger rather than calling `writeLog` itself; the logger prepares and redacts each entry, writes it to stdout, and only then calls `writeLog`, in the background, reporting a failure on stdout. See [Logging](./logging.md).
 `listLogs` returns at most `MAX_LOG_LIST` (500) entries, `DEFAULT_LOG_LIST` (100) when no limit is given, and clamps an out-of-range limit into range rather than refusing it.
@@ -163,6 +179,7 @@ Nothing passes user input to `writeLog` directly, so its `.parse()` is the only 
 1. **Add a DTO + mapper** in `src/shared/lib/dtos/` for the shape callers should see (`import type` the model so the file stays client-safe).
 2. **Add/extend a service** under `src/server/services/`:
    import `{ prisma }` from `@/src/server/db`, run the query, map the row with your `toXDTO()`, and translate the anticipated Prisma errors into domain errors (see the table above).
+   If it changes the user's data, record each change as activity once it has succeeded (see [Recording activity](#recording-activity)).
 3. **Call it from a Server Action** (guarded with `requireSession()` — see [Authentication](./authentication.md)), or from a Server Component for reads.
 4. If the feature needs schema changes, follow [Dual-provider DB & migrations](./dual-provider-migrations.md) and regenerate the client.
 

@@ -30,7 +30,7 @@ src/
         list/ toolbar/ dialog/
       hooks/  lib/
     categories/           Components only; too small to need slices
-    auth/                 Login and logout actions, the form, rate limiting
+    auth/                 Login and logout actions, the form
   shared/                 Used by more than one feature, or owned by none
     components/
       ui/                 shadcn/ui primitives — we own this source
@@ -41,9 +41,10 @@ src/
       session.ts          The session API
   server/                 Server-only. Never imported from a Client Component
     db.ts                 Prisma singleton and adapter selection
-    services/             The data-access seam — all DB access lives here
+    services/             The data-access seam — all DB access, and signing in and out
     errors.ts             Domain error types
     logger.ts             The shared logger, to stdout and the Log table
+    rate-limit.ts         The in-memory sign-in attempt limiter
     start-up.ts           Configuration checks and the start-up entry
 prisma/
   schema.prisma           One schema, both engines
@@ -152,9 +153,12 @@ Treating it as the only check is the standard way this pattern goes wrong.
 The session itself is an encrypted, `httpOnly` cookie via [iron-session](https://github.com/vvo/iron-session) — the payload is `{ isLoggedIn: true }` and nothing else.
 `SESSION_SECRET` is the encryption key, which is why rotating it logs everyone out.
 
-Three details in `src/features/auth/login-actions.tsx` are deliberate and worth not undoing: the password comparison hashes both sides to equal length before `timingSafeEqual`, so neither the password nor its length leaks through timing;
-the `?next=` redirect target is rejected unless it is a same-origin absolute path, closing an open-redirect vector;
-and failed attempts are rate-limited in memory.
+Signing in and out lives in `src/server/services/auth.ts`, a service like any other, so every entry point gets the same checks and every attempt is recorded.
+The login action in `src/features/auth/login-actions.tsx` only turns the outcome into a message or a redirect.
+
+Three details are deliberate and worth not undoing: the service's password comparison hashes both sides to equal length before `timingSafeEqual`, so neither the password nor its length leaks through timing;
+failed attempts are rate-limited in memory;
+and the action rejects the `?next=` redirect target unless it is a same-origin absolute path, closing an open-redirect vector.
 
 → [Authentication & sessions](./docs/guides/authentication.md) · [Rate limiting](./docs/guides/rate-limiting.md)
 
@@ -264,6 +268,12 @@ Failing at boot means a misconfigured container crash-loops visibly instead of s
 The server logs through one shared logger, `src/server/logger.ts`, to two destinations that are deliberately not equal.
 **stdout** gets every entry as a JSON line, before anything touches the database, because the failures most worth seeing — a bad `DATABASE_URL`, a failed migration, a container that will not start — are the ones where the database is what broke.
 **The `Log` table** gets the same entry in the background, best-effort: the caller never waits on it or sees it fail, and a failed write is reported on stdout only, so it cannot loop.
+
+Entries come in two kinds.
+**Operational** entries are what happened on the server, and `LOG_LEVEL` decides how many are kept.
+**Activity** entries are what happened to the user's data — a task or category created, changed or deleted, a sign-in or a failed one — and are always kept, because a quieter log level must not erase that history.
+Activity is recorded in the services, where each change is made, once it has succeeded, so any future entry point that calls a service is covered without remembering to log.
+An entry names what it is about by id and by title or name, and an update lists which fields changed but not their contents, so the log does not become a second copy of the user's data.
 
 Redaction is the logger's job, not each caller's.
 Every entry's detail passes through `src/server/log-detail.ts`, which hides sensitive keys, strips credentials from URLs and spells out errors, so a log that is later exported or shared does not carry a secret.
