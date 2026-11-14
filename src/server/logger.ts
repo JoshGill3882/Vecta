@@ -1,17 +1,21 @@
 import "server-only";
 
 import { prepareDetail, scrubUrlCredentials } from "@/src/server/log-detail";
-import type { LogLevel } from "@/src/shared/lib/dtos/logs";
+import type { LogKind, LogLevel } from "@/src/shared/lib/dtos/logs";
 import { LOG_LEVELS } from "@/src/shared/lib/schemas/logs";
 
-// The shared server-side logger. Every entry at or above the minimum level goes
-// to two places, which are deliberately not equal:
+// The shared server-side logger. Every entry it keeps goes to two places, which
+// are deliberately not equal:
 //
 // - stdout, as one JSON line. This always works, so it is where the failures
 //   most worth seeing still appear when the database is the thing that broke.
 // - the Log table, best-effort and in the background. The caller never waits
 //   on it and never sees it fail; a failed write is reported on stdout only, so
 //   a broken database cannot set off a loop of entries about itself.
+//
+// Operational entries below the minimum level are dropped. Activity entries are
+// always kept: they are the record of what happened to the user's data, and a
+// quieter LOG_LEVEL must not erase that history.
 
 /** The minimum level when `LOG_LEVEL` is unset or not a level. */
 export const DEFAULT_LOG_LEVEL: LogLevel = "info";
@@ -27,8 +31,13 @@ export type LogDetail = Record<string, unknown>;
  */
 export type LogMethod = (event: string, message: string, detail?: LogDetail) => void;
 
+/** One method per level, from least to most severe, each writing one kind of entry. */
+export type LogMethods = Record<LogLevel, LogMethod>;
+
 /** One entry, prepared and ready for both destinations. */
 interface PreparedEntry {
+  /** Whether it is about the server or about the user's data. */
+  kind: LogKind;
   /** How severe it is. */
   level: LogLevel;
   /** Its stable machine-readable name. */
@@ -111,11 +120,12 @@ function loadLogService(): Promise<typeof import("@/src/server/services/logs")> 
  */
 function writeToTable(entry: PreparedEntry): void {
   const write = loadLogService()
-    .then(({ writeLog }) => writeLog({ kind: "operational", ...entry }))
+    .then(({ writeLog }) => writeLog(entry))
     .then(
       () => undefined,
       (error: unknown) => {
         writeLine({
+          kind: "operational",
           level: "error",
           event: "log.write_failed",
           message: "Could not write a log entry to the Log table",
@@ -127,16 +137,35 @@ function writeToTable(entry: PreparedEntry): void {
   void write.finally(() => pending.delete(write));
 }
 
-/** Records an entry at a level, if the level is at or above the minimum.
+/** Whether an entry is dropped for falling below the minimum level.
  *
+ * @param kind The entry's kind. Activity is never dropped.
+ * @param level The entry's level.
+ * @returns True when the entry should not be written anywhere.
+ */
+function isDropped(kind: LogKind, level: LogLevel): boolean {
+  if (kind === "activity") return false;
+  return LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(minimumLevel());
+}
+
+/** Records an entry, unless it is dropped for its level.
+ *
+ * @param kind Whether it is about the server or about the user's data.
  * @param level How severe the entry is.
  * @param event Its stable machine-readable name.
  * @param message Its human-readable line.
  * @param detail Optional context.
  */
-function log(level: LogLevel, event: string, message: string, detail?: LogDetail): void {
-  if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(minimumLevel())) return;
+function log(
+  kind: LogKind,
+  level: LogLevel,
+  event: string,
+  message: string,
+  detail?: LogDetail
+): void {
+  if (isDropped(kind, level)) return;
   const entry: PreparedEntry = {
+    kind,
     level,
     event,
     message: scrubUrlCredentials(message),
@@ -146,12 +175,29 @@ function log(level: LogLevel, event: string, message: string, detail?: LogDetail
   writeToTable(entry);
 }
 
-/** The shared server-side logger: one method per level, from least to most severe. */
-export const logger: Record<LogLevel, LogMethod> = {
-  debug: (event, message, detail) => log("debug", event, message, detail),
-  info: (event, message, detail) => log("info", event, message, detail),
-  warn: (event, message, detail) => log("warn", event, message, detail),
-  error: (event, message, detail) => log("error", event, message, detail),
+/** Builds the four level methods for one kind of entry.
+ *
+ * @param kind The kind every method writes.
+ * @returns One method per level.
+ */
+function methodsFor(kind: LogKind): LogMethods {
+  return {
+    debug: (event, message, detail) => log(kind, "debug", event, message, detail),
+    info: (event, message, detail) => log(kind, "info", event, message, detail),
+    warn: (event, message, detail) => log(kind, "warn", event, message, detail),
+    error: (event, message, detail) => log(kind, "error", event, message, detail),
+  };
+}
+
+/** The shared server-side logger.
+ *
+ * `logger.error(...)` and its siblings record what happened on the server.
+ * `logger.activity.info(...)` and its siblings record a change the user made to
+ * their data, such as a task being deleted.
+ */
+export const logger: LogMethods & { activity: LogMethods } = {
+  ...methodsFor("operational"),
+  activity: methodsFor("activity"),
 };
 
 /** Waits for every table write still in progress.
