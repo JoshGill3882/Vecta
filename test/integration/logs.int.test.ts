@@ -3,13 +3,12 @@ import { ZodError } from "zod";
 import { prisma } from "@/src/server/db";
 import {
   DEFAULT_LOG_LIST,
-  LOG_PAGE_SIZE,
   MAX_LOG_LIST,
   listLogPage,
   listLogs,
   writeLog,
 } from "@/src/server/services/logs";
-import type { LogFilters } from "@/src/shared/lib/schemas/logs";
+import { LOG_PAGE_SIZE, type LogFilters } from "@/src/shared/lib/schemas/logs";
 
 const ENTRY = {
   kind: "activity",

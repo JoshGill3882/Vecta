@@ -56,6 +56,9 @@ function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [value];
 }
 
+/** How many entries one page of the Logs page shows. */
+export const LOG_PAGE_SIZE = 50;
+
 /** Reads the Logs page's filters from its query string.
  *
  * Nothing here refuses a request. An unknown level or source clears that

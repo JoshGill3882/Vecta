@@ -12,6 +12,7 @@ import {
 } from "@/src/shared/lib/dtos/logs";
 import {
   LOG_LEVELS,
+  LOG_PAGE_SIZE,
   LogFilters,
   LogWriteInput,
   logWriteSchema,
@@ -36,9 +37,6 @@ export interface ListLogsOptions {
   /** How many to return, newest first: a whole number from 1 to `MAX_LOG_LIST`. */
   limit?: number;
 }
-
-/** How many entries one page of the Logs page shows. */
-export const LOG_PAGE_SIZE = 50;
 
 /** One page of the log, with the counts the Logs page shows around it. */
 export interface LogPage {
