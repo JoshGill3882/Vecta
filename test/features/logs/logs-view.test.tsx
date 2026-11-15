@@ -109,10 +109,55 @@ describe("LogsView", () => {
     expect(screen.queryByRole("navigation", { name: "Log pages" })).toBeNull();
   });
 
-  it("draws no list when the page has no entries", () => {
+  it("says new entries will appear while the log is empty, offering nothing to clear", () => {
     const { container } = render(<LogsView filters={NO_FILTERS} page={logPage()} />);
 
     expect(container.querySelector("details")).toBeNull();
-    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "No log entries" })).toBeDefined();
+    expect(screen.getByText("New activity will appear here as it happens.")).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Clear filters" })).toBeNull();
+  });
+
+  it("says nothing matches when the filters match no entries, with a link that clears them", () => {
+    const { container } = render(
+      <LogsView
+        filters={{ level: ["error"], source: ["auth"], page: 1 }}
+        page={logPage({ total: 40, matching: 0, oldest: "2026-11-01T12:00:00.000Z" })}
+      />
+    );
+
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "No matching entries" })).toBeDefined();
+    expect(screen.getByText("Nothing matches the filters you have on.")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href")).toBe("/logs");
+  });
+
+  it("shows no empty state while there are entries to list", () => {
+    const createdAt = new Date().toISOString();
+    render(
+      <LogsView
+        filters={NO_FILTERS}
+        page={logPage({
+          entries: [
+            {
+              id: "log_1",
+              createdAt,
+              kind: "operational",
+              level: "info",
+              event: "app.started",
+              source: "system",
+              message: "Started",
+              detail: null,
+            },
+          ],
+          total: 1,
+          matching: 1,
+          oldest: createdAt,
+        })}
+      />
+    );
+
+    expect(screen.queryByRole("heading", { name: "No log entries" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "No matching entries" })).toBeNull();
   });
 });
