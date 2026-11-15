@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useTransition, type Ref } from "react";
+import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Funnel, Server, type LucideIcon } from "lucide-react";
 
@@ -25,6 +25,23 @@ import { LEVEL_LABELS, SOURCE_LABELS, type LogLabel } from "./log-meta";
 /** The levels and sources picked, which is all a filter change sets. */
 type Choices = Pick<LogFilters, "level" | "source">;
 
+/** Finds the button that clearing the filters sends focus to.
+ *
+ * It is marked with a data attribute rather than an id, since the menu gives
+ * its button an id of its own, which names the open menu for a screen reader.
+ */
+const FOCUS_TARGET = "[data-filter-focus-target]";
+
+/** Sends focus to the first filter's button.
+ *
+ * Every Clear filters control disappears once it is pressed, so each sends
+ * focus here first, where the reader can filter again, rather than leaving it
+ * wherever the control was.
+ */
+export function focusFilters(): void {
+  document.querySelector<HTMLElement>(FOCUS_TARGET)?.focus();
+}
+
 /** One filter's menu: a checkbox per choice, each with how many entries it holds.
  *
  * Built like the task list's filters, as checkboxes behind a button with a
@@ -39,7 +56,7 @@ function FilterMenu<T extends string>({
   counts,
   selected,
   onSelectedChange,
-  triggerRef,
+  focusTarget = false,
 }: {
   /** The button's name, such as `Level`. */
   label: string;
@@ -55,13 +72,18 @@ function FilterMenu<T extends string>({
   selected: readonly T[];
   /** Called with the choices picked once one is added or taken away. */
   onSelectedChange: (next: T[]) => void;
-  /** The menu's button, so focus can be sent to it. */
-  triggerRef?: Ref<HTMLButtonElement>;
+  /** Whether clearing the filters sends focus to this menu's button. */
+  focusTarget?: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <FilterTrigger ref={triggerRef} icon={icon} label={label} count={selected.length} />
+        <FilterTrigger
+          data-filter-focus-target={focusTarget ? "" : undefined}
+          icon={icon}
+          label={label}
+          count={selected.length}
+        />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-[210px]">
@@ -110,9 +132,6 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(filters);
-  // Clear filters disappears once it is pressed, so focus is sent to the
-  // first menu's button rather than being dropped onto the page.
-  const levelTrigger = useRef<HTMLButtonElement>(null);
 
   /** Shows the entries a new set of choices matches, from the first page.
    *
@@ -138,7 +157,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
           counts={page.levelCounts}
           selected={shown.level}
           onSelectedChange={(level) => apply({ level, source: shown.source })}
-          triggerRef={levelTrigger}
+          focusTarget
         />
         <FilterMenu
           label="Source"
@@ -164,7 +183,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
             size="sm"
             className="text-text-3"
             onClick={() => {
-              levelTrigger.current?.focus();
+              focusFilters();
               apply({ level: [], source: [] });
             }}
           >
