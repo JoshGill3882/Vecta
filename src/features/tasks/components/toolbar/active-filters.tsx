@@ -10,7 +10,7 @@ import { DUE_OPTIONS } from "@/src/features/tasks/components/toolbar/due-options
 import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
 import type { TaskNarrowingState } from "@/src/features/tasks/hooks/use-task-narrowing";
 import { DUE_BUCKETS } from "@/src/features/tasks/lib/due-date";
-import { toggled } from "@/src/features/tasks/lib/selection";
+import { toggled } from "@/src/shared/lib/selection";
 
 /** Moves focus somewhere that will still exist, then runs the removal.
  *

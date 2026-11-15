@@ -5,7 +5,7 @@ import { ChevronDownIcon, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/src/shared/components/ui/button";
 
-/** The button that opens one of the toolbar's filter menus.
+/** The button that opens a filter menu, on the task list or the Logs page.
  *
  * Shared by every filter so they read as one group: outlined while the filter
  * is off, filled with a count once anything is selected. The count is hidden

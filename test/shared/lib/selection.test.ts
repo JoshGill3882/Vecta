@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { toggled } from "@/src/features/tasks/lib/selection";
+import { toggled } from "@/src/shared/lib/selection";
 
 describe("toggled", () => {
   it("adds an option that is not selected", () => {
