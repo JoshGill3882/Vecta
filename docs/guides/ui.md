@@ -284,8 +284,10 @@ A filter therefore has to reach the server, and the URL is how it gets there.
   The menus render an optimistic copy of the filters (`useOptimistic`), set inside the same `startTransition` as the navigation, so React drops it once the new page arrives.
   A second pick made in the meantime builds on the first.
 - **Each choice's count ignores the filters**, so a menu shows what ticking a choice would add rather than what is left.
-- **Clear filters sends focus to the Level button before it goes.**
-  The button disappears once the filters are cleared, and focus on a removed element falls to `<body>`.
+- **Both Clear filters controls send focus to the Level button before they go.**
+  The one beside the count and the empty state's link each disappear once the filters are cleared.
+  Left alone, the next Tab would carry on from wherever the control was, which for the empty state is the first entry of the list it brought back.
+  Both call `focusFilters()` in `log-filter-bar.tsx`, which finds the Level button by a data attribute rather than an id: the menu names itself by its button's id, and an id of ours would replace it.
 - **Paging is links.**
   Newer and Older (`log-pager.tsx`) are `<Link>`s to the neighbouring page's address, so they behave like any other link.
   At either end the missing one is a disabled button, since a link cannot be disabled.
