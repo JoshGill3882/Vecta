@@ -1,8 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type { LogPage } from "@/src/server/services/logs";
+import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { LogsView } from "@/src/features/logs/components/logs-view";
+
+// The filter bar navigates with the router, and there is no Next router in a
+// test. The bar's own behaviour is covered in log-filter-bar.test.tsx.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+/** No filters, on the first page. */
+const NO_FILTERS: LogFilters = { level: [], source: [], page: 1 };
 
 /** An empty page of the log, for a test to fill in what it needs.
  *
@@ -25,13 +35,18 @@ function logPage(change: Partial<LogPage> = {}): LogPage {
 
 describe("LogsView", () => {
   it("is headed Logs", () => {
-    render(<LogsView page={logPage()} />);
+    render(<LogsView filters={NO_FILTERS} page={logPage()} />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Logs" })).toBeDefined();
   });
 
   it("counts every entry and dates the oldest", () => {
-    render(<LogsView page={logPage({ total: 1204, oldest: "2026-08-17T12:00:00.000Z" })} />);
+    render(
+      <LogsView
+        filters={NO_FILTERS}
+        page={logPage({ total: 1204, oldest: "2026-08-17T12:00:00.000Z" })}
+      />
+    );
 
     const summary = screen.getByText(/entries since/);
     expect(summary.textContent).toBe("1,204 entries since 17 Aug 2026");
@@ -43,14 +58,17 @@ describe("LogsView", () => {
 
   it("counts the whole log, not what the filters match", () => {
     render(
-      <LogsView page={logPage({ total: 40, matching: 3, oldest: "2026-11-01T12:00:00.000Z" })} />
+      <LogsView
+        filters={NO_FILTERS}
+        page={logPage({ total: 40, matching: 3, oldest: "2026-11-01T12:00:00.000Z" })}
+      />
     );
 
     expect(screen.getByText(/since/).textContent).toBe("40 entries since 1 Nov 2026");
   });
 
   it("names no date when the log is empty", () => {
-    render(<LogsView page={logPage()} />);
+    render(<LogsView filters={NO_FILTERS} page={logPage()} />);
 
     expect(screen.getByText("0 entries")).toBeDefined();
     expect(screen.queryByText(/since/)).toBeNull();
@@ -69,7 +87,10 @@ describe("LogsView", () => {
       detail: { taskId: "t1", title: "Buy milk" },
     };
     render(
-      <LogsView page={logPage({ entries: [entry], total: 1, matching: 1, oldest: createdAt })} />
+      <LogsView
+        filters={NO_FILTERS}
+        page={logPage({ entries: [entry], total: 1, matching: 1, oldest: createdAt })}
+      />
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Today" })).toBeDefined();
@@ -77,7 +98,7 @@ describe("LogsView", () => {
   });
 
   it("draws no list when the page has no entries", () => {
-    const { container } = render(<LogsView page={logPage()} />);
+    const { container } = render(<LogsView filters={NO_FILTERS} page={logPage()} />);
 
     expect(container.querySelector("details")).toBeNull();
     expect(screen.queryByRole("heading", { level: 2 })).toBeNull();

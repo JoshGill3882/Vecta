@@ -1,7 +1,25 @@
 import { afterEach, describe, it, expect } from "vitest";
 
 import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
-import { entryCount, groupByDay, logDate, logTime } from "@/src/features/logs/lib/log-format";
+import {
+  entryCount,
+  formatCount,
+  groupByDay,
+  logDate,
+  logTime,
+} from "@/src/features/logs/lib/log-format";
+
+describe("formatCount", () => {
+  it.each([
+    [0, "0"],
+    [999, "999"],
+    [1000, "1,000"],
+    [1204, "1,204"],
+    [1_000_000, "1,000,000"],
+  ])("writes %i as %s", (count, text) => {
+    expect(formatCount(count)).toBe(text);
+  });
+});
 
 describe("entryCount", () => {
   it.each([
