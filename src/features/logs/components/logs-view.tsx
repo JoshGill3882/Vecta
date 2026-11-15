@@ -4,6 +4,7 @@ import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
 import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
+import { LogPager } from "./log-pager";
 
 /** Logs view - the content of the `/logs` route.
  *
@@ -33,6 +34,8 @@ export function LogsView({ page, filters }: { page: LogPage; filters: LogFilters
       <LogFilterBar page={page} filters={filters} />
 
       {page.entries.length > 0 && <LogList entries={page.entries} now={now} />}
+
+      <LogPager page={page} filters={filters} />
     </section>
   );
 }

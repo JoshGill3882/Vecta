@@ -1,4 +1,5 @@
 import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
+import { LOG_PAGE_SIZE } from "@/src/shared/lib/schemas/logs";
 
 /** The locale the Logs page writes numbers and dates in, the same one the task
  * list uses, so both pages read alike. */
@@ -20,6 +21,18 @@ export function formatCount(count: number): string {
  */
 export function entryCount(count: number): string {
   return `${formatCount(count)} ${count === 1 ? "entry" : "entries"}`;
+}
+
+/** Writes which of the matching entries a page shows, such as `51-100 of 1,204`.
+ *
+ * @param page Which page, from 1. It must hold at least one entry.
+ * @param matching How many entries the filters match.
+ * @returns The first and last entry on the page, and how many match.
+ */
+export function pageRange(page: number, matching: number): string {
+  const first = (page - 1) * LOG_PAGE_SIZE + 1;
+  const last = Math.min(page * LOG_PAGE_SIZE, matching);
+  return `${formatCount(first)}-${formatCount(last)} of ${formatCount(matching)}`;
 }
 
 /** Writes the day an entry was written, such as `14 Nov 2026`.
