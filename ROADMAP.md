@@ -18,8 +18,8 @@ They are tracked in the [v1.3 milestone](https://github.com/JoshGill3882/Vecta/m
 - **Logging, and a record of what changed.** When something goes wrong on the server, the app says "Something went wrong" and nothing is kept that says why.
   Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
   Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
-  Old entries age out on their own, and can be exported or cleared from within the app.
-  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170), [#171](https://github.com/JoshGill3882/Vecta/issues/171) and [#172](https://github.com/JoshGill3882/Vecta/issues/172).
+  A Logs page in the app lists the entries and searches them, and can export or clear them, while old entries age out on their own.
+  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226) and [#227](https://github.com/JoshGill3882/Vecta/issues/227).
 
 ## Later
 
