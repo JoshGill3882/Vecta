@@ -20,6 +20,9 @@ Internal refactors that change nothing observable are not listed.
 - **`LOG_LEVEL`** sets how many of the server's own entries are logged: `debug`, `info` (the default), `warn` or `error`.
   Changes to your data and sign-ins are recorded whatever it is set to.
   Any other value stops the app from starting rather than being ignored
+- **A Logs page**, opened from the new button beside Log out, lists those entries newest first under a heading for each day, 50 to a page, with Newer and Older to move between pages.
+  Each entry shows its time, its level, where it came from (Auth, Tasks, Categories or System) and a one-line message naming the task or category it was about, and opening it shows everything recorded with it, with an error's stack in a block of its own.
+  Level and Source filters each take several choices and show how many entries each one holds, and they are kept in the page's address, so a refresh, the back button or a shared link keeps them
 
 ### Changed
 
