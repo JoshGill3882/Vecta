@@ -1,13 +1,13 @@
 # Input validation
 
-All task and category input, and every log entry, is validated with [Zod](https://zod.dev/) schemas at the server boundary.
+All task and category input, every log entry, and the Logs page's query string are validated with [Zod](https://zod.dev/) schemas at the server boundary.
 A schema is the single source of truth for both **run-time validation** and the **TypeScript type** of an input — `z.infer` derives the type from the schema, so the two can never drift apart.
 
 **Key files:**
 
 - `src/shared/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
 - `src/shared/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
-- `src/shared/lib/schemas/logs.ts` — `logWriteSchema`, with the `LOG_KINDS` and `LOG_LEVELS` lists
+- `src/shared/lib/schemas/logs.ts` — `logWriteSchema` and `logFiltersSchema`, with the `LOG_KINDS`, `LOG_LEVELS` and `LOG_SOURCES` lists and `LOG_PAGE_SIZE`
 - `src/shared/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
 
 > **Zod 4.** Some APIs differ from older tutorials:
@@ -107,6 +107,12 @@ The whole action is in [Server Actions](./server-actions.md#the-anatomy-of-an-ac
 Log entries are written by server code, never typed by the user, so nothing calls `validate()` with it;
 `writeLog` parses it and throws on a malformed entry, which is a bug in the code that wrote it.
 
+`logFiltersSchema` reads the Logs page's query string, which anyone can edit, and it never refuses one.
+Next passes a parameter given once as a string and a repeated one as an array, so each is read as a list first.
+An unknown level or source then clears that filter, and a page that is not a whole number from 1 reads as the first, so a stale or hand-edited link shows the log rather than an error.
+The page calls `parse` rather than `validate()`, since there is no error to report.
+Writing an address from the filters is the other direction, done by `logsHref` in `src/features/logs/lib/log-links.ts`, and its tests read every address it writes back through this schema.
+
 ## What validation does _not_ cover
 
 - **Uniqueness** (e.g. a category `name` must be unique) is a database concern, not a shape concern — enforce it in the service layer and translate the resulting DB error, since a schema can't know what other rows exist.
@@ -123,6 +129,7 @@ The schemas and helper are unit-tested with Vitest:
   `it.each` tables drive the status enum and the valid/invalid colour cases.
 - `test/shared/lib/schemas/logs.test.ts` — the same pattern for `logWriteSchema`:
   every kind and level, the order of the levels, the event-name shape, and `detail` as an object only.
+  `logFiltersSchema` has its own cases: a parameter left out, given once or repeated, and each way a value can be wrong.
 - `test/shared/lib/validation.test.ts` — the `validate()` contract:
   typed data on success, field-keyed errors on failure, absent keys for valid fields, and `formErrors` for cross-field `.refine()` issues.
 

@@ -95,6 +95,7 @@ import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
 
 writeLog(input: LogWriteInput): Promise<LogEntryDTO>             // throws ZodError, TypeError, or the DB's error
 listLogs(options?: { kind?; level?; limit? }): Promise<LogEntryDTO[]> // newest first
+listLogPage(filters: LogFilters): Promise<LogPage>               // one page of the Logs page, with its counts
 ```
 
 It is the **only** code that touches `prisma.log`, and a second ESLint rule (`no-restricted-syntax`) fails the lint anywhere else, tests excepted.
@@ -110,6 +111,14 @@ Application code logs through the shared logger rather than calling `writeLog` i
 `listLogs` returns at most `MAX_LOG_LIST` (500) entries, `DEFAULT_LOG_LIST` (100) when no limit is given, and clamps an out-of-range limit into range rather than refusing it.
 Entries written in the same millisecond are ordered by id, so a listing reads the same every time.
 
+`listLogPage` is what the Logs page reads.
+It takes the filters `logFiltersSchema` reads from the page's URL and returns a `LogPage`: up to `LOG_PAGE_SIZE` (50) entries, newest first, with which page they are and how many pages there are, how many entries match and how many there are in all, when the oldest was written, and how many entries each level and each source holds.
+The counts for each level and source ignore the filters, so a filter menu still shows what ticking another choice would add.
+The counts are read before the entries, so a page past the last can be read as the last rather than coming back empty.
+
+A source is not a column.
+It is read from the event's prefix by `SOURCE_PREFIXES` in `src/shared/lib/dtos/logs.ts` (`auth.`, `task.` and `category.`, with every other event under System), so every entry has one however old it is, and the source filter matches on the same prefixes.
+
 ## DTOs
 
 Services return **DTOs** — plain, JSON-safe shapes in `src/shared/lib/dtos/` — not Prisma models, so callers (and the eventual UI / JSON API) never couple to the schema.
@@ -117,6 +126,7 @@ The mappers enforce these conversions:
 
 - **`Date` → ISO string.** `createdAt` / `updatedAt` go through `.toISOString()`, so a DTO can be handed straight to a Client Component.
 - **String columns holding a fixed set of values are narrowed** to their union: a task's `status` to `TaskStatus`, a log entry's `kind` and `level` to `LogKind` and `LogLevel`.
+- **A log entry's `source` is derived** from its event name by `sourceOf`, since it is not stored.
 - **A log entry's `detail` is parsed** from JSON text back into an object.
   Stored text that is not a JSON object comes back as `{ unparsed: <the text> }` rather than throwing, so one damaged row cannot stop a listing.
 

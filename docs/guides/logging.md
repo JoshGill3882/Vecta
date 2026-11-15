@@ -3,7 +3,7 @@
 The server records what happens through one shared logger.
 Every entry goes to **stdout** as a JSON line and to the **`Log` table**, and the two are deliberately not equal:
 stdout always works, while the table is best-effort.
-This guide covers how to log, the two kinds of entry, what happens to an entry, and how to test code that logs.
+This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read, and how to test code that logs.
 
 ## Key files
 
@@ -12,6 +12,7 @@ This guide covers how to log, the two kinds of entry, what happens to an entry, 
 - `src/server/changed-fields.ts` — `changedFields()`, which names the fields an update changes
 - `src/server/start-up.ts` — the start-up checks and the `server.started` entry
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
+- `src/features/logs/` — the Logs page, which lists the table's entries; see [UI & frontend](./ui.md#the-logs-page)
 
 ## Two kinds of entry
 
@@ -63,6 +64,9 @@ It is server-only (`import "server-only"`), so it cannot be imported into a Clie
 | `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else |
 | `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                            |
 
+The Logs page files each event under a source by its prefix: `auth.` is Auth, `task.` is Tasks, `category.` is Categories, and anything else is System.
+A new event with one of those prefixes is filed with its entity, and any other lands under System with no change needed.
+
 ## Recording activity
 
 Activity is recorded in the service layer, in `src/server/services`, where each change is actually made — not in the Server Actions or the UI.
@@ -103,6 +107,18 @@ Every write shares that one load, so a database that cannot be opened is tried o
 `flushLogs()` waits for table writes still in progress.
 Nothing on a request path calls it.
 Start-up calls it before refusing to start, to give the `server.config_invalid` entry its chance to reach the table, and tests call it to wait for writes deterministically.
+
+## Reading the entries
+
+Signed in, the Logs page at `/logs` lists the table's entries, newest first, 50 to a page, and filters them by level and source.
+It shows the table only, so an entry that failed to reach it is on stdout alone, as `log.write_failed` is by design.
+
+A row's message is written by `entryMessage()` in `src/features/logs/lib/entry-message.ts`, from the event and its detail rather than the stored message.
+A task or category entry names what it was about, such as `Deleted category “Work”`, and a failed sign-in says why.
+An event with no wording there, or whose detail lacks what its wording needs, shows its stored message, so a new event reads sensibly without a change to the page; give it wording there when the stored message alone would leave a reader asking what it was about.
+
+Opening a row shows its timestamp, id, kind, event and every detail field, so whatever an entry records is visible on the page.
+That is one more reason the rules under [What is never logged](#what-is-never-logged) matter: what reaches the table is what a reader of the page sees.
 
 ## The minimum level
 
