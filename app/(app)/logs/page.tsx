@@ -19,5 +19,5 @@ export default async function LogsPage({
   const filters = logFiltersSchema.parse(await searchParams);
   const page = await listLogPage(filters);
 
-  return <LogsView page={page} />;
+  return <LogsView page={page} filters={filters} />;
 }

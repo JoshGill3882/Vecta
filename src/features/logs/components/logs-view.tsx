@@ -1,6 +1,8 @@
 import type { LogPage } from "@/src/server/services/logs";
+import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
+import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
 
 /** Logs view - the content of the `/logs` route.
@@ -10,7 +12,7 @@ import { LogList } from "./log-list";
  * server's time zone, as the task list's due dates are. The list's day
  * headings and times are read in the same zone, from one moment taken here.
  */
-export function LogsView({ page }: { page: LogPage }) {
+export function LogsView({ page, filters }: { page: LogPage; filters: LogFilters }) {
   const now = new Date();
 
   return (
@@ -27,6 +29,8 @@ export function LogsView({ page }: { page: LogPage }) {
           )}
         </p>
       </header>
+
+      <LogFilterBar page={page} filters={filters} />
 
       {page.entries.length > 0 && <LogList entries={page.entries} now={now} />}
     </section>

@@ -4,13 +4,22 @@ import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
  * list uses, so both pages read alike. */
 const LOCALE = "en-GB";
 
+/** Writes a count with its thousands grouped, such as `1,204`.
+ *
+ * @param count Any whole number.
+ * @returns The number as text.
+ */
+export function formatCount(count: number): string {
+  return count.toLocaleString(LOCALE);
+}
+
 /** Writes how many entries there are, such as `1 entry` or `1,204 entries`.
  *
  * @param count How many entries.
  * @returns The count with its noun.
  */
 export function entryCount(count: number): string {
-  return `${count.toLocaleString(LOCALE)} ${count === 1 ? "entry" : "entries"}`;
+  return `${formatCount(count)} ${count === 1 ? "entry" : "entries"}`;
 }
 
 /** Writes the day an entry was written, such as `14 Nov 2026`.
