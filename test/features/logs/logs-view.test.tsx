@@ -55,4 +55,31 @@ describe("LogsView", () => {
     expect(screen.getByText("0 entries")).toBeDefined();
     expect(screen.queryByText(/since/)).toBeNull();
   });
+
+  it("lists the page's entries under their days", () => {
+    const createdAt = new Date().toISOString();
+    const entry = {
+      id: "log_1",
+      createdAt,
+      kind: "activity" as const,
+      level: "info" as const,
+      event: "task.created",
+      source: "tasks" as const,
+      message: "Created a task",
+      detail: { taskId: "t1", title: "Buy milk" },
+    };
+    render(
+      <LogsView page={logPage({ entries: [entry], total: 1, matching: 1, oldest: createdAt })} />
+    );
+
+    expect(screen.getByRole("heading", { level: 2, name: "Today" })).toBeDefined();
+    expect(screen.getByText("Created “Buy milk”")).toBeDefined();
+  });
+
+  it("draws no list when the page has no entries", () => {
+    const { container } = render(<LogsView page={logPage()} />);
+
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
+  });
 });
