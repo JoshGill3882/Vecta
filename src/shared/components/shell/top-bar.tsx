@@ -4,9 +4,9 @@ import { LogOut } from "lucide-react";
 import { logoutAction } from "@/src/features/auth/logout-actions";
 import { Button } from "@/src/shared/components/ui/button";
 
-import { AppNav, AppNavMobile } from "./nav-tabs";
+import { AppNav, AppNavMobile, LogsLink } from "./nav-tabs";
 
-/** The authenticated shell's top bar: brand and title, the Tasks/Categories tabs, and logout.
+/** The authenticated shell's top bar: brand and title, the Tasks/Categories tabs, the Logs button and logout.
  *
  * Rendered as a Server Component — the logout is a plain <form> bound to the
  * logout server action, so it works without client-side JavaScript.
@@ -34,12 +34,15 @@ export function TopBar() {
           <AppNav />
         </div>
 
-        <form action={logoutAction}>
-          <Button type="submit" variant="ghost" size="sm" className="gap-2">
-            <LogOut className="size-[15px]" />
-            Log out
-          </Button>
-        </form>
+        <div className="flex items-center gap-1">
+          <LogsLink />
+          <form action={logoutAction}>
+            <Button type="submit" variant="ghost" size="sm" className="gap-2">
+              <LogOut className="size-[15px]" />
+              Log out
+            </Button>
+          </form>
+        </div>
       </div>
 
       <AppNavMobile />

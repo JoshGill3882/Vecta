@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List, Tag, type LucideIcon } from "lucide-react";
+import { List, ScrollText, Tag, type LucideIcon } from "lucide-react";
 
+import { Button } from "@/src/shared/components/ui/button";
 import { cn } from "@/src/shared/lib/utils";
 
 /** One destination in the app navigation. */
@@ -89,5 +90,27 @@ export function AppNavMobile() {
         );
       })}
     </nav>
+  );
+}
+
+/** The Logs button - an icon link beside Log out, shown at every width.
+ *
+ * Kept out of the tabs: the log is visited rarely, and a third tab would crowd
+ * the phone's row. It is lit like a tab while the Logs page is open.
+ */
+export function LogsLink() {
+  const pathname = usePathname();
+  const active = isActive(pathname, "/logs");
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      size="icon"
+      className={active ? "bg-secondary text-foreground" : "text-text-3"}
+    >
+      <Link href="/logs" aria-label="Logs" title="Logs" aria-current={active ? "page" : undefined}>
+        <ScrollText className="size-4" />
+      </Link>
+    </Button>
   );
 }
