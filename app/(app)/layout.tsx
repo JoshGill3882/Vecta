@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { TopBar } from "@/src/shared/components/shell/top-bar";
 import { Toaster } from "@/src/shared/components/ui/sonner";
 
-/** Layout for the authenticated area (Tasks, Categories).
+/** Layout for the authenticated area (Tasks, Categories, Logs).
  *
  * The `(app)` route group keeps `/login` out of this shell while leaving URLs
  * unchanged — the folder name in parentheses is not part of the path. Each page
