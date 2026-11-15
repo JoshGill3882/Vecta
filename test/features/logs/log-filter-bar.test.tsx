@@ -176,6 +176,28 @@ describe("LogFilterBar summary", () => {
     expect(screen.getByRole("status").textContent).toBe("21 of 1,204 entries");
   });
 
+  it("marks only the Level button as where clearing sends focus", () => {
+    render(<LogFilterBar page={PAGE} filters={filters()} />);
+
+    expect(
+      screen.getByRole("button", { name: "Level" }).hasAttribute("data-filter-focus-target")
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Source" }).hasAttribute("data-filter-focus-target")
+    ).toBe(false);
+  });
+
+  // The mark is a data attribute, not an id: the menu names itself by its
+  // button's id, which an id of our own would replace.
+  it("keeps the open menu named by its button", async () => {
+    const user = userEvent.setup();
+    render(<LogFilterBar page={PAGE} filters={filters()} />);
+
+    await user.click(screen.getByRole("button", { name: "Level" }));
+
+    expect(await screen.findByRole("menu", { name: "Level" })).toBeDefined();
+  });
+
   it("clears both filters, sending focus to the Level button", async () => {
     const user = userEvent.setup();
     render(
