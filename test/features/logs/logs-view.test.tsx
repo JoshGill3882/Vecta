@@ -97,6 +97,18 @@ describe("LogsView", () => {
     expect(screen.getByText("Created “Buy milk”")).toBeDefined();
   });
 
+  it("offers the pager once the matching entries fill more than one page", () => {
+    render(<LogsView filters={NO_FILTERS} page={logPage({ pageCount: 3, matching: 120 })} />);
+
+    expect(screen.getByRole("navigation", { name: "Log pages" })).toBeDefined();
+  });
+
+  it("offers no pager while everything fits on one page", () => {
+    render(<LogsView filters={NO_FILTERS} page={logPage({ matching: 50 })} />);
+
+    expect(screen.queryByRole("navigation", { name: "Log pages" })).toBeNull();
+  });
+
   it("draws no list when the page has no entries", () => {
     const { container } = render(<LogsView filters={NO_FILTERS} page={logPage()} />);
 

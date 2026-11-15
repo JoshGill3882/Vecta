@@ -7,6 +7,7 @@ import {
   groupByDay,
   logDate,
   logTime,
+  pageRange,
 } from "@/src/features/logs/lib/log-format";
 
 describe("formatCount", () => {
@@ -34,6 +35,18 @@ describe("entryCount", () => {
   it("groups thousands with a comma", () => {
     expect(entryCount(1204)).toBe("1,204 entries");
     expect(entryCount(1_000_000)).toBe("1,000,000 entries");
+  });
+});
+
+describe("pageRange", () => {
+  it.each([
+    [1, 1204, "1-50 of 1,204"],
+    [2, 1204, "51-100 of 1,204"],
+    [25, 1204, "1,201-1,204 of 1,204"],
+    [2, 100, "51-100 of 100"],
+    [2, 51, "51-51 of 51"],
+  ])("writes page %i of %i matching as %s", (page, matching, text) => {
+    expect(pageRange(page, matching)).toBe(text);
   });
 });
 
