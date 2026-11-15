@@ -53,7 +53,7 @@ function providerOf(url: string | undefined): string {
 export async function startUp(env: Environment): Promise<void> {
   const problem = configurationProblem(env);
   if (problem !== null) {
-    logger.error("server.config_invalid", "Vecta cannot start: its configuration is invalid.", {
+    logger.error("server.config_invalid", "Vecta cannot start: its configuration is invalid", {
       problem,
     });
     // Give the table write its chance before the process stops; stdout already has it.
