@@ -6,7 +6,8 @@ This guide covers the project-specific patterns — which mostly come down to mo
 ## Key files
 
 - `vitest.config.ts` — three projects (`unit`, `integration`, `component`) + shared module aliases
-- `test/` — mirrors the source tree (`test/shared`, `test/features`, `test/scripts`)
+- `test/` — mirrors the source tree (`test/shared`, `test/features`, `test/server`, `test/scripts`)
+- `test/support/` — helpers shared between specs, such as `activityEntries()` for reading the log back
 - `test/integration/` — real-database integration project (`setup.ts` + `*.int.test.ts`)
 - `test/component/setup.ts` — Testing Library cleanup between component specs, and a default `matchMedia`
 - `test/stubs/empty.js` — no-op stand-in for `server-only`
@@ -30,7 +31,7 @@ Two aliases make server modules loadable outside a Next build:
 ## Mocking the Next.js / iron-session boundary
 
 `vi.mock` is hoisted above imports, so declare the fakes, then import the code under test.
-Patterns used in `test/shared/lib/session.test.ts` and `test/features/auth/actions.test.ts`:
+Patterns used in `test/shared/lib/session.test.ts`, `test/features/auth/actions.test.ts` and `test/server/services/auth.test.ts`:
 
 ```ts
 // cookies() just needs to hand *something* to getIronSession.
@@ -51,13 +52,16 @@ vi.mock("iron-session", () => ({ getIronSession: vi.fn() }));
 For a Server Action whose `redirect()` fires on success, assert via the throw:
 
 ```ts
-await expect(loginAction({}, form(PASSWORD))).rejects.toThrow("REDIRECT:/");
-expect(mockCreateSession).toHaveBeenCalledOnce();
+mockSignIn.mockResolvedValue("signed_in");
+await expect(loginAction({}, form("right"))).rejects.toThrow("REDIRECT:/");
+expect(mockRedirect).toHaveBeenCalledWith("/");
 ```
+
+The login action's tests stand in for the whole auth service this way, while `test/server/services/auth.test.ts` tests the service against stand-ins for the session and the rate limiter.
 
 ## Resetting module-level state
 
-`src/features/auth/lib/rate-limit.ts` keeps its failure log in module memory, so isolate tests by dropping the module cache and re-importing, paired with fake timers to drive the sliding window (`test/features/auth/rate-limit.test.ts`):
+`src/server/rate-limit.ts` keeps its failure log in module memory, so isolate tests by dropping the module cache and re-importing, paired with fake timers to drive the sliding window (`test/server/rate-limit.test.ts`):
 
 ```ts
 beforeEach(() => {
@@ -67,7 +71,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 it("...", async () => {
-  const { isRateLimited, recordFailure } = await import("../../src/features/auth/lib/rate-limit");
+  const { isRateLimited, recordFailure } = await import("@/src/server/rate-limit");
   // ...
   vi.advanceTimersByTime(60_000); // expire the window deterministically
 });
@@ -101,12 +105,14 @@ real Prisma error translation (`P2003`/`P2025`/`P2002` → `NotFoundError`/`Conf
 - **Schema — replayed migrations.** `test/integration/setup.ts` executes the committed migration SQL (`prisma/migrations/sqlite/**`) through the app's own connection.
   `prisma migrate deploy` can't be used:
   it runs in a separate process and would populate a _different_ in-memory DB than the tests connect to.
-- **Isolation — per test.** `beforeEach` clears every row (tasks → categories, FK-safe order).
+- **Isolation — per test.** `beforeEach` first waits for log writes still in flight, then clears every row (tasks → categories, FK-safe order, then the log).
+  Without the wait, an entry the previous test caused could land in the next test's freshly cleared table.
   A guard refuses to run unless `DATABASE_URL` is in-memory, so a real database can never be wiped.
   `PRAGMA foreign_keys = ON` is set in setup — the FK-violation and SetNull tests depend on it.
-- **What's mocked — only the Next edges.** `getSession` (auth) and `updateTag` (cache); the DB and services are real.
+- **What's mocked — only the Next edges.** `getSession` (auth) and `updateTag` (cache); the DB, the services and the logger are real.
+- **Reading activity back.** `activityEntries()` in `test/support/activity.ts` waits for pending log writes and returns the activity entries sorted by event name, since entries written in the same millisecond have no reliable order.
 
-Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`).
+Specs live in `test/integration/*.int.test.ts` (`tasks`, `categories`, `logs`, `logger`).
 
 ## Component tests (React in jsdom)
 

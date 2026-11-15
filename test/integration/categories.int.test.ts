@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/src/server/db";
 import { CATEGORY_PALETTE } from "@/src/shared/lib/palette";
 import {
@@ -6,6 +6,16 @@ import {
   updateCategoryAction,
   deleteCategoryAction,
 } from "@/src/features/categories/actions";
+import { activityEntries } from "@/test/support/activity";
+
+// The real logger writes every entry to stdout too; keep that out of the output.
+beforeEach(() => {
+  vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const ABSENT_ID = "cjld2cjxh0000qzrmn831i7rn";
 
@@ -114,5 +124,54 @@ describe("deleteCategoryAction (integration)", () => {
     expect(await prisma.category.count()).toBe(0);
     const row = await prisma.task.findUnique({ where: { id: task.id } });
     expect(row?.categoryId).toBeNull(); // task survives, its link is cleared
+  });
+});
+
+describe("category activity (integration)", () => {
+  it("records a create, a rename and a delete against the real table", async () => {
+    const created = await createCategoryAction(null, form({ name: "Work", color: "#6366f1" }));
+    if (!created.ok) throw new Error("create failed");
+    const id = created.data.id;
+
+    await updateCategoryAction(id, null, form({ name: "Home", color: "#6366f1" }));
+    await deleteCategoryAction(id);
+
+    expect(await activityEntries()).toEqual([
+      { event: "category.created", detail: { categoryId: id, name: "Work" } },
+      {
+        event: "category.deleted",
+        detail: { categoryId: id, name: "Home", uncategorisedTasks: 0 },
+      },
+      { event: "category.updated", detail: { categoryId: id, name: "Home", changed: ["name"] } },
+    ]);
+  });
+
+  it("counts exactly the tasks a delete uncategorised, and no others", async () => {
+    const cat = await prisma.category.create({ data: { name: "Work" } });
+    const other = await prisma.category.create({ data: { name: "Home" } });
+    await prisma.task.createMany({
+      data: [
+        { title: "One", status: "open", categoryId: cat.id },
+        { title: "Two", status: "closed", categoryId: cat.id },
+        { title: "Elsewhere", status: "open", categoryId: other.id },
+        { title: "Loose", status: "open" },
+      ],
+    });
+
+    await deleteCategoryAction(cat.id);
+
+    const [entry] = await activityEntries();
+    expect(entry.detail).toMatchObject({ uncategorisedTasks: 2 });
+    expect(await prisma.task.count({ where: { categoryId: null } })).toBe(3);
+  });
+
+  it("records nothing for a change that fails", async () => {
+    await prisma.category.create({ data: { name: "Existing" } });
+
+    await createCategoryAction(null, form({ name: "Existing" }));
+    await updateCategoryAction(ABSENT_ID, null, form({ name: "x" }));
+    await deleteCategoryAction(ABSENT_ID);
+
+    expect(await activityEntries()).toEqual([]);
   });
 });

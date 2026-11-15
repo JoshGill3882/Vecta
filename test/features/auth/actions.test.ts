@@ -2,16 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // ── Fakes for the action's collaborators ────────────────────────────────────
 // vi.mock is hoisted above the imports, so these stand in before the actions
-// (and the modules they pull in) are loaded.
+// (and the modules they pull in) are loaded. The auth service is faked whole:
+// how a password is checked and recorded is tested against the service itself,
+// so these tests cover only what each outcome turns into for the form.
 
-vi.mock("@/src/features/auth/lib/rate-limit", () => ({
-  isRateLimited: vi.fn(() => false),
-  recordFailure: vi.fn(),
-}));
-
-vi.mock("@/src/shared/lib/session", () => ({
-  createSession: vi.fn(),
-  destroySession: vi.fn(),
+vi.mock("@/src/server/services/auth", () => ({
+  signIn: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 // Real redirect() throws to unwind rendering; mirror that so we can assert both
@@ -24,17 +21,12 @@ vi.mock("next/navigation", () => ({
 
 import { loginAction } from "@/src/features/auth/login-actions";
 import { logoutAction } from "@/src/features/auth/logout-actions";
-import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
-import { createSession, destroySession } from "@/src/shared/lib/session";
+import { signIn, signOut } from "@/src/server/services/auth";
 import { redirect } from "next/navigation";
 
-const mockIsRateLimited = vi.mocked(isRateLimited);
-const mockRecordFailure = vi.mocked(recordFailure);
-const mockCreateSession = vi.mocked(createSession);
-const mockDestroySession = vi.mocked(destroySession);
+const mockSignIn = vi.mocked(signIn);
+const mockSignOut = vi.mocked(signOut);
 const mockRedirect = vi.mocked(redirect);
-
-const PASSWORD = "correct-horse-battery-staple";
 
 /** Builds the form data the login action expects.
  *
@@ -51,68 +43,57 @@ function form(password: string, next?: string): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockIsRateLimited.mockReturnValue(false);
-  process.env.ADMIN_PASSWORD = PASSWORD;
+  mockSignIn.mockResolvedValue("signed_in");
 });
 
 describe("loginAction", () => {
-  it("rejects while rate limited without checking the password", async () => {
-    mockIsRateLimited.mockReturnValue(true);
+  it("passes the submitted password to the auth service", async () => {
+    await expect(loginAction({}, form("typed-password"))).rejects.toThrow("REDIRECT:/");
 
-    const result = await loginAction({}, form(PASSWORD));
+    expect(mockSignIn).toHaveBeenCalledWith("typed-password");
+  });
+
+  it("passes an empty password when the field is missing", async () => {
+    mockSignIn.mockResolvedValue("wrong_password");
+
+    await loginAction({}, new FormData());
+
+    expect(mockSignIn).toHaveBeenCalledWith("");
+  });
+
+  it("asks the user to wait when rate limited", async () => {
+    mockSignIn.mockResolvedValue("rate_limited");
+
+    const result = await loginAction({}, form("anything"));
 
     expect(result).toEqual({ error: "Too many attempts. Retry in a minute" });
-    expect(mockCreateSession).not.toHaveBeenCalled();
-    expect(mockRecordFailure).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 
-  it("records a failure and returns an error on the wrong password", async () => {
+  it("returns an error on the wrong password", async () => {
+    mockSignIn.mockResolvedValue("wrong_password");
+
     const result = await loginAction({}, form("definitely-wrong"));
 
     expect(result).toEqual({ error: "Password Invalid" });
-    expect(mockRecordFailure).toHaveBeenCalledOnce();
-    expect(mockCreateSession).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 
-  it("treats a missing password field as a failed attempt", async () => {
-    const result = await loginAction({}, new FormData());
-
-    expect(result).toEqual({ error: "Password Invalid" });
-    expect(mockRecordFailure).toHaveBeenCalledOnce();
-    expect(mockCreateSession).not.toHaveBeenCalled();
-  });
-
-  it("rejects a value that merely shares the password's first few characters", async () => {
-    // Regression guard: the full password is compared (SHA-256 digest), so a
-    // prefix must NOT pass. The old Buffer.alloc(5, …) comparison accepted this.
-    const result = await loginAction({}, form(PASSWORD.slice(0, 5)));
-
-    expect(result).toEqual({ error: "Password Invalid" });
-    expect(mockCreateSession).not.toHaveBeenCalled();
-  });
-
-  it("creates a session and redirects home on the correct password", async () => {
+  it("redirects home once signed in", async () => {
     // Success path ends in redirect("/"), which our fake throws to unwind.
-    await expect(loginAction({}, form(PASSWORD))).rejects.toThrow("REDIRECT:/");
+    await expect(loginAction({}, form("right"))).rejects.toThrow("REDIRECT:/");
 
-    expect(mockCreateSession).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledWith("/");
-    expect(mockRecordFailure).not.toHaveBeenCalled();
   });
 
   it("returns to a safe `next` path on success", async () => {
-    await expect(loginAction({}, form(PASSWORD, "/tasks/42"))).rejects.toThrow(
-      "REDIRECT:/tasks/42"
-    );
+    await expect(loginAction({}, form("right", "/tasks/42"))).rejects.toThrow("REDIRECT:/tasks/42");
 
-    expect(mockCreateSession).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledWith("/tasks/42");
   });
 
   it("ignores an unsafe `next` (open-redirect guard) and falls back to /", async () => {
-    await expect(loginAction({}, form(PASSWORD, "//evil.example.com"))).rejects.toThrow(
+    await expect(loginAction({}, form("right", "//evil.example.com"))).rejects.toThrow(
       "REDIRECT:/"
     );
 
@@ -121,10 +102,10 @@ describe("loginAction", () => {
 });
 
 describe("logoutAction", () => {
-  it("destroys the session and redirects to /login", async () => {
+  it("signs out and redirects to /login", async () => {
     await expect(logoutAction()).rejects.toThrow("REDIRECT:/login");
 
-    expect(mockDestroySession).toHaveBeenCalledOnce();
+    expect(mockSignOut).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledWith("/login");
   });
 });

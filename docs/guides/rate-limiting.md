@@ -1,9 +1,9 @@
 # Rate limiting
 
 A tiny in-memory limiter deters brute-force password guessing.
-It's used by the login action and is reusable on other Server Actions.
+Signing in uses it, and it is reusable wherever repeated failures should be slowed down.
 
-**Key file:** `src/features/auth/lib/rate-limit.ts` (used in `src/features/auth/login-actions.tsx`)
+**Key file:** `src/server/rate-limit.ts` (used in `src/server/services/auth.ts`)
 
 ## API
 
@@ -20,32 +20,40 @@ Defaults (constants at the top of the module): **5 failures per 60-second slidin
 
 ## How it's used
 
-`src/features/auth/login-actions.tsx` checks the limiter before doing any work and records a failure only on a wrong password:
+`signIn()` in `src/server/services/auth.ts` checks the limiter before doing any work, and records a failure only on a wrong password.
+Each outcome is returned to the login action, which turns it into the message the form shows, and each is recorded as activity:
 
 ```ts
-if (isRateLimited()) return { error: "Too many attempts. Retry in a minute" };
+if (isRateLimited()) {
+  logger.activity.warn("auth.sign_in_failed", "Sign-in failed", { reason: "rate_limited" });
+  return "rate_limited";
+}
 // ...verify password...
 if (!ok) {
   recordFailure();
-  return { error: "Password Invalid" };
+  logger.activity.warn("auth.sign_in_failed", "Sign-in failed", { reason: "wrong_password" });
+  return "wrong_password";
 }
 ```
 
-## How to apply it to another action
+A refused attempt is recorded as well as a wrong one, because a burst of them is the clearest sign that someone is guessing.
+
+## How to apply it elsewhere
+
+Call it from the server-side code that decides whether an attempt failed, as `signIn()` does:
 
 ```ts
-"use server";
-import { isRateLimited, recordFailure } from "@/src/features/auth/lib/rate-limit";
+import { isRateLimited, recordFailure } from "@/src/server/rate-limit";
 
-export async function sensitiveAction() {
-  if (isRateLimited()) return { error: "Too many attempts. Try again shortly." };
+export async function sensitiveOperation(): Promise<"ok" | "failed" | "rate_limited"> {
+  if (isRateLimited()) return "rate_limited";
   // ...attempt...
-  // on failure: recordFailure();
+  // on failure: recordFailure(); return "failed";
 }
 ```
 
-> Note: the failure log is a **single module-level array shared across all callers** — it's a global lockout, not per-IP or per-action.
-> For the single-admin login that's the intent; if you need independent buckets, give the module a keyed map first.
+> Note: the failure log is a **single module-level array shared across all callers** — it's a global lockout, not per-IP or per-operation.
+> For the single-admin sign-in that's the intent; if you need independent buckets, give the module a keyed map first.
 
 ## Limitations
 

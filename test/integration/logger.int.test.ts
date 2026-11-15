@@ -28,6 +28,20 @@ describe("logger (integration)", () => {
     });
   });
 
+  it("writes an activity entry to the Log table as an activity one", async () => {
+    logger.activity.info("task.deleted", "Task deleted", { taskId: "t1", title: "Buy milk" });
+    await flushLogs();
+
+    const [entry] = await listLogs();
+    expect(entry).toMatchObject({
+      kind: "activity",
+      level: "info",
+      event: "task.deleted",
+      message: "Task deleted",
+      detail: { taskId: "t1", title: "Buy milk" },
+    });
+  });
+
   it("stores redacted detail, so the secret never reaches the table", async () => {
     logger.warn("test.event", "With a secret", { sessionSecret: "x".repeat(32) });
     await flushLogs();

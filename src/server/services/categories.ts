@@ -3,8 +3,12 @@ import { categoryCreateSchema, categoryUpdateSchema } from "@/src/shared/lib/sch
 import { prisma } from "@/src/server/db";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { ConflictError, NotFoundError } from "@/src/server/errors";
+import { logger } from "@/src/server/logger";
+import { changedFields } from "@/src/server/changed-fields";
 
-// Category service — the seam all category DB access flows through.
+// Category service — the seam all category DB access flows through. Each change
+// is recorded as an activity entry here, once it has succeeded, so every caller
+// is covered without having to remember to log.
 
 /** The fields needed to create a category. */
 export interface CreateCategoryInput {
@@ -63,6 +67,10 @@ export async function createCategory(input: CreateCategoryInput): Promise<Catego
   const data = categoryCreateSchema.parse(input);
   try {
     const createdCategory = await prisma.category.create({ data });
+    logger.activity.info("category.created", "Category created", {
+      categoryId: createdCategory.id,
+      name: createdCategory.name,
+    });
     return toCategoryDTO(createdCategory);
   } catch (e) {
     // P2002 = unique constraint: a Category already owns this name.
@@ -83,9 +91,18 @@ export async function createCategory(input: CreateCategoryInput): Promise<Catego
 export async function updateCategory(id: string, input: UpdateCategoryInput): Promise<CategoryDTO> {
   const data = categoryUpdateSchema.parse(input);
   try {
-    const category = await prisma.category.update({
-      where: { id: id },
-      data,
+    // The read and the write run back to back in one transaction, so the fields
+    // recorded as changed are compared against the row as it stood just before
+    // this update. A missing category fails the read with the same P2025 the
+    // update would have thrown.
+    const [before, category] = await prisma.$transaction([
+      prisma.category.findUniqueOrThrow({ where: { id: id } }),
+      prisma.category.update({ where: { id: id }, data }),
+    ]);
+    logger.activity.info("category.updated", "Category updated", {
+      categoryId: category.id,
+      name: category.name,
+      changed: changedFields(before, data),
     });
     return toCategoryDTO(category);
   } catch (e) {
@@ -105,7 +122,19 @@ export async function updateCategory(id: string, input: UpdateCategoryInput): Pr
  */
 export async function deleteCategory(id: string): Promise<void> {
   try {
-    await prisma.category.delete({ where: { id: id } });
+    // Deleting a category uncategorises its tasks (the relation's onDelete:
+    // SetNull). Counting them in the same transaction, just before the delete,
+    // records how many that was. The deleted row comes back, so the entry can
+    // still name the category.
+    const [uncategorisedTasks, deletedCategory] = await prisma.$transaction([
+      prisma.task.count({ where: { categoryId: id } }),
+      prisma.category.delete({ where: { id: id } }),
+    ]);
+    logger.activity.info("category.deleted", "Category deleted", {
+      categoryId: deletedCategory.id,
+      name: deletedCategory.name,
+      uncategorisedTasks,
+    });
   } catch (e) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
       throw new NotFoundError("Category", id);

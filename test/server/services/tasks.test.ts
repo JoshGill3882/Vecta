@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 // Mock the singleton so the service runs against an in-memory fake, never a DB.
-// (The seam all task DB access flows through: @/src/server/db.)
+// (The seam all task DB access flows through: @/src/server/db.) The fake
+// $transaction runs the array of queries it is handed, as the real one does.
 vi.mock("@/src/server/db", () => ({
   prisma: {
+    $transaction: vi.fn((queries: Promise<unknown>[]) => Promise.all(queries)),
     task: {
       findMany: vi.fn(),
       findUniqueOrThrow: vi.fn(),
@@ -15,7 +17,12 @@ vi.mock("@/src/server/db", () => ({
   },
 }));
 
+vi.mock("@/src/server/logger", () => ({
+  logger: { activity: { info: vi.fn() } },
+}));
+
 import { prisma } from "@/src/server/db";
+import { logger } from "@/src/server/logger";
 import {
   getTasks,
   getTaskById,
@@ -25,8 +32,9 @@ import {
 } from "@/src/server/services/tasks";
 import { NotFoundError } from "@/src/server/errors";
 
-// Typed handle on the mocked task delegate.
+// Typed handles on the mocked task delegate and the activity log.
 const task = vi.mocked(prisma.task);
+const activity = vi.mocked(logger.activity.info);
 
 // A raw Prisma row (Date objects, status as a plain string) — what the client returns.
 const taskRow = {
@@ -118,6 +126,7 @@ describe("createTask", () => {
   it("validates at the seam: invalid input throws and never reaches the DB", async () => {
     await expect(createTask({ title: "", status: "open" })).rejects.toThrow();
     expect(task.create).not.toHaveBeenCalled();
+    expect(activity).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid due date at the seam, before the DB", async () => {
@@ -136,7 +145,19 @@ describe("createTask", () => {
     expect(result.id).toBe("t1");
   });
 
-  it("maps a FK violation (P2003) on a bad categoryId to NotFoundError", async () => {
+  it("records the new task as activity, by id and title", async () => {
+    task.create.mockResolvedValue(taskRow as never);
+
+    await createTask({ title: "Write service tests", status: "open" });
+
+    expect(activity).toHaveBeenCalledOnce();
+    expect(activity).toHaveBeenCalledWith("task.created", "Task created", {
+      taskId: "t1",
+      title: "Write service tests",
+    });
+  });
+
+  it("maps a FK violation (P2003) on a bad categoryId to NotFoundError, recording nothing", async () => {
     task.create.mockRejectedValue(prismaError("P2003"));
 
     await expect(
@@ -146,13 +167,21 @@ describe("createTask", () => {
         categoryId: "cjld2cjxh0000qzrmn831i7rn",
       })
     ).rejects.toBeInstanceOf(NotFoundError);
+    expect(activity).not.toHaveBeenCalled();
   });
 });
 
 describe("updateTask", () => {
+  // Each test sets the read as well as the write: a rejected read left by an
+  // earlier test would otherwise fail the transaction before the write mattered.
+  beforeEach(() => {
+    task.findUniqueOrThrow.mockResolvedValue(taskRow as never);
+  });
+
   it("rejects an invalid due date at the seam, before the DB", async () => {
     await expect(updateTask("t1", { dueAt: "2026-09-15T25:00" })).rejects.toThrow();
     expect(task.update).not.toHaveBeenCalled();
+    expect(activity).not.toHaveBeenCalled();
   });
 
   it("updates and returns a DTO", async () => {
@@ -163,18 +192,70 @@ describe("updateTask", () => {
     expect(result.title).toBe("Renamed");
   });
 
-  it("maps a missing task (P2025) to NotFoundError", async () => {
+  it("reads the task and writes it in one transaction", async () => {
+    task.update.mockResolvedValue({ ...taskRow, title: "Renamed" } as never);
+
+    await updateTask("t1", { title: "Renamed" });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(task.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: "t1" } });
+    expect(task.update).toHaveBeenCalledWith({ where: { id: "t1" }, data: { title: "Renamed" } });
+  });
+
+  it("records the fields that changed, and not the ones supplied unchanged", async () => {
+    task.update.mockResolvedValue({ ...taskRow, title: "Renamed", dueAt: "2026-09-15" } as never);
+
+    await updateTask("t1", { title: "Renamed", status: "open", dueAt: "2026-09-15" });
+
+    expect(activity).toHaveBeenCalledOnce();
+    expect(activity).toHaveBeenCalledWith("task.updated", "Task updated", {
+      taskId: "t1",
+      title: "Renamed",
+      changed: ["title", "dueAt"],
+    });
+  });
+
+  it("records a cleared field as changed", async () => {
+    task.findUniqueOrThrow.mockResolvedValue({ ...taskRow, dueAt: "2026-09-15" } as never);
+    task.update.mockResolvedValue(taskRow as never);
+
+    await updateTask("t1", { dueAt: null });
+
+    expect(activity.mock.calls[0][2]).toMatchObject({ changed: ["dueAt"] });
+  });
+
+  it("records an update that changes nothing, with an empty list", async () => {
+    task.update.mockResolvedValue(taskRow as never);
+
+    await updateTask("t1", { title: "Write service tests" });
+
+    expect(activity.mock.calls[0][2]).toMatchObject({ changed: [] });
+  });
+
+  it("names a changed description without recording its text", async () => {
+    task.update.mockResolvedValue({ ...taskRow, description: "Private notes" } as never);
+
+    await updateTask("t1", { description: "Private notes" });
+
+    expect(activity.mock.calls[0][2]).toMatchObject({ changed: ["description"] });
+    expect(JSON.stringify(activity.mock.calls[0])).not.toContain("Private notes");
+  });
+
+  it("maps a missing task (P2025) to NotFoundError, recording nothing", async () => {
+    task.findUniqueOrThrow.mockRejectedValue(prismaError("P2025"));
     task.update.mockRejectedValue(prismaError("P2025"));
 
     await expect(updateTask("missing", { title: "x" })).rejects.toBeInstanceOf(NotFoundError);
+    expect(activity).not.toHaveBeenCalled();
   });
 
-  it("maps a bad categoryId (P2003) to NotFoundError", async () => {
+  it("maps a bad categoryId (P2003) to NotFoundError, recording nothing", async () => {
     task.update.mockRejectedValue(prismaError("P2003"));
 
     await expect(
       updateTask("t1", { categoryId: "cjld2cjxh0000qzrmn831i7rn" })
     ).rejects.toBeInstanceOf(NotFoundError);
+    expect(activity).not.toHaveBeenCalled();
   });
 });
 
@@ -186,9 +267,22 @@ describe("deleteTask", () => {
     expect(task.delete).toHaveBeenCalledWith({ where: { id: "t1" } });
   });
 
+  it("records the deletion with the title the task had", async () => {
+    task.delete.mockResolvedValue(taskRow as never);
+
+    await deleteTask("t1");
+
+    expect(activity).toHaveBeenCalledOnce();
+    expect(activity).toHaveBeenCalledWith("task.deleted", "Task deleted", {
+      taskId: "t1",
+      title: "Write service tests",
+    });
+  });
+
   it("maps a missing row (P2025) to NotFoundError instead of leaking the Prisma error", async () => {
     task.delete.mockRejectedValue(prismaError("P2025"));
 
     await expect(deleteTask("missing")).rejects.toBeInstanceOf(NotFoundError);
+    expect(activity).not.toHaveBeenCalled();
   });
 });

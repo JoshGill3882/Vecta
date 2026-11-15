@@ -44,6 +44,7 @@ describe("logger: stdout", () => {
     expect(lines[0].trimEnd()).not.toContain("\n");
     expect(stdout()[0]).toEqual({
       time: expect.any(String),
+      kind: "operational",
       level,
       event: "test.event",
       message: "Something happened",
@@ -110,6 +111,70 @@ describe("logger: minimum level", () => {
   });
 });
 
+describe("logger: activity", () => {
+  it.each([...LOG_LEVELS])("writes an activity %s entry to stdout and the table", async (level) => {
+    logger.activity[level]("task.deleted", "Task deleted", { taskId: "t1" });
+    await flushLogs();
+
+    const entry = {
+      kind: "activity",
+      level,
+      event: "task.deleted",
+      message: "Task deleted",
+      detail: { taskId: "t1" },
+    };
+    expect(stdout()[0]).toEqual({ time: expect.any(String), ...entry });
+    expect(write).toHaveBeenCalledWith(entry);
+  });
+
+  it("puts kind second on the line, after the time", () => {
+    logger.activity.info("task.created", "Task created");
+    expect(Object.keys(stdout()[0])).toEqual(["time", "kind", "level", "event", "message"]);
+  });
+
+  it.each([...LOG_LEVELS])(
+    "keeps activity at every level when LOG_LEVEL is %s",
+    async (minimum) => {
+      vi.stubEnv("LOG_LEVEL", minimum);
+      for (const level of LOG_LEVELS) logger.activity[level](`task.${level}`, level);
+      await flushLogs();
+
+      expect(stdout().map((l) => l.level)).toEqual([...LOG_LEVELS]);
+      expect(write.mock.calls.map(([entry]) => entry.level)).toEqual([...LOG_LEVELS]);
+    }
+  );
+
+  it("still drops operational entries below the minimum alongside activity", () => {
+    vi.stubEnv("LOG_LEVEL", "error");
+    logger.info("server.started", "Hidden");
+    logger.activity.info("task.created", "Shown");
+
+    expect(stdout().map((l) => l.event)).toEqual(["task.created"]);
+  });
+
+  it("reports a failed activity write as an operational entry, on stdout only", async () => {
+    write.mockRejectedValue(new Error("database is locked"));
+    logger.activity.info("task.created", "Task created");
+    await flushLogs();
+
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(stdout()[1]).toMatchObject({
+      kind: "operational",
+      level: "error",
+      event: "log.write_failed",
+      detail: { entryEvent: "task.created" },
+    });
+  });
+
+  it("redacts activity detail like any other", async () => {
+    logger.activity.warn("auth.sign_in_failed", "Sign-in failed", { password: "hunter2" });
+    await flushLogs();
+
+    expect(stdout()[0].detail).toEqual({ password: REDACTED });
+    expect(write.mock.calls[0][0].detail).toEqual({ password: REDACTED });
+  });
+});
+
 describe("isLogLevel", () => {
   it.each([...LOG_LEVELS])("accepts %s", (level) => {
     expect(isLogLevel(level)).toBe(true);
@@ -162,6 +227,7 @@ describe("logger: the Log table", () => {
     expect(write).toHaveBeenCalledTimes(1);
     expect(stdout()).toHaveLength(2);
     expect(stdout()[1]).toMatchObject({
+      kind: "operational",
       level: "error",
       event: "log.write_failed",
       detail: { entryEvent: "test.event", error: { message: "database is locked" } },

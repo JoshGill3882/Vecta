@@ -40,8 +40,9 @@ Each is absent by default, and absent is a valid configuration.
 
 ### `LOG_LEVEL`
 
-The minimum level an entry needs to be logged, to stdout and to the `Log` table alike.
+The minimum level a server entry needs to be logged, to stdout and to the `Log` table alike.
 `debug` records the most and `error` the least.
+Activity entries — changes to tasks and categories, and sign-ins — are recorded whatever it is set to.
 Unlike the other optional variables it is checked at start-up: a value that is not a level stops the server from starting, so a typo cannot silently change what is logged.
 See [Logging](./logging.md#the-minimum-level).
 
