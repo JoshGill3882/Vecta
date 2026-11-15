@@ -14,6 +14,13 @@ export const LOG_KINDS = ["operational", "activity"] as const;
  */
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
+/** Where an entry came from, as the Logs page groups them.
+ *
+ * Not stored: an entry's source is read from its event name, so every entry
+ * has one, however old it is.
+ */
+export const LOG_SOURCES = ["auth", "tasks", "categories", "system"] as const;
+
 /** An event name's shape: lowercase words joined by dots, such as `task.deleted`.
  *
  * At least two words, so every name says what it is about as well as what
@@ -38,3 +45,31 @@ export const logWriteSchema = z.object({
 
 /** The fields a caller supplies to write a log entry. */
 export type LogWriteInput = z.input<typeof logWriteSchema>;
+
+/** Turns a query-string parameter into a list, whether it was left out, given once or repeated.
+ *
+ * @param value The parameter as Next passes it: undefined, a string, or an array of strings.
+ * @returns The values it holds, as an array.
+ */
+function asList(value: unknown): unknown[] {
+  if (value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/** How many entries one page of the Logs page shows. */
+export const LOG_PAGE_SIZE = 50;
+
+/** Reads the Logs page's filters from its query string.
+ *
+ * Nothing here refuses a request. An unknown level or source clears that
+ * filter, and a page that is not a whole number from 1 opens the first, so a
+ * stale or hand-edited link still shows the log rather than an error.
+ */
+export const logFiltersSchema = z.object({
+  level: z.preprocess(asList, z.array(z.enum(LOG_LEVELS))).catch([]),
+  source: z.preprocess(asList, z.array(z.enum(LOG_SOURCES))).catch([]),
+  page: z.coerce.number().int().min(1).catch(1),
+});
+
+/** The Logs page's filters, once read from the query string. */
+export type LogFilters = z.output<typeof logFiltersSchema>;

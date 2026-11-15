@@ -1,11 +1,14 @@
 import type { LogModel } from "@/generated/prisma-sqlite/models";
-import type { LOG_KINDS, LOG_LEVELS } from "@/src/shared/lib/schemas/logs";
+import type { LOG_KINDS, LOG_LEVELS, LOG_SOURCES } from "@/src/shared/lib/schemas/logs";
 
 /** Which kind of event an entry records: on the server, or by the user. */
 export type LogKind = (typeof LOG_KINDS)[number];
 
 /** How severe an entry is. */
 export type LogLevel = (typeof LOG_LEVELS)[number];
+
+/** Where an entry came from, read from its event name. */
+export type LogSource = (typeof LOG_SOURCES)[number];
 
 /** A log entry as it crosses to the client: plain, serialisable, no Prisma types. */
 export interface LogEntryDTO {
@@ -19,6 +22,8 @@ export interface LogEntryDTO {
   level: LogLevel;
   /** A stable machine-readable name, such as `task.deleted`. */
   event: string;
+  /** Where it came from, read from the event name. */
+  source: LogSource;
   /** A human-readable line describing it. */
   message: string;
   /** Context recorded with the entry, or null when it has none.
@@ -47,6 +52,29 @@ function parseDetail(stored: string | null): Record<string, unknown> | null {
   return { unparsed: stored };
 }
 
+/** The event-name prefix each source covers.
+ *
+ * System has no prefix: it holds every event the others do not claim, so a new
+ * server event lands under System without a change here.
+ */
+export const SOURCE_PREFIXES: Record<Exclude<LogSource, "system">, string> = {
+  auth: "auth.",
+  tasks: "task.",
+  categories: "category.",
+};
+
+/** Works out which source an event belongs to.
+ *
+ * @param event The entry's event name, such as `task.deleted`.
+ * @returns The source whose prefix the name starts with, or `system` when none does.
+ */
+export function sourceOf(event: string): LogSource {
+  for (const [source, prefix] of Object.entries(SOURCE_PREFIXES)) {
+    if (event.startsWith(prefix)) return source as LogSource;
+  }
+  return "system";
+}
+
 /** Converts a log row into the shape a client can receive.
  *
  * @param model The log row as Prisma returns it.
@@ -59,6 +87,7 @@ export function toLogEntryDTO(model: LogModel): LogEntryDTO {
     kind: model.kind as LogKind,
     level: model.level as LogLevel,
     event: model.event,
+    source: sourceOf(model.event),
     message: model.message,
     detail: parseDetail(model.detail),
   };

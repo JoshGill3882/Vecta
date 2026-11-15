@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { LOG_KINDS, LOG_LEVELS, logWriteSchema } from "@/src/shared/lib/schemas/logs";
+import {
+  LOG_KINDS,
+  LOG_LEVELS,
+  LOG_SOURCES,
+  logFiltersSchema,
+  logWriteSchema,
+} from "@/src/shared/lib/schemas/logs";
 
 const validEntry = {
   kind: "activity",
@@ -91,6 +97,75 @@ describe("logWriteSchema", () => {
       ["null", null],
     ])("rejects %s", (_, detail) => {
       expect(logWriteSchema.safeParse({ ...validEntry, detail }).success).toBe(false);
+    });
+  });
+});
+
+describe("logFiltersSchema", () => {
+  it("reads an empty query string as no filters, on the first page", () => {
+    expect(logFiltersSchema.parse({})).toEqual({ level: [], source: [], page: 1 });
+  });
+
+  it("lists the sources in the order the page shows them", () => {
+    expect(LOG_SOURCES).toEqual(["auth", "tasks", "categories", "system"]);
+  });
+
+  it("reads a parameter given once as a list of one", () => {
+    expect(logFiltersSchema.parse({ level: "warn", source: "auth" })).toMatchObject({
+      level: ["warn"],
+      source: ["auth"],
+    });
+  });
+
+  it("reads a repeated parameter as a list, in the order given", () => {
+    const filters = logFiltersSchema.parse({
+      level: ["error", "warn"],
+      source: ["tasks", "system"],
+    });
+
+    expect(filters).toMatchObject({ level: ["error", "warn"], source: ["tasks", "system"] });
+  });
+
+  it.each([...LOG_LEVELS])("accepts the level %s", (level) => {
+    expect(logFiltersSchema.parse({ level }).level).toEqual([level]);
+  });
+
+  it.each([...LOG_SOURCES])("accepts the source %s", (source) => {
+    expect(logFiltersSchema.parse({ source }).source).toEqual([source]);
+  });
+
+  it.each([
+    ["an unknown level", { level: "fatal" }, "level"],
+    ["a level in the wrong case", { level: "WARN" }, "level"],
+    ["one unknown level among known ones", { level: ["warn", "fatal"] }, "level"],
+    ["an unknown source", { source: "settings" }, "source"],
+    ["an empty source", { source: "" }, "source"],
+  ] as const)("clears the filter for %s rather than refusing", (_, query, field) => {
+    const result = logFiltersSchema.safeParse(query);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.[field]).toEqual([]);
+  });
+
+  it.each([
+    ["2", 2],
+    ["40", 40],
+  ])("reads the page %j as %d", (page, expected) => {
+    expect(logFiltersSchema.parse({ page }).page).toBe(expected);
+  });
+
+  it.each(["0", "-1", "1.5", "two", "", ["2", "3"]])(
+    "opens the first page for %j rather than refusing",
+    (page) => {
+      expect(logFiltersSchema.parse({ page }).page).toBe(1);
+    }
+  );
+
+  it("keeps the other filters when the page is unreadable", () => {
+    expect(logFiltersSchema.parse({ level: "error", page: "x" })).toEqual({
+      level: ["error"],
+      source: [],
+      page: 1,
     });
   });
 });

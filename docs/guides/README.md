@@ -7,16 +7,16 @@ These are task-oriented ("how do I protect a route?", "how do I add a model?") a
 > Prisma requires a **driver adapter** on the client.
 > See [`AGENTS.md`](../../AGENTS.md).
 
-| Guide                                                          | What it covers                                                                      |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [Authentication & sessions](./authentication.md)               | Protecting pages and Server Actions, the session helper API, the login/logout flow  |
-| [Database & service layer](./database.md)                      | The Prisma singleton, the `src/server/services` seam, how to add DB-backed features |
-| [Dual-provider DB & migrations](./dual-provider-migrations.md) | Running on SQLite or Postgres from one schema, the migration workflow               |
-| [Environment & boot-time contract](./environment.md)           | Required env vars and how the app validates them on startup                         |
-| [Input validation](./validation.md)                            | Zod schemas for tasks/categories, the shared `validate()` helper, structured errors |
-| [Logging](./logging.md)                                        | The shared logger, operational and activity entries, the minimum level, redaction   |
-| [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation       |
-| [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming   |
-| [Rate limiting](./rate-limiting.md)                            | The in-memory attempt limiter behind sign-in, and applying it elsewhere             |
-| [Comments & documentation](./comments.md)                      | What earns a comment, the doc-block shape, which JSDoc tags earn their place        |
-| [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                       |
+| Guide                                                          | What it covers                                                                                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [Authentication & sessions](./authentication.md)               | Protecting pages and Server Actions, the session helper API, the login/logout flow                                  |
+| [Database & service layer](./database.md)                      | The Prisma singleton, the `src/server/services` seam, how to add DB-backed features                                 |
+| [Dual-provider DB & migrations](./dual-provider-migrations.md) | Running on SQLite or Postgres from one schema, the migration workflow                                               |
+| [Environment & boot-time contract](./environment.md)           | Required env vars and how the app validates them on startup                                                         |
+| [Input validation](./validation.md)                            | Zod schemas for tasks, categories, log entries and the Logs page's URL, the shared `validate()` helper              |
+| [Logging](./logging.md)                                        | The shared logger, operational and activity entries, the minimum level, redaction, reading entries on the Logs page |
+| [Server Actions](./server-actions.md)                          | The task/category mutation actions, the `ActionResult` contract, revalidation                                       |
+| [UI & frontend](./ui.md)                                       | shadcn/ui, where components live, adding a page, the app shell, dark-only theming, the task list and the Logs page  |
+| [Rate limiting](./rate-limiting.md)                            | The in-memory attempt limiter behind sign-in, and applying it elsewhere                                             |
+| [Comments & documentation](./comments.md)                      | What earns a comment, the doc-block shape, which JSDoc tags earn their place                                        |
+| [Testing patterns](./testing.md)                               | How the suite mocks Next/iron-session and resets module state                                                       |

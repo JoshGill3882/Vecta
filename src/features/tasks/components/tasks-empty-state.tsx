@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { EmptyState } from "@/src/shared/components/empty-state";
 import { Button } from "@/src/shared/components/ui/button";
 
 /** DOM id of the empty state's heading.
@@ -63,7 +64,7 @@ export function describeNoMatches(query: string, filters: NoMatchFilters) {
  * and only one of them carries the focus landmark.
  */
 export function TasksEmptyState({
-  icon: Icon,
+  icon,
   heading,
   children,
   action,
@@ -75,19 +76,19 @@ export function TasksEmptyState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <div className="text-text-2 px-5 py-[60px] text-center">
-      <div className="bg-surface-2 text-text-3 mx-auto mb-4 flex size-14 items-center justify-center rounded-[14px] border">
-        <Icon className="size-[26px]" />
-      </div>
-      <h2 id={tasksEmptyStateHeadingId} tabIndex={-1} className="mb-1.5 text-[17px]">
-        {heading}
-      </h2>
-      <p className="text-text-3 text-sm">{children}</p>
-      {action && (
-        <Button variant="outline" onClick={action.onClick} className="mt-4">
-          {action.label}
-        </Button>
-      )}
-    </div>
+    <EmptyState
+      icon={icon}
+      heading={heading}
+      headingId={tasksEmptyStateHeadingId}
+      action={
+        action && (
+          <Button variant="outline" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        )
+      }
+    >
+      {children}
+    </EmptyState>
   );
 }

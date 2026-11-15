@@ -1,7 +1,7 @@
 import type { TaskDTO } from "@/src/shared/lib/dtos/tasks";
 
 /** The locale every due is written in. Explicit rather than the runtime's
- * default, so the server's first render and the browser's use the same works -
+ * default, so the server's first render and the browser's write the same words -
  * the same reason `task-sort.ts` passes one to `localeCompare`. */
 const LOCALE = "en-GB";
 
@@ -11,10 +11,10 @@ const DAY_MS = 86_400_000;
 /** A calendar day as a day count.
  *
  * Through `Date.UTC`, so a daylight-saving change between two dates cannot make
- * a 23 or 25 hours long and knock a difference off by one.
+ * a day 23 or 25 hours long and knock a difference off by one.
  *
  * @param year Four-digit year.
- * @param month Month, 1-12
+ * @param month Month, 1-12.
  * @param day Day of the month.
  * @returns Days since the unix epoch.
  */

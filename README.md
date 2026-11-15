@@ -256,7 +256,9 @@ Deleting a category records how many tasks it left uncategorised.
 Signing in, a failed sign-in and signing out are each recorded; a failed one records only why it failed, never what was typed.
 
 `LOG_LEVEL` sets how many of the server's own entries are logged; activity is recorded whatever it is set to.
-The same entries are also written to the app's own database, but stdout is the one to rely on: it keeps working when the database does not.
+The same entries are also written to the app's own database, where the **Logs** page, opened from the button beside Log out, lists them newest first under a heading per day.
+It filters them by level and by source, and opening an entry shows everything recorded with it.
+stdout is still the one to rely on: it keeps working when the database does not.
 Passwords, the session secret, session and cookie values, and the credentials in a database URL are removed from every entry before it is written anywhere.
 
 ---

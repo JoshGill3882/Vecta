@@ -20,6 +20,7 @@ app/                      Routes, and nothing else. Next.js App Router.
   (app)/                  Authenticated area — route group, not a URL segment
     tasks/                page.tsx, loading.tsx
     categories/           page.tsx, loading.tsx
+    logs/                 page.tsx, loading.tsx
   api/health/             Liveness endpoint for Docker and reverse proxies
   login/                  Session entry
 src/
@@ -30,6 +31,7 @@ src/
         list/ toolbar/ dialog/
       hooks/  lib/
     categories/           Components only; too small to need slices
+    logs/                 The Logs page: components, and lib for its wording, dates and addresses
     auth/                 Login and logout actions, the form
   shared/                 Used by more than one feature, or owned by none
     components/
@@ -206,6 +208,7 @@ Deleting a category sets its tasks' `categoryId` to null rather than deleting th
 It has no relation to `Task` or `Category`, by design.
 An entry has to outlive the row it describes — "task deleted" is exactly the entry a cascade would remove — so any ids it refers to are kept in `detail`.
 Only `src/server/services/logs.ts` reads or writes it, and the lint enforces that.
+An entry's source (Auth, Tasks, Categories or System) is not stored: it is read from the event name's prefix, so every entry has one however old it is.
 
 Two constraints on this schema come from supporting both engines.
 Column types are restricted to `String`, `Int`, `DateTime` and `Boolean`: no `Json`/`Jsonb`, no native UUID.
@@ -281,7 +284,11 @@ Every entry's detail passes through `src/server/log-detail.ts`, which hides sens
 The logger is hand-written rather than pino.
 Pino redacts values at paths listed ahead of time, where this needs a key such as `password` hidden wherever it appears and credentials stripped from any URL, so that part would be custom either way; what remained for pino, level filtering and writing JSON lines, is a few lines here.
 
-→ [Logging](./docs/guides/logging.md)
+The table is read by the Logs page, at `/logs`, through the log service's `listLogPage`.
+It pages and filters on the server, with the filters held in the URL, because the table grows with everything the app does.
+The task list is the opposite case: small enough to fetch whole and narrow in the browser.
+
+→ [Logging](./docs/guides/logging.md) · [The Logs page](./docs/guides/ui.md#the-logs-page)
 
 ---
 

@@ -12,9 +12,9 @@ import {
 } from "@/src/shared/components/ui/dropdown-menu";
 import { cn } from "@/src/shared/lib/utils";
 import { DUE_OPTIONS } from "@/src/features/tasks/components/toolbar/due-options";
-import { FilterTrigger } from "@/src/features/tasks/components/toolbar/filter-trigger";
+import { FilterTrigger } from "@/src/shared/components/filter-trigger";
 import { DUE_BUCKETS, type DueBucket } from "@/src/features/tasks/lib/due-date";
-import { toggled } from "@/src/features/tasks/lib/selection";
+import { toggled } from "@/src/shared/lib/selection";
 
 /** Narrows the task list to the tasks in any of the selected due-date options.
  *

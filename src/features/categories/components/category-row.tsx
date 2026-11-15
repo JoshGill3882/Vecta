@@ -93,7 +93,7 @@ export function CategoryRow({
             <AlertDialogDescription>
               {taskCount === 0
                 ? "No tasks use this category."
-                : `${taskCount} ${taskCount === 1 ? "task" : "tasks"} won't be deleted — they'll just become uncategorised.`}{" "}
+                : `${taskCount} ${taskCount === 1 ? "task" : "tasks"} won't be deleted - they'll just become uncategorised.`}{" "}
               This can&apos;t be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

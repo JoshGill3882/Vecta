@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { ZodError } from "zod";
 import { prisma } from "@/src/server/db";
-import { DEFAULT_LOG_LIST, MAX_LOG_LIST, listLogs, writeLog } from "@/src/server/services/logs";
+import {
+  DEFAULT_LOG_LIST,
+  MAX_LOG_LIST,
+  listLogPage,
+  listLogs,
+  writeLog,
+} from "@/src/server/services/logs";
+import { LOG_PAGE_SIZE, type LogFilters } from "@/src/shared/lib/schemas/logs";
 
 const ENTRY = {
   kind: "activity",
@@ -195,5 +202,170 @@ describe("listLogs (integration)", () => {
       { unparsed: "{oops" },
       { id: "t1" },
     ]);
+  });
+});
+
+describe("listLogPage (integration)", () => {
+  /** Builds the page's filters, with none on and the first page unless a test says otherwise.
+   *
+   * @param change The filters or page that differ from that.
+   * @returns The full set of filters.
+   */
+  function filters(change: Partial<LogFilters> = {}): LogFilters {
+    return { level: [], source: [], page: 1, ...change };
+  }
+
+  /** One entry from each source, at the levels the filter tests pick between. */
+  const MIXED = [
+    { event: "auth.sign_in_failed", level: "warn" },
+    { event: "auth.signed_in", level: "info" },
+    { event: "task.created", level: "info" },
+    { event: "task.deleted", level: "warn" },
+    { event: "category.deleted", level: "info" },
+    { event: "server.started", level: "info" },
+    { event: "action.unexpected_error", level: "error" },
+    { event: "log.write_failed", level: "error" },
+  ];
+
+  it("describes an empty log", async () => {
+    expect(await listLogPage(filters())).toEqual({
+      entries: [],
+      page: 1,
+      pageCount: 1,
+      matching: 0,
+      total: 0,
+      oldest: null,
+      levelCounts: { debug: 0, info: 0, warn: 0, error: 0 },
+      sourceCounts: { auth: 0, tasks: 0, categories: 0, system: 0 },
+    });
+  });
+
+  it(`shows ${LOG_PAGE_SIZE} entries a page, newest first`, async () => {
+    await seed(Array.from({ length: LOG_PAGE_SIZE * 2 + 20 }, () => ({})));
+
+    const first = await listLogPage(filters());
+    expect(first.entries).toHaveLength(LOG_PAGE_SIZE);
+    expect(first.entries[0].event).toBe(`test.entry_${LOG_PAGE_SIZE * 2 + 19}`);
+    expect(first).toMatchObject({ page: 1, pageCount: 3, matching: 120, total: 120 });
+
+    const last = await listLogPage(filters({ page: 3 }));
+    expect(last.entries.map((e) => e.event)).toEqual(
+      Array.from({ length: 20 }, (_, i) => `test.entry_${19 - i}`)
+    );
+  });
+
+  it("follows on from one page to the next without a gap or a repeat", async () => {
+    await seed(Array.from({ length: LOG_PAGE_SIZE + 10 }, () => ({})));
+
+    const ids = [
+      ...(await listLogPage(filters({ page: 1 }))).entries,
+      ...(await listLogPage(filters({ page: 2 }))).entries,
+    ].map((e) => e.id);
+    expect(new Set(ids).size).toBe(LOG_PAGE_SIZE + 10);
+  });
+
+  it("splits entries written in the same millisecond across pages the same way every time", async () => {
+    const at = new Date("2026-11-14T09:00:00.000Z");
+    const ids = Array.from(
+      { length: LOG_PAGE_SIZE + 1 },
+      (_, i) => `id${String(i).padStart(3, "0")}`
+    );
+    await prisma.log.createMany({
+      data: ids.map((id) => ({
+        id,
+        createdAt: at,
+        kind: "operational",
+        level: "info",
+        event: "test.tied",
+        message: id,
+      })),
+    });
+
+    const second = await listLogPage(filters({ page: 2 }));
+    expect(second.entries.map((e) => e.id)).toEqual(["id000"]);
+  });
+
+  it("shows the last page for a page past it", async () => {
+    await seed(Array.from({ length: LOG_PAGE_SIZE + 5 }, () => ({})));
+
+    const result = await listLogPage(filters({ page: 9 }));
+    expect(result).toMatchObject({ page: 2, pageCount: 2 });
+    expect(result.entries).toHaveLength(5);
+  });
+
+  it("shows the first page, empty, when nothing matches whatever page is asked for", async () => {
+    await seed([{ level: "info" }]);
+
+    const result = await listLogPage(filters({ level: ["error"], page: 4 }));
+    expect(result).toMatchObject({ entries: [], page: 1, pageCount: 1, matching: 0, total: 1 });
+  });
+
+  it("filters by several levels at once", async () => {
+    await seed(MIXED);
+
+    const result = await listLogPage(filters({ level: ["warn", "error"] }));
+    expect(result.entries.map((e) => e.level).sort()).toEqual(["error", "error", "warn", "warn"]);
+    expect(result.matching).toBe(4);
+  });
+
+  it.each([
+    ["auth", ["auth.signed_in", "auth.sign_in_failed"]],
+    ["tasks", ["task.deleted", "task.created"]],
+    ["categories", ["category.deleted"]],
+    ["system", ["log.write_failed", "action.unexpected_error", "server.started"]],
+  ] as const)("filters by the source %s", async (source, events) => {
+    await seed(MIXED);
+
+    const result = await listLogPage(filters({ source: [source] }));
+    expect(result.entries.map((e) => e.event)).toEqual(events);
+    expect(result.entries.every((e) => e.source === source)).toBe(true);
+  });
+
+  it("filters by several sources at once", async () => {
+    await seed(MIXED);
+
+    const result = await listLogPage(filters({ source: ["categories", "system"] }));
+    expect(result.matching).toBe(4);
+  });
+
+  it("narrows by level and source together", async () => {
+    await seed(MIXED);
+
+    const result = await listLogPage(filters({ level: ["warn"], source: ["auth", "system"] }));
+    expect(result.entries.map((e) => e.event)).toEqual(["auth.sign_in_failed"]);
+  });
+
+  it("does not count an event that only looks like a source's under that source", async () => {
+    await seed([{ event: "tasks.created" }, { event: "server.task_created" }]);
+
+    const result = await listLogPage(filters({ source: ["tasks"] }));
+    expect(result.matching).toBe(0);
+    expect(result.sourceCounts).toMatchObject({ tasks: 0, system: 2 });
+  });
+
+  it("counts every entry by level and by source, whatever the filters", async () => {
+    await seed(MIXED);
+
+    const result = await listLogPage(filters({ level: ["error"], source: ["system"] }));
+    expect(result).toMatchObject({
+      matching: 2,
+      total: 8,
+      levelCounts: { debug: 0, info: 4, warn: 2, error: 2 },
+      sourceCounts: { auth: 2, tasks: 2, categories: 1, system: 3 },
+    });
+  });
+
+  it("gives the time of the oldest entry, whatever the filters", async () => {
+    await seed([{ level: "info" }, { level: "error" }]);
+
+    const result = await listLogPage(filters({ level: ["error"] }));
+    expect(result.oldest).toBe("2026-11-14T09:00:00.000Z");
+  });
+
+  it("gives each entry its source", async () => {
+    await seed([{ event: "category.created" }, { event: "auth.signed_out" }]);
+
+    const { entries } = await listLogPage(filters());
+    expect(entries.map((e) => e.source)).toEqual(["auth", "categories"]);
   });
 });

@@ -14,7 +14,7 @@ import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { DUE_OPTIONS } from "@/src/features/tasks/components/toolbar/due-options";
 import { DUE_BUCKETS, type DueBucket } from "@/src/features/tasks/lib/due-date";
 import { cn } from "@/src/shared/lib/utils";
-import { toggled } from "@/src/features/tasks/lib/selection";
+import { toggled } from "@/src/shared/lib/selection";
 import { TASK_SORTS, type TaskSort } from "@/src/features/tasks/lib/task-sort";
 
 /** `null` is the Uncategorised option, matching how a task stores its absence. */

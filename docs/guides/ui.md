@@ -6,7 +6,7 @@ Task-oriented — for what is planned next see [`ROADMAP.md`](../../ROADMAP.md).
 
 The interface is built to match a design published as an artifact:
 <https://claude.ai/artifact/AHgAaTj88FQ7JagDMm29CG>.
-It covers the login screen, the app shell, the task list with its toolbar, filters and cards, the create and edit modal, and the categories view.
+It covers the login screen, the app shell, the task list with its toolbar, filters and cards, the create and edit modal, the categories view, and the Logs page.
 Build new UI to match it, and change the design first where the built UI needs to diverge from it.
 
 ## Toolkit
@@ -38,6 +38,7 @@ app/(app)/
   layout.tsx            top bar + <main> + <Toaster/>
   tasks/page.tsx        Tasks route (/tasks) — thin: requireSession(), fetch, <TasksView/>
   categories/page.tsx   Categories route (/categories)
+  logs/page.tsx         Logs route (/logs), which also reads its filters from the URL
 ```
 
 `/` redirects to `/tasks` (`next.config.ts`).
@@ -48,6 +49,7 @@ The top bar (`src/shared/components/shell/top-bar.tsx`) is a Server Component.
 Its logout is a plain `<form action={logoutAction}>` — no client JS needed.
 The Tasks/Categories tabs (`src/shared/components/shell/nav-tabs.tsx`) are the one client island in the shell:
 they read `usePathname()` to highlight the active route, and collapse to a segmented row on narrow viewports.
+The Logs button beside Log out lives in the same file and is marked as the current page the same way, so it reads the same on a phone and a desktop.
 
 ## How to add a page
 
@@ -265,6 +267,42 @@ Several things here are easy to get wrong.
 
 Do **not** debounce the input.
 Filtering an array already in memory is sub-millisecond; a debounce would only add latency the user can feel.
+
+## The Logs page
+
+The Logs page (`src/features/logs/`) is narrowed **on the server, with its filters in the URL**: the opposite of the task list, for the opposite reason.
+The log grows with everything the app does, so the page reads one page of 50 entries through `listLogPage` rather than fetching the table.
+A filter therefore has to reach the server, and the URL is how it gets there.
+
+- **The URL is the only copy of the filters.**
+  `app/(app)/logs/page.tsx` reads them with `logFiltersSchema`, and `LogFilterBar` changes them by navigating to a new address with `router.push(href, { scroll: false })`.
+  A refresh, the back button and a shared link all keep them, and there is no client state to fall out of step with the page.
+- **Addresses come from `logsHref`** (`src/features/logs/lib/log-links.ts`).
+  It writes choices in the menus' order and leaves out an empty filter and the first page, so the same filters always make the same address and an unfiltered log is plain `/logs`.
+  A filter change goes back to the first page, since a later page of the new filters may not exist.
+- **A tick shows before the server answers.**
+  The menus render an optimistic copy of the filters (`useOptimistic`), set inside the same `startTransition` as the navigation, so React drops it once the new page arrives.
+  A second pick made in the meantime builds on the first.
+- **Each choice's count ignores the filters**, so a menu shows what ticking a choice would add rather than what is left.
+- **Both Clear filters controls send focus to the Level button before they go.**
+  The one beside the count and the empty state's link each disappear once the filters are cleared.
+  Left alone, the next Tab would carry on from wherever the control was, which for the empty state is the first entry of the list it brought back.
+  Both call `focusFilters()` in `log-filter-bar.tsx`, which finds the Level button by a data attribute rather than an id: the menu names itself by its button's id, and an id of ours would replace it.
+- **Paging is links.**
+  Newer and Older (`log-pager.tsx`) are `<Link>`s to the neighbouring page's address, so they behave like any other link.
+  At either end the missing one is a disabled button, since a link cannot be disabled.
+  The range and the links follow the page the server shows, which is the last for a page number past it.
+- **Times and day headings are the server's.**
+  The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
+  `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
+- **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
+  The filter bar is the page's only client component.
+- **The level badges keep AA contrast on an open row as well as a closed one.**
+  The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
+  The ratios are pinned in `level-badge-contrast.test.ts`.
+- **Two empty states**, through the shared `EmptyState`: an empty log says new entries will appear as they happen, and filters that match nothing say so, with a Clear filters link to `/logs`.
+- **Everything from an entry is shown as text.**
+  Entries hold titles and names the user typed, so no message or detail value is rendered as HTML or Markdown.
 
 ## Remembering a preference
 

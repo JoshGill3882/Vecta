@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/src/shared/components/ui/dropdown-menu";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
-import { FilterTrigger } from "@/src/features/tasks/components/toolbar/filter-trigger";
-import { toggled } from "@/src/features/tasks/lib/selection";
+import { FilterTrigger } from "@/src/shared/components/filter-trigger";
+import { toggled } from "@/src/shared/lib/selection";
 
 /** `null` is the Uncategorised option, matching how a task stores its absence. */
 type Selection = ReadonlySet<string | null>;
