@@ -1,13 +1,18 @@
 import type { LogPage } from "@/src/server/services/logs";
 import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
+import { LogList } from "./log-list";
+
 /** Logs view - the content of the `/logs` route.
  *
  * `page.tsx` stays thin (auth + data); this owns the presentation. The heading
  * counts every entry, whatever the filters, and dates the oldest in the
- * server's time zone, as the task list's due dates are.
+ * server's time zone, as the task list's due dates are. The list's day
+ * headings and times are read in the same zone, from one moment taken here.
  */
 export function LogsView({ page }: { page: LogPage }) {
+  const now = new Date();
+
   return (
     <section>
       <header className="mb-[18px]">
@@ -22,6 +27,8 @@ export function LogsView({ page }: { page: LogPage }) {
           )}
         </p>
       </header>
+
+      {page.entries.length > 0 && <LogList entries={page.entries} now={now} />}
     </section>
   );
 }
