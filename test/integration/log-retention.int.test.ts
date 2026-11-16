@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { prisma } from "@/src/server/db";
-import { ageOutLogs, retentionCutoff } from "@/src/server/log-retention";
+import { ageOutLogs, getRetentionStatus, retentionCutoff } from "@/src/server/log-retention";
 import { flushLogs } from "@/src/server/logger";
-import { deleteLogsBefore } from "@/src/server/services/logs";
+import { countLogsBefore, deleteLogsBefore } from "@/src/server/services/logs";
 import { getSettings, setLogRetention } from "@/src/server/services/settings";
 
 const NOW = new Date("2026-11-16T03:00:00.000Z");
@@ -86,6 +86,96 @@ describe("deleteLogsBefore (integration)", () => {
     expect(await deleteLogsBefore(cutoff)).toBe(1);
     expect(await deleteLogsBefore(cutoff)).toBe(0);
     expect(await prisma.log.count()).toBe(1);
+  });
+});
+
+describe("countLogsBefore (integration)", () => {
+  it("counts the entries written before the cut-off, not one written at it", async () => {
+    await seedAged([3 * DAY, 2 * DAY + 1, 2 * DAY, 0]);
+
+    expect(await countLogsBefore(new Date(NOW.getTime() - 2 * DAY))).toBe(2);
+  });
+
+  it("counts what the delete then removes, and deletes nothing itself", async () => {
+    await seedAged([5 * DAY, 4 * DAY, DAY]);
+    const cutoff = new Date(NOW.getTime() - 2 * DAY);
+
+    const counted = await countLogsBefore(cutoff);
+
+    expect(await prisma.log.count()).toBe(3);
+    expect(await deleteLogsBefore(cutoff)).toBe(counted);
+  });
+
+  it("counts nothing in an empty log", async () => {
+    expect(await countLogsBefore(NOW)).toBe(0);
+  });
+});
+
+describe("getRetentionStatus (integration)", () => {
+  const original = process.env.TZ;
+  afterEach(() => {
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
+  });
+
+  it("shows the default retention, its cut-off and what is due, before anything is saved", async () => {
+    process.env.TZ = "UTC";
+    await seedAged([100 * DAY, 91 * DAY, 90 * DAY, DAY]);
+
+    expect(await getRetentionStatus(NOW)).toEqual({
+      logRetentionDays: 90,
+      lastAgeOut: null,
+      cutoff: "2026-08-18T03:00:00.000Z",
+      dueForRemoval: 2,
+    });
+  });
+
+  it("counts against the chosen retention", async () => {
+    process.env.TZ = "UTC";
+    await setLogRetention(7);
+    await seedAged([30 * DAY, 8 * DAY, 6 * DAY]);
+
+    const status = await getRetentionStatus(NOW);
+
+    expect(status.cutoff).toBe("2026-11-09T03:00:00.000Z");
+    expect(status.dueForRemoval).toBe(2);
+  });
+
+  it("has no cut-off and nothing due when entries are kept forever", async () => {
+    await setLogRetention(0);
+    await seedAged([3000 * DAY]);
+
+    const status = await getRetentionStatus(NOW);
+
+    expect(status.cutoff).toBeNull();
+    expect(status.dueForRemoval).toBe(0);
+  });
+
+  it("shows the last run", async () => {
+    await ageOutLogs(NOW);
+
+    expect((await getRetentionStatus(NOW)).lastAgeOut).toEqual({
+      ranAt: "2026-11-16T03:00:00.000Z",
+      removed: 0,
+    });
+  });
+
+  it("deletes nothing and records no run of its own", async () => {
+    await seedAged([100 * DAY]);
+
+    await getRetentionStatus(NOW);
+
+    expect(await prisma.log.count()).toBe(1);
+    expect((await getSettings()).lastAgeOut).toBeNull();
+  });
+
+  it("has nothing due once a run has removed it", async () => {
+    process.env.TZ = "UTC";
+    await seedAged([100 * DAY, DAY]);
+
+    await ageOutLogs(NOW);
+
+    expect((await getRetentionStatus(NOW)).dueForRemoval).toBe(0);
   });
 });
 
