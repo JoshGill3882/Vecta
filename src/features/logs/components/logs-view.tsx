@@ -2,6 +2,7 @@ import { Funnel, ScrollText } from "lucide-react";
 
 import type { LogPage } from "@/src/server/services/logs";
 import { EmptyState } from "@/src/shared/components/empty-state";
+import type { RetentionStatusDTO } from "@/src/shared/lib/dtos/settings";
 import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
@@ -9,15 +10,25 @@ import { ClearFiltersLink } from "./clear-filters-link";
 import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
 import { LogPager } from "./log-pager";
+import { RetentionCard } from "./retention-card";
 
 /** Logs view - the content of the `/logs` route.
  *
  * `page.tsx` stays thin (auth + data); this owns the presentation. The heading
  * counts every entry, whatever the filters, and dates the oldest in the
  * server's time zone, as the task list's due dates are. The list's day
- * headings and times are read in the same zone, from one moment taken here.
+ * headings and times are read in the same zone, from one moment taken here,
+ * and so is the Retention card's last run.
  */
-export function LogsView({ page, filters }: { page: LogPage; filters: LogFilters }) {
+export function LogsView({
+  page,
+  filters,
+  retention,
+}: {
+  page: LogPage;
+  filters: LogFilters;
+  retention: RetentionStatusDTO;
+}) {
   const now = new Date();
 
   return (
@@ -34,6 +45,8 @@ export function LogsView({ page, filters }: { page: LogPage; filters: LogFilters
           )}
         </p>
       </header>
+
+      <RetentionCard status={retention} now={now} />
 
       <LogFilterBar page={page} filters={filters} />
 
