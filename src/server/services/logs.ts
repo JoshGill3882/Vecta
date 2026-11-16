@@ -191,3 +191,17 @@ export async function listLogPage(filters: LogFilters): Promise<LogPage> {
     sourceCounts: { auth, tasks, categories, system: total - auth - tasks - categories },
   };
 }
+
+/** Deletes every entry written before a moment.
+ *
+ * One delete on a range of `createdAt`, which the table's index serves.
+ * Running it again deletes nothing more, so two servers sharing the database
+ * can both run it.
+ *
+ * @param cutoff The moment to delete before. An entry written at it is kept.
+ * @returns How many entries were deleted.
+ */
+export async function deleteLogsBefore(cutoff: Date): Promise<number> {
+  const { count } = await prisma.log.deleteMany({ where: { createdAt: { lt: cutoff } } });
+  return count;
+}
