@@ -5,7 +5,8 @@ import { flushLogs, isLogLevel, logger } from "@/src/server/logger";
 import { LOG_LEVELS } from "@/src/shared/lib/schemas/logs";
 
 // What the server does once as it starts, before handling any request: refuse
-// to start on invalid configuration, saying why, and record that it started.
+// to start on invalid configuration, saying why, record that it started, and
+// start ageing old entries out of the log.
 
 /** The environment variables start-up reads. */
 type Environment = Record<string, string | undefined>;
@@ -44,7 +45,24 @@ function providerOf(url: string | undefined): string {
   }
 }
 
-/** Checks the configuration and records that the server started.
+/** Starts ageing old entries out of the log, without letting a failure stop the server.
+ *
+ * Loaded here rather than at the top: it opens the database, which throws when
+ * `DATABASE_URL` is missing, and that must cost the age-out alone, never the
+ * start.
+ */
+async function startRetention(): Promise<void> {
+  try {
+    const { startAgeOutSchedule } = await import("@/src/server/log-retention");
+    startAgeOutSchedule();
+  } catch (error) {
+    logger.error("log.age_out_failed", "Could not start ageing old entries out of the log", {
+      error,
+    });
+  }
+}
+
+/** Checks the configuration, records that the server started, and starts the log's retention.
  *
  * @param env The environment to start with.
  * @throws Error naming the problem when the configuration is invalid, after
@@ -66,4 +84,5 @@ export async function startUp(env: Environment): Promise<void> {
     revision: env.VECTA_BUILD_REVISION || "unknown",
     provider: providerOf(env.DATABASE_URL),
   });
+  await startRetention();
 }
