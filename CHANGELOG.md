@@ -23,6 +23,10 @@ Internal refactors that change nothing observable are not listed.
 - **A Logs page**, opened from the new button beside Log out, lists those entries newest first under a heading for each day, 50 to a page, with Newer and Older to move between pages.
   Each entry shows its time, its level, where it came from (Auth, Tasks, Categories or System) and a one-line message naming the task or category it was about, and opening it shows everything recorded with it, with an error's stack in a block of its own.
   Level and Source filters each take several choices and show how many entries each one holds, and they are kept in the page's address, so a refresh, the back button or a shared link keeps them
+- **Old log entries clear themselves.** A **Retention** card at the top of the Logs page chooses how long entries are kept: 7 days, 30 days, 90 days, 1 year or Forever, with 90 days to start with.
+  Older entries are deleted when the app starts and every night at 03:00 server time, with nothing to schedule outside the container.
+  The card says how many entries the next night will remove, with **Remove now** to do it straight away, and when the last run was and how many it removed
+- **`TZ`** sets the server's time zone, such as `Europe/London`, so the nightly clear-out and the times on the Logs page follow your own clock rather than UTC
 
 ### Changed
 

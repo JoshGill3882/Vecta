@@ -31,7 +31,7 @@ src/
         list/ toolbar/ dialog/
       hooks/  lib/
     categories/           Components only; too small to need slices
-    logs/                 The Logs page: components, and lib for its wording, dates and addresses
+    logs/                 The Logs page: actions, components, and lib for its wording, dates and addresses
     auth/                 Login and logout actions, the form
   shared/                 Used by more than one feature, or owned by none
     components/
@@ -46,6 +46,7 @@ src/
     services/             The data-access seam — all DB access, and signing in and out
     errors.ts             Domain error types
     logger.ts             The shared logger, to stdout and the Log table
+    log-retention.ts      Ages old entries out of the Log table, at start-up and nightly
     rate-limit.ts         The in-memory sign-in attempt limiter
     start-up.ts           Configuration checks and the start-up entry
 prisma/
@@ -100,7 +101,7 @@ flowchart LR
         RSC[Server Component] --> S1[Service]
     end
     subgraph Write
-        SA[Server Action] --> V[Zod schema] --> S2[Service] --> R[revalidate tags]
+        SA[Server Action] --> V[Zod schema] --> S2[Service] --> R[revalidate]
     end
     S1 --> P[(Prisma)]
     S2 --> P
@@ -109,7 +110,7 @@ flowchart LR
 **Reads** happen in Server Components, which call a service directly and render the result.
 There is no client-side fetching layer and no API surface in between.
 
-**Writes** go through a Server Action, which validates its input, calls a service, and revalidates the affected cache tags.
+**Writes** go through a Server Action, which validates its input, calls a service, and refreshes what the write made stale: the affected cache tags, or the page itself where it caches nothing.
 
 ### Why a service layer
 
@@ -199,6 +200,13 @@ erDiagram
         string   message
         string   detail "nullable, JSON"
     }
+
+    Settings {
+        int      id PK "always 1"
+        int      logRetentionDays "0 for forever"
+        datetime logAgeOutRanAt "nullable"
+        int      logAgeOutRemoved "nullable"
+    }
 ```
 
 Deleting a category sets its tasks' `categoryId` to null rather than deleting them — losing a category should never lose work.
@@ -210,10 +218,15 @@ An entry has to outlive the row it describes — "task deleted" is exactly the e
 Only `src/server/services/logs.ts` reads or writes it, and the lint enforces that.
 An entry's source (Auth, Tasks, Categories or System) is not stored: it is read from the event name's prefix, so every entry has one however old it is.
 
+`Settings` holds the settings chosen in the app rather than in the environment, so a change needs no restart and survives one: how long the log keeps its entries, and what the last age-out run did.
+It is one row of typed columns rather than a key-value table, so each setting has its own type and default in the schema.
+The row is created the first time anything is saved, and a read before then returns the defaults.
+Only `src/server/services/settings.ts` reads or writes it.
+
 Two constraints on this schema come from supporting both engines.
 Column types are restricted to `String`, `Int`, `DateTime` and `Boolean`: no `Json`/`Jsonb`, no native UUID.
 So `detail` is JSON serialised into a `String`, written and parsed in the log service alone.
-And `status`, `kind` and `level` are `String` columns holding a fixed set of values rather than database enums, with each union enforced in TypeScript and Zod instead.
+And `status`, `kind`, `level` and `logRetentionDays` are columns holding a fixed set of values rather than database enums, with each set enforced in TypeScript and Zod instead.
 Both are the price of one schema compiling to both providers.
 
 ---
@@ -252,6 +265,9 @@ actions call `revalidateTasks()` / `revalidateCategories()` after a successful m
 Note that `revalidateCategories()` also invalidates the tasks tag.
 Task cards render their category's name and colour, so a renamed category leaves stale task views behind unless both are dropped together.
 
+The Logs page caches nothing, since the table it reads is written to all the time the app runs.
+Its actions have no tag to clear, so they call `refresh()` from `next/cache`, which re-renders the page they were called from.
+
 ---
 
 ## Configuration
@@ -261,6 +277,9 @@ The app **refuses to boot** without valid configuration rather than failing at t
 `DATABASE_URL` is checked separately at module load in `src/server/db.ts`.
 
 Failing at boot means a misconfigured container crash-loops visibly instead of serving a broken app.
+
+Once the configuration has passed, start-up also starts ageing old entries out of the log.
+That is the one part of start-up allowed to fail without stopping the server: a failure is logged and the app serves as normal, since old entries waiting a night longer harms nothing.
 
 → [Environment & boot-time contract](./docs/guides/environment.md) · [configuration reference](./README.md#configuration)
 
@@ -288,7 +307,12 @@ The table is read by the Logs page, at `/logs`, through the log service's `listL
 It pages and filters on the server, with the filters held in the URL, because the table grows with everything the app does.
 The task list is the opposite case: small enough to fetch whole and narrow in the browser.
 
-→ [Logging](./docs/guides/logging.md) · [The Logs page](./docs/guides/ui.md#the-logs-page)
+The table does not keep everything forever.
+Entries older than a chosen age, 90 days unless changed on the Logs page, are deleted once at start-up and then every night at 03:00 server time, by a timer inside the server rather than cron or a second container, so a self-host stays one container.
+The deletion is one query that can be repeated safely, so two instances sharing a database can each run their own timer without harm.
+A run records what it did in `Settings`, never in the log, so retention never adds to the log it trims.
+
+→ [Logging](./docs/guides/logging.md) · [Retention](./docs/guides/logging.md#retention) · [The Logs page](./docs/guides/ui.md#the-logs-page)
 
 ---
 

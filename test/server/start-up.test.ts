@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // The real logger runs; only its table write is stood in for, so these tests
 // read exactly what reaches stdout.
 vi.mock("@/src/server/services/logs", () => ({ writeLog: vi.fn(async () => ({})) }));
+// The nightly timer is tested on its own; here it is enough to see it started.
+vi.mock("@/src/server/log-retention", () => ({ startAgeOutSchedule: vi.fn() }));
 
+import { startAgeOutSchedule } from "@/src/server/log-retention";
 import { flushLogs } from "@/src/server/logger";
 import { writeLog } from "@/src/server/services/logs";
 import { configurationProblem, startUp } from "@/src/server/start-up";
@@ -30,6 +33,7 @@ beforeEach(() => {
     return true;
   });
   vi.mocked(writeLog).mockClear();
+  vi.mocked(startAgeOutSchedule).mockClear();
 });
 
 afterEach(async () => {
@@ -142,6 +146,39 @@ describe("startUp", () => {
     await flushLogs();
 
     expect(stdout().map((l) => l.event)).toEqual(["server.started"]);
+  });
+
+  it("starts ageing old entries out of the log, once the start-up entry is written", async () => {
+    let eventsWhenStarted: unknown[] = [];
+    vi.mocked(startAgeOutSchedule).mockImplementationOnce(() => {
+      eventsWhenStarted = stdout().map((l) => l.event);
+    });
+
+    await startUp(VALID);
+
+    expect(startAgeOutSchedule).toHaveBeenCalledOnce();
+    expect(eventsWhenStarted).toEqual(["server.started"]);
+  });
+
+  it("still starts when the age-out cannot, logging why", async () => {
+    vi.mocked(startAgeOutSchedule).mockImplementationOnce(() => {
+      throw new Error("DATABASE_URL is not set.");
+    });
+
+    await expect(startUp(VALID)).resolves.toBeUndefined();
+
+    expect(stdout()[1]).toMatchObject({
+      kind: "operational",
+      level: "error",
+      event: "log.age_out_failed",
+      detail: { error: expect.objectContaining({ message: "DATABASE_URL is not set." }) },
+    });
+  });
+
+  it("does not start ageing entries out when the configuration is invalid", async () => {
+    await expect(startUp({ ...VALID, ADMIN_PASSWORD: undefined })).rejects.toThrow();
+
+    expect(startAgeOutSchedule).not.toHaveBeenCalled();
   });
 
   it.each([

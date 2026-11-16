@@ -7,7 +7,7 @@ For how one schema targets both SQLite and Postgres, see [Dual-provider DB & mig
 ## Key files
 
 - `src/server/db.ts` — the singleton Prisma client
-- `src/server/services/*.ts` — the service seam (`tasks.ts`, `categories.ts`, `logs.ts`, and `auth.ts`, which signs in and out)
+- `src/server/services/*.ts` — the service seam (`tasks.ts`, `categories.ts`, `logs.ts`, `settings.ts`, and `auth.ts`, which signs in and out)
 - `src/server/changed-fields.ts` — `changedFields()`, which an update's activity entry uses to name what changed
 - `src/server/errors.ts` — domain error types (`NotFoundError`, `ConflictError`)
 - `src/shared/lib/dtos/*.ts` — DTO shapes + `toXDTO()` mappers (client-safe, no Prisma client)
@@ -33,7 +33,7 @@ Keep DB access on the server:
 
 - Call services from Server Components, Server Actions, or route handlers.
 - Do not import `db.ts` or a service into a `"use client"` file.
-- `src/shared/lib/session.ts`, `src/server/logger.ts` and the `logs` and `auth` services use the `server-only` package to enforce this at build time;
+- `src/shared/lib/session.ts`, `src/server/logger.ts`, `src/server/log-retention.ts` and the `logs`, `settings` and `auth` services use the `server-only` package to enforce this at build time;
   apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint if the Prisma client or the `prisma` singleton is imported anywhere outside `src/server/**`** (tests and the seed script are exempt).
 Model _types_ from `generated/prisma/models` stay allowed — that's how DTOs map rows.
@@ -96,6 +96,8 @@ import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
 writeLog(input: LogWriteInput): Promise<LogEntryDTO>             // throws ZodError, TypeError, or the DB's error
 listLogs(options?: { kind?; level?; limit? }): Promise<LogEntryDTO[]> // newest first
 listLogPage(filters: LogFilters): Promise<LogPage>               // one page of the Logs page, with its counts
+deleteLogsBefore(cutoff: Date): Promise<number>                  // how many entries were deleted
+countLogsBefore(cutoff: Date): Promise<number>                   // how many deleteLogsBefore would delete
 ```
 
 It is the **only** code that touches `prisma.log`, and a second ESLint rule (`no-restricted-syntax`) fails the lint anywhere else, tests excepted.
@@ -118,6 +120,34 @@ The counts are read before the entries, so a page past the last can be read as t
 
 A source is not a column.
 It is read from the event's prefix by `SOURCE_PREFIXES` in `src/shared/lib/dtos/logs.ts` (`auth.`, `task.` and `category.`, with every other event under System), so every entry has one however old it is, and the source filter matches on the same prefixes.
+
+`deleteLogsBefore` and `countLogsBefore` are what retention uses: one deletes, and the other counts, every entry written strictly before a moment, as one query on the `createdAt` index.
+An entry written exactly at the moment is kept and not counted, so the count the Logs page shows is what Remove now then removes.
+Deleting again deletes nothing more, so two servers sharing a database can both run it.
+Neither records activity: what a run removed is recorded in the settings instead. See [Logging](./logging.md#retention).
+
+### The settings service
+
+`src/server/services/settings.ts` reads and writes the `Settings` table, which holds the app-wide settings that are chosen in the app rather than in the environment, so changing one needs no restart and survives one:
+
+```ts
+import type { SettingsDTO } from "@/src/shared/lib/dtos/settings";
+
+getSettings(): Promise<SettingsDTO>                              // the defaults for anything never saved
+setLogRetention(days: LogRetentionDays): Promise<SettingsDTO>    // throws ZodError for a value not offered
+recordAgeOut(ranAt: Date, removed: number): Promise<void>        // the last age-out run
+```
+
+**The table holds one row, with `id` 1**, as typed columns rather than a key and a value, so every setting has its own type and default in the schema.
+The row is created by an `upsert` the first time anything is saved, and a read with no row yet returns the defaults, so a fresh database needs no seeding.
+
+**Each write sets only its own columns.**
+A change of retention and an age-out run finishing at the same moment therefore both stick, where writing the whole row would let one undo the other.
+
+**The retention is checked both ways.**
+`setLogRetention` parses the value against `logRetentionDaysSchema` before writing, and `toSettingsDTO` reads a stored value that is not one of the choices as the default, 90 days, so a row edited by hand cannot stop the Logs page from showing.
+
+Like the log service, it records no activity: a change of retention writes no log entry, since the Logs page always shows the current choice.
 
 ## DTOs
 

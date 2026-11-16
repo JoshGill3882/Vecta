@@ -2,14 +2,30 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type { LogPage } from "@/src/server/services/logs";
+import type { RetentionStatusDTO } from "@/src/shared/lib/dtos/settings";
 import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { LogsView } from "@/src/features/logs/components/logs-view";
 
 // The filter bar navigates with the router, and there is no Next router in a
 // test. The bar's own behaviour is covered in log-filter-bar.test.tsx.
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+
+// The Retention card's controls call these; they reach the database, and the
+// card's own behaviour is covered in retention-card.test.tsx.
+vi.mock("@/src/features/logs/actions", () => ({
+  setLogRetentionAction: vi.fn(),
+  removeOldLogsAction: vi.fn(),
+}));
+
+/** The default retention, with nothing due to go and no run yet. */
+const RETENTION: RetentionStatusDTO = {
+  logRetentionDays: 90,
+  lastAgeOut: null,
+  cutoff: "2026-08-18T03:00:00.000Z",
+  dueForRemoval: 0,
+};
 
 /** No filters, on the first page. */
 const NO_FILTERS: LogFilters = { level: [], source: [], page: 1 };
@@ -35,7 +51,7 @@ function logPage(change: Partial<LogPage> = {}): LogPage {
 
 describe("LogsView", () => {
   it("is headed Logs", () => {
-    render(<LogsView filters={NO_FILTERS} page={logPage()} />);
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Logs" })).toBeDefined();
   });
@@ -43,6 +59,7 @@ describe("LogsView", () => {
   it("counts every entry and dates the oldest", () => {
     render(
       <LogsView
+        retention={RETENTION}
         filters={NO_FILTERS}
         page={logPage({ total: 1204, oldest: "2026-08-17T12:00:00.000Z" })}
       />
@@ -59,6 +76,7 @@ describe("LogsView", () => {
   it("counts the whole log, not what the filters match", () => {
     render(
       <LogsView
+        retention={RETENTION}
         filters={NO_FILTERS}
         page={logPage({ total: 40, matching: 3, oldest: "2026-11-01T12:00:00.000Z" })}
       />
@@ -68,10 +86,43 @@ describe("LogsView", () => {
   });
 
   it("names no date when the log is empty", () => {
-    render(<LogsView filters={NO_FILTERS} page={logPage()} />);
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
 
     expect(screen.getByText("0 entries")).toBeDefined();
     expect(screen.queryByText(/since/)).toBeNull();
+  });
+
+  it("shows the Retention card between the header and the filters", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
+
+    const heading = screen.getByRole("heading", { level: 1, name: "Logs" });
+    const card = screen.getByRole("region", { name: "Retention" });
+    const filters = screen.getByRole("button", { name: /Level/ });
+    expect(heading.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(card.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows the retention it is given", () => {
+    render(
+      <LogsView
+        retention={{ ...RETENTION, logRetentionDays: 30, dueForRemoval: 12 }}
+        filters={NO_FILTERS}
+        page={logPage()}
+      />
+    );
+
+    expect(screen.getByRole("radio", { name: "30 days" }).getAttribute("aria-checked")).toBe(
+      "true"
+    );
+    expect(screen.getByText("12 entries")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Remove now" })).toBeDefined();
+  });
+
+  it("shows the Retention card on an empty log too", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
+
+    expect(screen.getByRole("heading", { level: 2, name: "No log entries" })).toBeDefined();
+    expect(screen.getByRole("region", { name: "Retention" })).toBeDefined();
   });
 
   it("lists the page's entries under their days", () => {
@@ -88,6 +139,7 @@ describe("LogsView", () => {
     };
     render(
       <LogsView
+        retention={RETENTION}
         filters={NO_FILTERS}
         page={logPage({ entries: [entry], total: 1, matching: 1, oldest: createdAt })}
       />
@@ -98,19 +150,29 @@ describe("LogsView", () => {
   });
 
   it("offers the pager once the matching entries fill more than one page", () => {
-    render(<LogsView filters={NO_FILTERS} page={logPage({ pageCount: 3, matching: 120 })} />);
+    render(
+      <LogsView
+        retention={RETENTION}
+        filters={NO_FILTERS}
+        page={logPage({ pageCount: 3, matching: 120 })}
+      />
+    );
 
     expect(screen.getByRole("navigation", { name: "Log pages" })).toBeDefined();
   });
 
   it("offers no pager while everything fits on one page", () => {
-    render(<LogsView filters={NO_FILTERS} page={logPage({ matching: 50 })} />);
+    render(
+      <LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage({ matching: 50 })} />
+    );
 
     expect(screen.queryByRole("navigation", { name: "Log pages" })).toBeNull();
   });
 
   it("says new entries will appear while the log is empty, offering nothing to clear", () => {
-    const { container } = render(<LogsView filters={NO_FILTERS} page={logPage()} />);
+    const { container } = render(
+      <LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />
+    );
 
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByRole("heading", { level: 2, name: "No log entries" })).toBeDefined();
@@ -121,6 +183,7 @@ describe("LogsView", () => {
   it("says nothing matches when the filters match no entries, with a link that clears them", () => {
     const { container } = render(
       <LogsView
+        retention={RETENTION}
         filters={{ level: ["error"], source: ["auth"], page: 1 }}
         page={logPage({ total: 40, matching: 0, oldest: "2026-11-01T12:00:00.000Z" })}
       />
@@ -136,6 +199,7 @@ describe("LogsView", () => {
     const createdAt = new Date().toISOString();
     render(
       <LogsView
+        retention={RETENTION}
         filters={NO_FILTERS}
         page={logPage({
           entries: [

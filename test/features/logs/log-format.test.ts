@@ -8,6 +8,7 @@ import {
   logDate,
   logTime,
   pageRange,
+  runTime,
 } from "@/src/features/logs/lib/log-format";
 
 describe("formatCount", () => {
@@ -67,6 +68,33 @@ describe("logTime", () => {
   it("writes hours, minutes and seconds on a 24-hour clock", () => {
     expect(logTime(new Date(2026, 10, 14, 9, 5, 7).toISOString())).toBe("09:05:07");
     expect(logTime(new Date(2026, 10, 14, 21, 30, 0).toISOString())).toBe("21:30:00");
+  });
+});
+
+describe("runTime", () => {
+  // Built from local time, so the clock reads the same in any time zone.
+  const now = new Date(2026, 10, 16, 17, 0);
+
+  it("writes the time and today, for a run earlier today", () => {
+    expect(runTime(new Date(2026, 10, 16, 3, 0).toISOString(), now)).toBe("03:00 today");
+  });
+
+  it("writes the time and yesterday, for a run the day before", () => {
+    expect(runTime(new Date(2026, 10, 15, 23, 30).toISOString(), now)).toBe("23:30 yesterday");
+  });
+
+  it("counts a run before midnight as yesterday, just after it", () => {
+    expect(runTime(new Date(2026, 10, 15, 3, 0).toISOString(), new Date(2026, 10, 16, 0, 30))).toBe(
+      "03:00 yesterday"
+    );
+  });
+
+  it("writes the time and the date, for an older run", () => {
+    expect(runTime(new Date(2026, 10, 14, 3, 0).toISOString(), now)).toBe("03:00 on 14 Nov 2026");
+  });
+
+  it("writes the year, for a run in another year", () => {
+    expect(runTime(new Date(2025, 10, 14, 3, 5).toISOString(), now)).toBe("03:05 on 14 Nov 2025");
   });
 });
 

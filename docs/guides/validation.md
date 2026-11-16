@@ -1,6 +1,6 @@
 # Input validation
 
-All task and category input, every log entry, and the Logs page's query string are validated with [Zod](https://zod.dev/) schemas at the server boundary.
+All task and category input, every log entry, the log's retention, and the Logs page's query string are validated with [Zod](https://zod.dev/) schemas at the server boundary.
 A schema is the single source of truth for both **run-time validation** and the **TypeScript type** of an input — `z.infer` derives the type from the schema, so the two can never drift apart.
 
 **Key files:**
@@ -8,6 +8,7 @@ A schema is the single source of truth for both **run-time validation** and the 
 - `src/shared/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
 - `src/shared/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
 - `src/shared/lib/schemas/logs.ts` — `logWriteSchema` and `logFiltersSchema`, with the `LOG_KINDS`, `LOG_LEVELS` and `LOG_SOURCES` lists and `LOG_PAGE_SIZE`
+- `src/shared/lib/schemas/settings.ts` — `logRetentionDaysSchema`, with the `LOG_RETENTION_DAYS` list and `DEFAULT_LOG_RETENTION_DAYS`
 - `src/shared/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
 
 > **Zod 4.** Some APIs differ from older tutorials:
@@ -37,6 +38,10 @@ Its `kind` and `level` come from `LOG_KINDS` and `LOG_LEVELS`, the same `as cons
 `LogKind` and `LogLevel` in `src/shared/lib/dtos/logs.ts` are derived from those lists rather than retyped.
 `LOG_LEVELS` runs from least to most severe, and the order is part of the contract: a minimum level keeps every level at or after its position.
 An `event` must be lowercase words joined by dots (`task.deleted`, `action.unexpected_error`), at least two of them, and `detail` must be an object, never a bare value.
+
+The log's retention is one value, not an object: `logRetentionDaysSchema` is `z.literal(LOG_RETENTION_DAYS)`, the days 7, 30, 90 and 365, and 0 for forever.
+A list of literals rather than a number with a range, because only those choices are offered, and `LogRetentionDays` is derived from the same list.
+It takes numbers only, refusing the text `"30"` rather than coercing it, since a coerced empty string would read as 0 and quietly mean forever.
 
 Two conventions worth knowing:
 
@@ -113,6 +118,10 @@ An unknown level or source then clears that filter, and a page that is not a who
 The page calls `parse` rather than `validate()`, since there is no error to report.
 Writing an address from the filters is the other direction, done by `logsHref` in `src/features/logs/lib/log-links.ts`, and its tests read every address it writes back through this schema.
 
+`logRetentionDaysSchema` has both audiences and one more.
+`setLogRetentionAction` validates the card's choice with `validate()` and refuses anything else as `Invalid input`; `setLogRetention` parses it again at the service.
+The third is the database: `toSettingsDTO` reads the stored value through `safeParse`, and a value that is not one of the choices reads as the default, so a row edited by hand cannot stop the Logs page from showing.
+
 ## What validation does _not_ cover
 
 - **Uniqueness** (e.g. a category `name` must be unique) is a database concern, not a shape concern — enforce it in the service layer and translate the resulting DB error, since a schema can't know what other rows exist.
@@ -130,6 +139,7 @@ The schemas and helper are unit-tested with Vitest:
 - `test/shared/lib/schemas/logs.test.ts` — the same pattern for `logWriteSchema`:
   every kind and level, the order of the levels, the event-name shape, and `detail` as an object only.
   `logFiltersSchema` has its own cases: a parameter left out, given once or repeated, and each way a value can be wrong.
+- `test/shared/lib/schemas/settings.test.ts` — every retention choice accepted, and the near-misses refused: other numbers, fractions, and the choices as text.
 - `test/shared/lib/validation.test.ts` — the `validate()` contract:
   typed data on success, field-keyed errors on failure, absent keys for valid fields, and `formErrors` for cross-field `.refine()` issues.
 
