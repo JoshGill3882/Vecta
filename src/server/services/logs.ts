@@ -205,3 +205,12 @@ export async function deleteLogsBefore(cutoff: Date): Promise<number> {
   const { count } = await prisma.log.deleteMany({ where: { createdAt: { lt: cutoff } } });
   return count;
 }
+
+/** Counts the entries written before a moment, which `deleteLogsBefore` would delete.
+ *
+ * @param cutoff The moment to count before. An entry written at it is not counted.
+ * @returns How many entries there are.
+ */
+export function countLogsBefore(cutoff: Date): Promise<number> {
+  return prisma.log.count({ where: { createdAt: { lt: cutoff } } });
+}

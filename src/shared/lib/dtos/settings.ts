@@ -24,6 +24,14 @@ export interface SettingsDTO {
   lastAgeOut: AgeOutRunDTO | null;
 }
 
+/** What the Logs page shows about retention: the choice, what is due to go, and the last run. */
+export interface RetentionStatusDTO extends SettingsDTO {
+  /** ISO 8601 timestamp an entry must be older than to be removed, or null when kept forever. */
+  cutoff: string | null;
+  /** How many entries are older than the cut-off; 0 when kept forever. */
+  dueForRemoval: number;
+}
+
 /** Converts the settings row into the shape a client can receive.
  *
  * A stored retention that is not one of the choices reads as the default, so

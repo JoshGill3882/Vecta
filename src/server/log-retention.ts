@@ -1,9 +1,9 @@
 import "server-only";
 
 import { logger } from "@/src/server/logger";
-import { deleteLogsBefore } from "@/src/server/services/logs";
+import { countLogsBefore, deleteLogsBefore } from "@/src/server/services/logs";
 import { getSettings, recordAgeOut } from "@/src/server/services/settings";
-import type { LogRetentionDays } from "@/src/shared/lib/dtos/settings";
+import type { LogRetentionDays, RetentionStatusDTO } from "@/src/shared/lib/dtos/settings";
 
 // Log retention - ages old entries out of the log, keeping it to the length
 // chosen on the Logs page. A run records what it did in the settings, never in
@@ -55,6 +55,22 @@ export async function ageOutLogs(now: Date = new Date()): Promise<number> {
   const removed = cutoff === null ? 0 : await deleteLogsBefore(cutoff);
   await recordAgeOut(now, removed);
   return removed;
+}
+
+/** Reads what the Logs page shows about retention.
+ *
+ * The count is of what a run would remove if it happened now, which is what
+ * Remove now removes; the nightly run counts back from its own moment, so it
+ * may take a few more.
+ *
+ * @param now The moment the cut-off is counted back from.
+ * @returns The chosen retention and last run, with the cut-off and how many entries are older than it.
+ */
+export async function getRetentionStatus(now: Date = new Date()): Promise<RetentionStatusDTO> {
+  const settings = await getSettings();
+  const cutoff = retentionCutoff(settings.logRetentionDays, now);
+  const dueForRemoval = cutoff === null ? 0 : await countLogsBefore(cutoff);
+  return { ...settings, cutoff: cutoff?.toISOString() ?? null, dueForRemoval };
 }
 
 /** Works out when the next nightly run is due.
