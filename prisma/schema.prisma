@@ -58,3 +58,14 @@ model Log {
   @@index([createdAt])        // Retention deletes and the newest-first listing
   @@index([kind, createdAt])  // One kind, newest first
 }
+
+// Settings that apply to the whole app, kept in the database so a change needs
+// no restart and survives one. There is only ever one row, with id 1. It is
+// created the first time anything is saved to it, and until then every setting
+// reads as its default.
+model Settings {
+  id               Int       @id
+  logRetentionDays Int       @default(90) // 7, 30, 90 or 365, or 0 to keep entries forever; checked by the settings service
+  logAgeOutRanAt   DateTime? // When old entries were last aged out of the log
+  logAgeOutRemoved Int?      // How many entries that run removed
+}
