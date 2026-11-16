@@ -106,6 +106,20 @@ function dayLabel(date: Date, now: Date): string {
   });
 }
 
+/** Writes when something ran, such as `03:00 today`, `03:00 yesterday` or `03:00 on 14 Nov 2026`.
+ *
+ * @param iso When it ran, as an ISO 8601 timestamp.
+ * @param now The moment "today" is taken from.
+ * @returns The time on a 24-hour clock and the day, in the time zone of whatever renders it.
+ */
+export function runTime(iso: string, now: Date): string {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+  const day = dayLabel(at, now);
+  if (day === "Today" || day === "Yesterday") return `${time} ${day.toLowerCase()}`;
+  return `${time} on ${logDate(iso)}`;
+}
+
 /** Groups a page of entries under a heading per day.
  *
  * Only neighbouring entries share a group, so the entries must arrive in time
