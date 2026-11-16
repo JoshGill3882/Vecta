@@ -273,6 +273,7 @@ Filtering an array already in memory is sub-millisecond; a debounce would only a
 The Logs page (`src/features/logs/`) is narrowed **on the server, with its filters in the URL**: the opposite of the task list, for the opposite reason.
 The log grows with everything the app does, so the page reads one page of 50 entries through `listLogPage` rather than fetching the table.
 A filter therefore has to reach the server, and the URL is how it gets there.
+Between the header and the filters sits the Retention card, which chooses how long entries are kept; see [The Retention card](#the-retention-card).
 
 - **The URL is the only copy of the filters.**
   `app/(app)/logs/page.tsx` reads them with `logFiltersSchema`, and `LogFilterBar` changes them by navigating to a new address with `router.push(href, { scroll: false })`.
@@ -296,13 +297,38 @@ A filter therefore has to reach the server, and the URL is how it gets there.
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar is the page's only client component.
+  The filter bar and the Retention card's two controls are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
 - **Two empty states**, through the shared `EmptyState`: an empty log says new entries will appear as they happen, and filters that match nothing say so, with a Clear filters link to `/logs`.
 - **Everything from an entry is shown as text.**
   Entries hold titles and names the user typed, so no message or detail value is rendered as HTML or Markdown.
+
+### The Retention card
+
+The card (`retention-card.tsx`) chooses how long the log keeps its entries, says what the next night's run will remove, and says what the last run did.
+How retention itself works is in [Logging](./logging.md#retention).
+
+- **It is a Server Component with two client controls.**
+  The choice (`retention-choice.tsx`) and Remove now (`remove-now-button.tsx`) are the only parts that need the browser.
+  Every sentence on the card is rendered on the server, so its dates are in the server's time zone like the rest of the page, and the last run's "today" is measured from the same moment as the list's day headings.
+- **What it shows is read alongside the page.**
+  `app/(app)/logs/page.tsx` reads `getRetentionStatus()` beside `listLogPage` with `Promise.all`, so the two reads run together.
+  The status holds the choice, the cut-off, how many entries are older than it, and the last run.
+- **The choice is a Radix `RadioGroup`**, styled as a segmented control.
+  It is one tab stop, landing on the saved choice, and the arrow keys move between the choices and pick each one, wrapping at either end, as a group of radio buttons does.
+- **A pick shows straight away and saves in the background.**
+  It is held in `useOptimistic`, set inside the same `startTransition` as the save, so the choice moves at once and goes back by itself if the save fails.
+  The save goes through `useServerAction`, which confirms it in a toast or shows why it failed.
+- **The line under the choice says one of three things.**
+  With Forever chosen, entries are kept until they are purged.
+  With nothing older than the cut-off, it says so, naming the date.
+  Otherwise it counts what will go tonight, the count in orange, with Remove now beside it; the count is what Remove now then removes.
+- **Remove now cannot run twice at once.**
+  It is disabled, reading "Removing…", from the press until the action returns.
+- **The last run is shown once there has been one**, as "Last run removed 12 entries at 03:00 today", from `runTime` in `log-format.ts`, which says today or yesterday rather than a date where it can.
+- **The page re-renders after either action** without a cache tag to clear: the Logs page caches nothing, so the actions call `refresh()` from `next/cache`, and `useServerAction` refreshes the router as it does for every action.
 
 ## Remembering a preference
 

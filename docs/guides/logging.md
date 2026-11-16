@@ -3,16 +3,18 @@
 The server records what happens through one shared logger.
 Every entry goes to **stdout** as a JSON line and to the **`Log` table**, and the two are deliberately not equal:
 stdout always works, while the table is best-effort.
-This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read, and how to test code that logs.
+This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read, how old ones age out of the table, and how to test code that logs.
 
 ## Key files
 
 - `src/server/logger.ts` — `logger`, `flushLogs()` and `isLogLevel()`
 - `src/server/log-detail.ts` — `prepareDetail()`, which hides secrets and makes detail safe to serialise
 - `src/server/changed-fields.ts` — `changedFields()`, which names the fields an update changes
-- `src/server/start-up.ts` — the start-up checks and the `server.started` entry
+- `src/server/start-up.ts` — the start-up checks, the `server.started` entry, and the start of the nightly age-out
+- `src/server/log-retention.ts` — `ageOutLogs()`, `getRetentionStatus()` and the nightly timer
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
-- `src/features/logs/` — the Logs page, which lists the table's entries; see [UI & frontend](./ui.md#the-logs-page)
+- `src/server/services/settings.ts` — the settings service, which holds the chosen retention and the last run; see [Database & service layer](./database.md#the-settings-service)
+- `src/features/logs/` — the Logs page, which lists the table's entries and holds the Retention card; see [UI & frontend](./ui.md#the-logs-page)
 
 ## Two kinds of entry
 
@@ -48,21 +50,22 @@ It is server-only (`import "server-only"`), so it cannot be imported into a Clie
 
 ### Events the app logs
 
-| Event                     | Kind        | Level   | When                                                                                      |
-| ------------------------- | ----------- | ------- | ----------------------------------------------------------------------------------------- |
-| `server.started`          | operational | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider`                   |
-| `server.config_invalid`   | operational | `error` | Start-up found a configuration problem, just before it refuses to start                   |
-| `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                |
-| `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                    |
-| `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                   |
-| `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed         |
-| `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                       |
-| `category.created`        | activity    | `info`  | A category was created. `detail` holds `categoryId` and `name`                            |
-| `category.updated`        | activity    | `info`  | A category was updated. `detail` adds `changed`                                           |
-| `category.deleted`        | activity    | `info`  | A category was deleted. `detail` adds `uncategorisedTasks`, how many tasks lost it        |
-| `auth.signed_in`          | activity    | `info`  | A sign-in succeeded. No detail                                                            |
-| `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else |
-| `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                            |
+| Event                     | Kind        | Level   | When                                                                                                        |
+| ------------------------- | ----------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `server.started`          | operational | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider`                                     |
+| `server.config_invalid`   | operational | `error` | Start-up found a configuration problem, just before it refuses to start                                     |
+| `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                                  |
+| `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                                      |
+| `log.age_out_failed`      | operational | `error` | A start-up or nightly age-out run failed, or the nightly runs could not be started. `detail.error` says why |
+| `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                                     |
+| `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed                           |
+| `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                                         |
+| `category.created`        | activity    | `info`  | A category was created. `detail` holds `categoryId` and `name`                                              |
+| `category.updated`        | activity    | `info`  | A category was updated. `detail` adds `changed`                                                             |
+| `category.deleted`        | activity    | `info`  | A category was deleted. `detail` adds `uncategorisedTasks`, how many tasks lost it                          |
+| `auth.signed_in`          | activity    | `info`  | A sign-in succeeded. No detail                                                                              |
+| `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else                   |
+| `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                                              |
 
 The Logs page files each event under a source by its prefix: `auth.` is Auth, `task.` is Tasks, `category.` is Categories, and anything else is System.
 A new event with one of those prefixes is filed with its entity, and any other lands under System with no change needed.
@@ -119,6 +122,39 @@ An event with no wording there, or whose detail lacks what its wording needs, sh
 
 Opening a row shows its timestamp, id, kind, event and every detail field, so whatever an entry records is visible on the page.
 That is one more reason the rules under [What is never logged](#what-is-never-logged) matter: what reaches the table is what a reader of the page sees.
+
+## Retention
+
+Entries older than a chosen age are deleted from the table on their own, so it does not grow with everything the app has ever done.
+stdout is not touched: whatever keeps the container's output decides how long that lasts.
+
+**The choice** is 7 days, 30 days, 90 days, 1 year or Forever, made on the Logs page's Retention card, and defaults to 90 days.
+It is held in the `Settings` table rather than an environment variable, so changing it needs no restart and survives one.
+`logRetentionDaysSchema` in `src/shared/lib/schemas/settings.ts` lists the choices, with Forever stored as `0`, and the value is checked both when it is set and when it is read.
+
+**A run** is `ageOutLogs()` in `src/server/log-retention.ts`.
+It counts the cut-off back from the moment it runs in days of the calendar rather than spans of 24 hours, so the cut-off keeps its time of day across a change of the clocks, and deletes every entry written before it in one `deleteMany`; an entry written exactly at the cut-off is kept.
+With Forever chosen it deletes nothing.
+Either way it records when it ran and how many entries it removed in the `Settings` row, which is what the card's "Last run removed 12 entries at 03:00 today" reads.
+
+**Runs happen on a timer inside the server**, so nothing outside it, such as cron or a second container, is needed:
+
+- **Once at start-up**, straight after the `server.started` entry, so a night the server was down for is caught up.
+  It is not waited for, so start-up carries on while it runs.
+- **Every night at 03:00, server time**, which is the time zone of the Node process: in the image that is UTC, unless `TZ` is set; see [Environment & boot-time contract](./environment.md#tz).
+  Each night's time is worked out afresh, so a change of the clocks does not move the run off 03:00.
+- **On demand**, from the card's Remove now, through `removeOldLogsAction`.
+
+**Retention never adds to the log it trims.**
+A successful run writes no entry, and neither does a change of the chosen age, which the card always shows.
+A failed start-up or nightly run logs an operational `log.age_out_failed` with the error, and the next night tries again; a failure never stops the timer, the server or a request.
+A failed Remove now is reported like any other failed Server Action, as `action.unexpected_error`, with a toast on the page.
+
+A change of the chosen age takes effect at the next run.
+Nothing is deleted when it is changed, unless Remove now is pressed.
+
+The deletion can be repeated safely, so two server instances sharing a database can each run their own timer.
+The timer is `unref()`'d, so it never holds the process open by itself, and is kept on `globalThis`, so the dev server reloading the module on an edit does not set a second one.
 
 ## The minimum level
 
@@ -180,6 +216,10 @@ vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
 `test/server/logger.test.ts`, `test/server/services/auth.test.ts`, `test/shared/lib/result.test.ts` and `test/server/start-up.test.ts` follow this pattern.
 `test/server/logger-no-database.test.ts` makes the log service impossible to load, as a missing `DATABASE_URL` does, and `test/integration/logger.int.test.ts` writes to the real table.
 
+**The nightly timer** is tested in `test/server/log-retention.test.ts` with fake timers (`vi.useFakeTimers({ now })`), stepping through nights with `vi.advanceTimersByTimeAsync`.
+Call `stopAgeOutSchedule()` after each test, since the timer lives on `globalThis` and would otherwise carry into the next.
+The deletion itself runs against the real table in `test/integration/log-retention.int.test.ts`.
+
 **In an integration test**, read entries back with `activityEntries()` from `test/support/activity.ts`.
 It waits for pending writes, then returns the activity entries sorted by event name, since entries written in the same millisecond have no reliable order.
 
@@ -190,3 +230,4 @@ It waits for pending writes, then returns the activity entries sorted by event n
   Of the server-side errors behind them, a failed Server Action reaches the logger through `toActionError()`; a page that fails while rendering on the server is reported by Next itself, as plain text on stderr, not through the logger.
 - **An entry written just before the process exits may not reach the table.** stdout has it either way. Call `flushLogs()` first where the table matters, as start-up does.
 - **`changedFields()` compares with `===`.** That suits every column it is used on today, which hold strings or null; a `Date` or other object would always count as changed.
+- **Setting `TZ` moves the nightly run**, along with the dates and times on the Logs page, since both are read on the server's clock.

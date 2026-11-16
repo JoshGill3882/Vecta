@@ -1,13 +1,14 @@
 # Server Actions
 
-Every task and category mutation runs through a **Server Action** — the server-side entry point a form (or client component) calls to change data.
+Every change to the app's data — tasks, categories, and how long the log keeps its entries — runs through a **Server Action** — the server-side entry point a form (or client component) calls to change data.
 The actions are a thin, uniform wrapper around the [service layer](./database.md):
-they authenticate, [validate](./validation.md) untrusted input, call one service function, invalidate the caches that write made stale, and return a **structured result** the caller can branch on without ever catching an exception.
+they authenticate, [validate](./validation.md) untrusted input, call one service function, refresh what that write made stale, and return a **structured result** the caller can branch on without ever catching an exception.
 
 **Key files:**
 
 - `src/features/tasks/actions.tsx` — `createTaskAction`, `updateTaskAction`, `deleteTaskAction`
 - `src/features/categories/actions.tsx` — `createCategoryAction`, `updateCategoryAction`, `deleteCategoryAction`
+- `src/features/logs/actions.tsx` — `setLogRetentionAction`, `removeOldLogsAction`
 - `src/shared/lib/result.ts` — the `ActionResult<T>` / `ActionFailure` / `FormState<T>` types + `toActionError()` translator
 - `src/shared/lib/cache.ts` — `revalidateTasks()` / `revalidateCategories()`, the tag-invalidation helpers
 - `src/shared/hooks/use-server-action.ts` — `useServerAction()`, which runs an action called as a promise and reports its outcome
@@ -109,6 +110,8 @@ An action's signature follows how its form submits, which is one of the two [for
 | `createCategoryAction`                     | `(_prev, formData)`     | driven by `useActionState` in the category editor                         |
 | `updateCategoryAction`                     | `(id, _prev, formData)` | same, with `id` bound first via `action.bind(null, id)`                   |
 | `deleteTaskAction`, `deleteCategoryAction` | `(id)`                  | called directly from a confirmation — no form state, no field errors      |
+| `setLogRetentionAction`                    | `(days)`                | called as a promise by the Retention card's choice, with a number         |
+| `removeOldLogsAction`                      | `()`                    | called as a promise by Remove now, which sends nothing                    |
 
 The task actions take a plain object because `FormData` carries only strings, so it has no way to say `categoryId: null`, the value that clears a task's category.
 A Server Action is an ordinary async function, and Next serialises whatever it is handed;
@@ -208,9 +211,15 @@ You don't invalidate _what you changed_, you invalidate _what's now stale becaus
 > **Reads must opt in.** Invalidation acts only on reads that are cached and tagged — e.g. `getTasks()` marked `"use cache"` with `cacheTag("tasks")`.
 > A read that isn't tagged (a plain dynamic Server Component) is unaffected, since it already re-runs on every request.
 
+### A page that caches nothing: `refresh()`
+
+The Logs page reads nothing through the cache, so a write that changes it has no tag to clear.
+Its actions call `refresh()` from `next/cache` instead, which re-renders the page the action was called from, so the reply carries the page as it now is.
+Like `updateTag`, it works only inside a Server Action, and only on the success path.
+
 ## Tests
 
-The actions are unit-tested in `test/features/tasks/actions.test.ts` and `test/features/categories/actions.test.ts`.
+The actions are unit-tested in `test/features/tasks/actions.test.ts`, `test/features/categories/actions.test.ts` and `test/features/logs/actions.test.ts`.
 The tests keep `validate()`, the Zod schemas, **and the real `src/shared/lib/cache.ts` helper** in play (so the validation gate and the exact tag logic are genuinely exercised) and fake only the true side effects — `getSession`, the service module, `next/cache`'s `updateTag` and the logger — via `vi.mock`.
 They cover the full contract:
 
@@ -224,4 +233,5 @@ They cover the full contract:
 - **Previous state** — the category actions ignore `_prev`; each submit recomputes from scratch.
 
 Mocking `updateTag` (rather than the helper) lets the tests verify the real tag names and the create-vs-update/delete distinction end-to-end.
+The logs actions' tests stand in for `refresh` the same way, and check it is called only on success.
 For the suite's broader conventions, see [Testing patterns](./testing.md).

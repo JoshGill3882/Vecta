@@ -29,12 +29,13 @@ Copy `.env.example` to `.env` and fill these in before running the app.
 
 ## Optional variables
 
-| Var                    | Required | Rule                                                                   |
-| ---------------------- | -------- | ---------------------------------------------------------------------- |
-| `LOG_LEVEL`            | no       | `debug`, `info`, `warn` or `error`. Unset or empty means `info`.       |
-| `ALLOWED_DEV_ORIGINS`  | no       | Comma-separated hostnames allowed to reach the **dev** server.         |
-| `VECTA_BUILD_VERSION`  | no       | Set by the image, not by you. The build's version, logged at start-up. |
-| `VECTA_BUILD_REVISION` | no       | Set by the image, not by you. The build's commit, logged at start-up.  |
+| Var                    | Required | Rule                                                                           |
+| ---------------------- | -------- | ------------------------------------------------------------------------------ |
+| `LOG_LEVEL`            | no       | `debug`, `info`, `warn` or `error`. Unset or empty means `info`.               |
+| `TZ`                   | no       | The server's time zone, such as `Europe/London`. Unset in the image means UTC. |
+| `ALLOWED_DEV_ORIGINS`  | no       | Comma-separated hostnames allowed to reach the **dev** server.                 |
+| `VECTA_BUILD_VERSION`  | no       | Set by the image, not by you. The build's version, logged at start-up.         |
+| `VECTA_BUILD_REVISION` | no       | Set by the image, not by you. The build's commit, logged at start-up.          |
 
 Each is absent by default, and absent is a valid configuration.
 
@@ -45,6 +46,23 @@ The minimum level a server entry needs to be logged, to stdout and to the `Log` 
 Activity entries — changes to tasks and categories, and sign-ins — are recorded whatever it is set to.
 Unlike the other optional variables it is checked at start-up: a value that is not a level stops the server from starting, so a typo cannot silently change what is logged.
 See [Logging](./logging.md#the-minimum-level).
+
+### `TZ`
+
+The time zone the server keeps, as an IANA name such as `Europe/London` or `America/New_York`.
+It is read by Node itself rather than by the app, and the app has no time zone setting of its own, so "server time" anywhere in Vecta means this zone.
+
+It decides two things:
+
+- **When old log entries age out.** The nightly run is at 03:00 in this zone; see [Logging](./logging.md#retention).
+- **How the Logs page writes dates and times.** It renders on the server, so an entry's time and day, and the Retention card's cut-off and last run, are read in this zone, whichever zone the browser is in.
+
+In the image it is unset, so the server keeps UTC.
+Set it in `.env` to have them follow your own clock; Compose passes it through `env_file`.
+Node carries its own time zone data, so the image needs nothing installed for it.
+Outside Docker, Node takes the machine's own zone when it is unset.
+
+Nothing checks it at start-up: Node reads a name it does not recognise as UTC.
 
 ### `ALLOWED_DEV_ORIGINS`
 
@@ -90,8 +108,11 @@ Throwing there aborts startup.
 4. `LOG_LEVEL` set to something that is not a level.
 
 On a problem, it logs `server.config_invalid` with the problem in `detail.problem`, waits for that entry's table write, and throws the problem as the error, which stops the server.
-Otherwise it logs one `server.started` entry with the build's version and revision and the database provider.
-Both go to stdout, so `docker compose logs` shows why a container will not start even when the database is the thing that is wrong.
+Otherwise it logs one `server.started` entry with the build's version and revision and the database provider, then starts ageing old entries out of the log: one run straight away, which is not waited for, and one every night after; see [Logging](./logging.md#retention).
+Both entries go to stdout, so `docker compose logs` shows why a container will not start even when the database is the thing that is wrong.
+
+The age-out is loaded inside a `try` rather than at the top of `start-up.ts`, because loading it opens the database.
+A failure there, such as a missing `DATABASE_URL`, is logged as `log.age_out_failed` and costs the age-out alone: the server still starts.
 
 `DATABASE_URL` is validated separately: its shape by `detectProvider` when the container's entrypoint resolves the provider, and its presence at module load in `src/server/db.ts`, so it fails fast too — on first DB access if not before.
 The start-up entry names the provider as `unknown` rather than failing a second time.

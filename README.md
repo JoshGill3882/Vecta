@@ -115,15 +115,16 @@ Those paths serve only the app's name, colours and icons, and Vecta itself alrea
 Every variable you can set.
 Set them in `.env`, which both compose files load.
 
-| Variable            | Required          | Default                 | Notes                                                                                                         |
-| ------------------- | ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                                               |
-| `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.                            |
-| `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you.                         |
-| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.                                     |
-| `LOG_LEVEL`         | no                | `info`                  | Least severe server entry logged: `debug`, `info`, `warn` or `error`. Any other value stops the app starting. |
-| `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                                                  |
-| `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                                              |
+| Variable            | Required          | Default                 | Notes                                                                                                                      |
+| ------------------- | ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ADMIN_PASSWORD`    | **yes**           | —                       | The single admin password. The app refuses to start without it.                                                            |
+| `SESSION_SECRET`    | **yes**           | —                       | **At least 32 characters.** Encrypts the session cookie. Changing it logs you out.                                         |
+| `DATABASE_URL`      | **yes**           | `file:/app/data/app.db` | `file:` for SQLite, `postgresql://` for Postgres. The compose files set this for you.                                      |
+| `PORT`              | no                | `3000`                  | Host port published by the compose files; they pin the container to 3000.                                                  |
+| `LOG_LEVEL`         | no                | `info`                  | Least severe server entry logged: `debug`, `info`, `warn` or `error`. Any other value stops the app starting.              |
+| `TZ`                | no                | `UTC`                   | The server's time zone, such as `Europe/London`. Sets when old log entries are cleared and how the Logs page writes times. |
+| `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                                                               |
+| `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                                                           |
 
 ### Using PostgreSQL instead of SQLite
 
@@ -259,6 +260,13 @@ Signing in, a failed sign-in and signing out are each recorded; a failed one rec
 The same entries are also written to the app's own database, where the **Logs** page, opened from the button beside Log out, lists them newest first under a heading per day.
 It filters them by level and by source, and opening an entry shows everything recorded with it.
 stdout is still the one to rely on: it keeps working when the database does not.
+
+The database copy does not grow forever.
+Its **Retention** card, at the top of the Logs page, chooses how long entries are kept (7 days, 30 days, 90 days, 1 year or Forever, with 90 days to start with), and old entries are deleted when the app starts and every night at 03:00 server time, which is UTC unless you set `TZ`.
+The card says how many entries the next night will remove, with a Remove now button to do it straight away, and when the last run was and what it removed.
+Nothing needs scheduling outside the container.
+If a run fails, it is logged as `log.age_out_failed` and tried again the next night.
+stdout is not affected: how long that is kept is up to Docker.
 Passwords, the session secret, session and cookie values, and the credentials in a database URL are removed from every entry before it is written anywhere.
 
 ---
