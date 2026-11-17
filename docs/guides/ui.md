@@ -320,6 +320,9 @@ What goes in the file, and how it is streamed, is in [Logging](./logging.md#expo
 - **It says what it will export before anything is picked:** "All 1,204 entries" with no filter on, or "The 12 entries matching your filters", counting the page's `matching`.
 - **It is disabled when that is nothing.**
   `disabled` goes on the `DropdownMenuTrigger`, which passes it to the button and keeps the menu from opening.
+- **Below 520px it shrinks to its icon**, a 44px square, so the header keeps the heading and its actions on one row rather than wrapping them underneath.
+  The label is `sr-only` there rather than removed, so a screen reader still names the button, and `title` names it for a pointer.
+  The actions sit in their own `shrink-0` flex group beside the heading, which has `min-w-0` so a long count gives way first.
 - **It is a Server Component.**
   It renders the shared dropdown, whose parts are the client components, so the menu adds no client code of its own.
 
