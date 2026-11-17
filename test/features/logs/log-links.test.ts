@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { logsHref } from "@/src/features/logs/lib/log-links";
+import { logExportHref, logsHref } from "@/src/features/logs/lib/log-links";
 import { logFiltersSchema, type LogFilters } from "@/src/shared/lib/schemas/logs";
 
 const NONE = { level: [], source: [] };
@@ -54,5 +54,32 @@ describe("logsHref", () => {
     [{ level: [], source: ["auth", "tasks", "categories", "system"], page: 2 }],
   ] as LogFilters[][])("reads back as the same filters: %j", (filters) => {
     expect(readBack(logsHref(filters))).toEqual(filters);
+  });
+});
+
+describe("logExportHref", () => {
+  it("names only the format with no filters", () => {
+    expect(logExportHref(NONE, "csv")).toBe("/api/logs/export?format=csv");
+    expect(logExportHref(NONE, "json")).toBe("/api/logs/export?format=json");
+  });
+
+  it("carries the levels and sources picked, in the menus' order", () => {
+    expect(logExportHref({ level: ["error", "warn"], source: ["system", "auth"] }, "json")).toBe(
+      "/api/logs/export?format=json&level=warn&level=error&source=auth&source=system"
+    );
+  });
+
+  it("leaves out the page, since an export covers every match", () => {
+    const filters: LogFilters = { level: ["info"], source: [], page: 4 };
+
+    expect(logExportHref(filters, "csv")).toBe("/api/logs/export?format=csv&level=info");
+  });
+
+  it("carries the same filters as the page's own address", () => {
+    const filters: LogFilters = { level: ["debug", "error"], source: ["categories"], page: 1 };
+    const exportQuery = new URL(logExportHref(filters, "csv"), "http://vecta.test").searchParams;
+    exportQuery.delete("format");
+
+    expect(`/logs?${exportQuery}`).toBe(logsHref(filters));
   });
 });

@@ -92,6 +92,33 @@ describe("LogsView", () => {
     expect(screen.queryByText(/since/)).toBeNull();
   });
 
+  it("offers the Export menu in the header, for what the filters match", () => {
+    render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ level: ["error"], source: [], page: 1 }}
+        page={logPage({ total: 40, matching: 3 })}
+      />
+    );
+
+    const header = screen.getByRole("heading", { level: 1, name: "Logs" }).closest("header");
+    const button = screen.getByRole("button", { name: "Export" });
+    expect(header?.contains(button)).toBe(true);
+    expect(button.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("disables the Export menu when nothing matches", () => {
+    render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ level: ["error"], source: [], page: 1 }}
+        page={logPage({ total: 40, matching: 0 })}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Export" }).hasAttribute("disabled")).toBe(true);
+  });
+
   it("shows the Retention card between the header and the filters", () => {
     render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
 
