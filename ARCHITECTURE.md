@@ -22,6 +22,7 @@ app/                      Routes, and nothing else. Next.js App Router.
     categories/           page.tsx, loading.tsx
     logs/                 page.tsx, loading.tsx
   api/health/             Liveness endpoint for Docker and reverse proxies
+  api/logs/export/        The Logs page's CSV and JSON download
   login/                  Session entry
 src/
   features/               One per feature — the unit most changes touch
@@ -47,6 +48,7 @@ src/
     errors.ts             Domain error types
     logger.ts             The shared logger, to stdout and the Log table
     log-retention.ts      Ages old entries out of the Log table, at start-up and nightly
+    log-export.ts         Writes log entries as a streamed CSV or JSON download
     rate-limit.ts         The in-memory sign-in attempt limiter
     start-up.ts           Configuration checks and the start-up entry
 prisma/
@@ -109,6 +111,7 @@ flowchart LR
 
 **Reads** happen in Server Components, which call a service directly and render the result.
 There is no client-side fetching layer and no API surface in between.
+The one read that is not a page is the log export, a route handler under `app/api/`, because a download has to be streamed as a file rather than rendered; it calls the log service like any other read.
 
 **Writes** go through a Server Action, which validates its input, calls a service, and refreshes what the write made stale: the affected cache tags, or the page itself where it caches nothing.
 
@@ -147,7 +150,8 @@ Authentication is **two-tier**, and the distinction matters:
 
 1. **The perimeter** — `proxy.ts` runs before every matched request, decrypts the session cookie, and redirects unauthenticated traffic to `/login`.
    It does no database work.
-2. **The real guard** — every protected page calls `requireSession()` itself.
+2. **The real guard** — every protected page and Server Action calls `requireSession()` itself.
+   A route handler under `/api`, which the proxy does not match at all, checks `getSession()` and answers 401.
 
 The perimeter is an optimisation, not the security boundary.
 It is what makes an unauthenticated request cheap to reject, but a page that relied on it alone would be unprotected the moment a route stopped matching the proxy's matcher.
@@ -306,6 +310,7 @@ Pino redacts values at paths listed ahead of time, where this needs a key such a
 The table is read by the Logs page, at `/logs`, through the log service's `listLogPage`.
 It pages and filters on the server, with the filters held in the URL, because the table grows with everything the app does.
 The task list is the opposite case: small enough to fetch whole and narrow in the browser.
+The same page downloads what its filters match as CSV or JSON, through a route handler that streams the entries a batch at a time, so a large log is never held in memory, and that writes nothing to the log it reads.
 
 The table does not keep everything forever.
 Entries older than a chosen age, 90 days unless changed on the Logs page, are deleted once at start-up and then every night at 03:00 server time, by a timer inside the server rather than cron or a second container, so a self-host stays one container.

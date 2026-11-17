@@ -3,11 +3,14 @@ import { ZodError } from "zod";
 import { prisma } from "@/src/server/db";
 import {
   DEFAULT_LOG_LIST,
+  LOG_BATCH_SIZE,
   MAX_LOG_LIST,
   listLogPage,
   listLogs,
+  readLogBatches,
   writeLog,
 } from "@/src/server/services/logs";
+import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
 import { LOG_PAGE_SIZE, type LogFilters } from "@/src/shared/lib/schemas/logs";
 
 const ENTRY = {
@@ -367,5 +370,102 @@ describe("listLogPage (integration)", () => {
 
     const { entries } = await listLogPage(filters());
     expect(entries.map((e) => e.source)).toEqual(["auth", "categories"]);
+  });
+});
+
+describe("readLogBatches (integration)", () => {
+  /** No filters on, as an unfiltered export reads. */
+  const NONE = { level: [], source: [] };
+
+  /** Reads every batch an export would.
+   *
+   * @param batches The batches being read.
+   * @returns Each batch's entries, in the order they came.
+   */
+  async function collect(batches: AsyncIterable<LogEntryDTO[]>): Promise<LogEntryDTO[][]> {
+    const read: LogEntryDTO[][] = [];
+    for await (const batch of batches) read.push(batch);
+    return read;
+  }
+
+  it("reads nothing from an empty log", async () => {
+    expect(await collect(readLogBatches(NONE))).toEqual([]);
+  });
+
+  it(`reads ${LOG_BATCH_SIZE} entries a batch unless told otherwise`, async () => {
+    await seed(Array.from({ length: LOG_BATCH_SIZE + 1 }, () => ({})));
+
+    const sizes = (await collect(readLogBatches(NONE))).map((batch) => batch.length);
+    expect(sizes).toEqual([LOG_BATCH_SIZE, 1]);
+  });
+
+  it("reads every entry once, newest first, across batches", async () => {
+    await seed(Array.from({ length: 7 }, () => ({})));
+
+    const batches = await collect(readLogBatches(NONE, 3));
+    expect(batches.map((batch) => batch.length)).toEqual([3, 3, 1]);
+    expect(batches.flat().map((e) => e.event)).toEqual(
+      Array.from({ length: 7 }, (_, i) => `test.entry_${6 - i}`)
+    );
+  });
+
+  it("ends without an empty batch when the entries fill the last one exactly", async () => {
+    await seed(Array.from({ length: 6 }, () => ({})));
+
+    expect((await collect(readLogBatches(NONE, 3))).map((batch) => batch.length)).toEqual([3, 3]);
+  });
+
+  it("splits entries written in the same millisecond across batches without a gap or a repeat", async () => {
+    const at = new Date("2026-11-14T09:00:00.000Z");
+    const ids = ["a", "b", "c", "d", "e"];
+    await prisma.log.createMany({
+      data: ids.map((id) => ({
+        id,
+        createdAt: at,
+        kind: "operational",
+        level: "info",
+        event: "test.tied",
+        message: id,
+      })),
+    });
+
+    const batches = await collect(readLogBatches(NONE, 2));
+    expect(batches.map((batch) => batch.map((e) => e.id))).toEqual([["e", "d"], ["c", "b"], ["a"]]);
+  });
+
+  it("neither repeats nor includes an entry written between batches", async () => {
+    await seed(Array.from({ length: 4 }, () => ({})));
+
+    const read: string[] = [];
+    for await (const batch of readLogBatches(NONE, 2)) {
+      read.push(...batch.map((e) => e.event));
+      if (read.length === 2) await writeLog({ ...ENTRY, event: "test.written_meanwhile" });
+    }
+
+    expect(read).toEqual(["test.entry_3", "test.entry_2", "test.entry_1", "test.entry_0"]);
+  });
+
+  it("reads only the entries the levels and sources match, ignoring any page", async () => {
+    await seed([
+      { event: "auth.sign_in_failed", level: "warn" },
+      { event: "auth.signed_in", level: "info" },
+      { event: "task.deleted", level: "warn" },
+      { event: "server.started", level: "info" },
+      { event: "action.unexpected_error", level: "error" },
+    ]);
+
+    const filters: LogFilters = { level: ["warn", "error"], source: ["auth", "system"], page: 9 };
+    const events = (await collect(readLogBatches(filters, 1))).flat().map((e) => e.event);
+    expect(events).toEqual(["action.unexpected_error", "auth.sign_in_failed"]);
+  });
+
+  it("reads each entry as the Logs page shows it, with its detail parsed", async () => {
+    await seed([{ event: "task.deleted", detail: '{"id":"t1"}' }, { detail: "{oops" }]);
+
+    const [batch] = await collect(readLogBatches(NONE));
+    expect(batch.map((e) => [e.source, e.detail])).toEqual([
+      ["system", { unparsed: "{oops" }],
+      ["tasks", { id: "t1" }],
+    ]);
   });
 });

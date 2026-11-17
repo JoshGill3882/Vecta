@@ -20,6 +20,7 @@ Auth is enforced in **two independent layers**, and you must respect both:
    it reads the session cookie (via `getSessionFromRequest`, straight off the request) and redirects unauthenticated traffic to `/login`.
    It does **no** database work and is **not** a guard you can rely on alone.
 2. **`requireSession()` — the real guard (DAL).** Every protected page and Server Action must call it itself.
+   A route handler checks the session itself too, with `getSession()`; see [How to protect a route handler](#how-to-protect-a-route-handler).
 
 Why both?
 The proxy `matcher` (`proxy.ts`) excludes paths, and per the Next.js proxy docs a matcher that skips a path **also skips Server Functions on that path** — so a refactor can silently remove perimeter coverage.
@@ -80,6 +81,28 @@ export async function deleteEverything() {
   // ...mutate
 }
 ```
+
+## How to protect a route handler
+
+The proxy's matcher skips every path under `/api`, so a route handler there has no perimeter at all, and its own check is the only one.
+Check with `getSession()` and answer 401, rather than calling `requireSession()`.
+A redirect to the login page suits a page someone opened, but a route answers a download or a script, where a login page arriving in place of the file is a confusing answer.
+
+```ts
+import type { NextRequest } from "next/server";
+import { getSession } from "@/src/shared/lib/session";
+
+export async function GET(request: NextRequest): Promise<Response> {
+  if (!(await getSession())) {
+    return new Response("Sign in to export the log.", { status: 401 });
+  }
+  // ...read and respond
+}
+```
+
+`app/api/logs/export/route.ts` is the example.
+Its test also checks that the proxy's matcher leaves the path out, which is what makes the route's own check the only one.
+`/api/health` is the one route left open, deliberately, since Docker polls it without a cookie.
 
 ## How to read auth state without redirecting
 

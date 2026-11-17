@@ -7,6 +7,7 @@ import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
 import { ClearFiltersLink } from "./clear-filters-link";
+import { ExportMenu } from "./export-menu";
 import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
 import { LogPager } from "./log-pager";
@@ -33,17 +34,22 @@ export function LogsView({
 
   return (
     <section>
-      <header className="mb-[18px]">
-        <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Logs</h1>
-        <p className="text-text-3 mt-1 text-[13.5px]">
-          {entryCount(page.total)}
-          {page.oldest && (
-            <>
-              {" since "}
-              <time dateTime={page.oldest}>{logDate(page.oldest)}</time>
-            </>
-          )}
-        </p>
+      <header className="mb-[18px] flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[23px] font-semibold tracking-[-0.02em]">Logs</h1>
+          <p className="text-text-3 mt-1 text-[13.5px]">
+            {entryCount(page.total)}
+            {page.oldest && (
+              <>
+                {" since "}
+                <time dateTime={page.oldest}>{logDate(page.oldest)}</time>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <ExportMenu page={page} filters={filters} />
+        </div>
       </header>
 
       <RetentionCard status={retention} now={now} />

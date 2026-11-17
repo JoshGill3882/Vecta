@@ -3,7 +3,7 @@
 The server records what happens through one shared logger.
 Every entry goes to **stdout** as a JSON line and to the **`Log` table**, and the two are deliberately not equal:
 stdout always works, while the table is best-effort.
-This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read, how old ones age out of the table, and how to test code that logs.
+This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read and exported, how old ones age out of the table, and how to test code that logs.
 
 ## Key files
 
@@ -12,9 +12,11 @@ This guide covers how to log, the two kinds of entry, what happens to an entry, 
 - `src/server/changed-fields.ts` — `changedFields()`, which names the fields an update changes
 - `src/server/start-up.ts` — the start-up checks, the `server.started` entry, and the start of the nightly age-out
 - `src/server/log-retention.ts` — `ageOutLogs()`, `getRetentionStatus()` and the nightly timer
+- `src/server/log-export.ts` — `exportStream()` and `exportFileName()`, which write an export as CSV or JSON
+- `app/api/logs/export/route.ts` — the route the Logs page's Export menu downloads from
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
 - `src/server/services/settings.ts` — the settings service, which holds the chosen retention and the last run; see [Database & service layer](./database.md#the-settings-service)
-- `src/features/logs/` — the Logs page, which lists the table's entries and holds the Retention card; see [UI & frontend](./ui.md#the-logs-page)
+- `src/features/logs/` — the Logs page, which lists the table's entries and holds the Export menu and the Retention card; see [UI & frontend](./ui.md#the-logs-page)
 
 ## Two kinds of entry
 
@@ -57,6 +59,7 @@ It is server-only (`import "server-only"`), so it cannot be imported into a Clie
 | `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                                  |
 | `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                                      |
 | `log.age_out_failed`      | operational | `error` | A start-up or nightly age-out run failed, or the nightly runs could not be started. `detail.error` says why |
+| `log.export_failed`       | operational | `error` | An export failed partway through. `detail` holds `format` and `error`                                       |
 | `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                                     |
 | `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed                           |
 | `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                                         |
@@ -121,7 +124,31 @@ A task or category entry names what it was about, such as `Deleted category “W
 An event with no wording there, or whose detail lacks what its wording needs, shows its stored message, so a new event reads sensibly without a change to the page; give it wording there when the stored message alone would leave a reader asking what it was about.
 
 Opening a row shows its timestamp, id, kind, event and every detail field, so whatever an entry records is visible on the page.
-That is one more reason the rules under [What is never logged](#what-is-never-logged) matter: what reaches the table is what a reader of the page sees.
+That is one more reason the rules under [What is never logged](#what-is-never-logged) matter: what reaches the table is what a reader of the page sees, and what an export carries.
+
+## Exporting the entries
+
+The Logs page's Export menu downloads the entries its filters match, newest first, or every entry when no filter is on, as CSV for a spreadsheet or JSON for full detail.
+The download is `GET /api/logs/export?format=csv` or `format=json`, with the page's `level` and `source` parameters.
+The route reads them with `logFiltersSchema`, as the page does, and `logExportHref` in `src/features/logs/lib/log-links.ts` writes the address from the same filters as the page's own, so an export always holds what the page lists.
+
+- **Both formats hold the same six fields:** `time`, the ISO 8601 timestamp in UTC, then `kind`, `level`, `event`, `message` and `detail`.
+  `message` is the stored message, not the page's wording for it.
+- **The CSV** has a header row and one row per entry, with CRLF line ends, and starts with a UTF-8 byte order mark so Excel reads it in the right encoding.
+  `detail` is one cell of JSON, empty when there is none, since the full set of detail fields is not known until the last row has been written.
+  A cell holding a quote, a comma or a line break is quoted.
+  A cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets an apostrophe in front, which a spreadsheet reads as text.
+  Typed titles and names sit inside the detail's JSON, which starts with `{`, but every cell is guarded, so a field that comes to carry typed text cannot run as a formula on the computer that opens the file.
+- **The JSON** is an array with one entry to a line, and `detail` as an object or `null`.
+- **It is streamed.** `readLogBatches` in the log service reads the matching entries 500 at a time, and `exportStream` writes each batch only when the download asks for more, so a large log is never held in memory and a stopped download stops the reading.
+  Each batch starts after the last entry of the one before rather than at an offset, so an entry written during the export is neither read twice nor included.
+- **The file is named by when it was made**, in the server's time zone, such as `vecta-logs-2026-11-17-1930.csv`.
+  It is served with `Content-Disposition: attachment`, so the browser saves it without leaving the page, and `Cache-Control: no-store`, so no copy is kept along the way.
+- **The route checks the session itself**, since the proxy leaves `/api` alone: a signed-out request gets a 401 and no entries.
+  See [Authentication & sessions](./authentication.md#how-to-protect-a-route-handler).
+
+**An export writes no entry**, since it only reads the log, as the Logs page does.
+A failure partway through logs `log.export_failed` with the format and the error, and ends the download with an error, so the browser reports it failed rather than saving a file that looks complete.
 
 ## Retention
 
@@ -219,6 +246,11 @@ vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
 **The nightly timer** is tested in `test/server/log-retention.test.ts` with fake timers (`vi.useFakeTimers({ now })`), stepping through nights with `vi.advanceTimersByTimeAsync`.
 Call `stopAgeOutSchedule()` after each test, since the timer lives on `globalThis` and would otherwise carry into the next.
 The deletion itself runs against the real table in `test/integration/log-retention.int.test.ts`.
+
+**An export** is tested in three places.
+`test/server/log-export.test.ts` hands `exportStream` batches directly and runs the real logger for the failure entry.
+`test/app/logs-export-route.test.ts` calls the route with a `NextRequest`, with the session and the log service stood in for.
+`test/integration/logs.int.test.ts` runs `readLogBatches` against the real table.
 
 **In an integration test**, read entries back with `activityEntries()` from `test/support/activity.ts`.
 It waits for pending writes, then returns the activity entries sorted by event name, since entries written in the same millisecond have no reliable order.

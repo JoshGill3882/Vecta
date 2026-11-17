@@ -259,6 +259,8 @@ Signing in, a failed sign-in and signing out are each recorded; a failed one rec
 `LOG_LEVEL` sets how many of the server's own entries are logged; activity is recorded whatever it is set to.
 The same entries are also written to the app's own database, where the **Logs** page, opened from the button beside Log out, lists them newest first under a heading per day.
 It filters them by level and by source, and opening an entry shows everything recorded with it.
+Its **Export** menu downloads the entries the filters match, or every entry, as CSV for a spreadsheet or JSON for full detail.
+A CSV cell that would start a formula gets an apostrophe in front, so nothing in the file can run as one when it is opened.
 stdout is still the one to rely on: it keeps working when the database does not.
 
 The database copy does not grow forever.

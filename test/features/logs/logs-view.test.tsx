@@ -92,6 +92,46 @@ describe("LogsView", () => {
     expect(screen.queryByText(/since/)).toBeNull();
   });
 
+  it("offers the Export menu in the header, for what the filters match", () => {
+    render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ level: ["error"], source: [], page: 1 }}
+        page={logPage({ total: 40, matching: 3 })}
+      />
+    );
+
+    const header = screen.getByRole("heading", { level: 1, name: "Logs" }).closest("header");
+    const button = screen.getByRole("button", { name: "Export" });
+    expect(header?.contains(button)).toBe(true);
+    expect(button.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("keeps the Export menu on the heading's row rather than wrapping it underneath", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage({ matching: 3 })} />);
+
+    const header = screen.getByRole("heading", { level: 1, name: "Logs" }).closest("header");
+    expect(header?.className).toContain("flex");
+    expect(header?.className).not.toContain("flex-wrap");
+    // The actions sit in a flex row of their own, so a second one is spaced from the first.
+    const actions = screen.getByRole("button", { name: "Export" }).parentElement;
+    expect(actions?.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "shrink-0", "gap-2"])
+    );
+  });
+
+  it("disables the Export menu when nothing matches", () => {
+    render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ level: ["error"], source: [], page: 1 }}
+        page={logPage({ total: 40, matching: 0 })}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Export" }).hasAttribute("disabled")).toBe(true);
+  });
+
   it("shows the Retention card between the header and the filters", () => {
     render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
 

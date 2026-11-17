@@ -33,7 +33,7 @@ Keep DB access on the server:
 
 - Call services from Server Components, Server Actions, or route handlers.
 - Do not import `db.ts` or a service into a `"use client"` file.
-- `src/shared/lib/session.ts`, `src/server/logger.ts`, `src/server/log-retention.ts` and the `logs`, `settings` and `auth` services use the `server-only` package to enforce this at build time;
+- `src/shared/lib/session.ts`, `src/server/logger.ts`, `src/server/log-retention.ts`, `src/server/log-export.ts` and the `logs`, `settings` and `auth` services use the `server-only` package to enforce this at build time;
   apply the same marker if you add new server-only modules.
 - **An ESLint rule (`no-restricted-imports` in `eslint.config.mjs`) fails the lint if the Prisma client or the `prisma` singleton is imported anywhere outside `src/server/**`** (tests and the seed script are exempt).
 Model _types_ from `generated/prisma/models` stay allowed — that's how DTOs map rows.
@@ -96,6 +96,7 @@ import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
 writeLog(input: LogWriteInput): Promise<LogEntryDTO>             // throws ZodError, TypeError, or the DB's error
 listLogs(options?: { kind?; level?; limit? }): Promise<LogEntryDTO[]> // newest first
 listLogPage(filters: LogFilters): Promise<LogPage>               // one page of the Logs page, with its counts
+readLogBatches(filters, batchSize?): AsyncGenerator<LogEntryDTO[]> // every match, newest first, a batch at a time
 deleteLogsBefore(cutoff: Date): Promise<number>                  // how many entries were deleted
 countLogsBefore(cutoff: Date): Promise<number>                   // how many deleteLogsBefore would delete
 ```
@@ -117,6 +118,12 @@ Entries written in the same millisecond are ordered by id, so a listing reads th
 It takes the filters `logFiltersSchema` reads from the page's URL and returns a `LogPage`: up to `LOG_PAGE_SIZE` (50) entries, newest first, with which page they are and how many pages there are, how many entries match and how many there are in all, when the oldest was written, and how many entries each level and each source holds.
 The counts for each level and source ignore the filters, so a filter menu still shows what ticking another choice would add.
 The counts are read before the entries, so a page past the last can be read as the last rather than coming back empty.
+
+`readLogBatches` is what an export reads.
+It is an async generator that yields the entries the page's levels and sources match, newest first, `LOG_BATCH_SIZE` (500) at a time, ignoring any page, and reads the next batch only when its caller asks for it.
+Each batch asks for the entries after the last one read, older or as old with a lower id, rather than skipping an offset.
+An entry written while it runs therefore cannot push one already read into the next batch, and anything written after the first batch is left out.
+How the batches become a file is in [Logging](./logging.md#exporting-the-entries).
 
 A source is not a column.
 It is read from the event's prefix by `SOURCE_PREFIXES` in `src/shared/lib/dtos/logs.ts` (`auth.`, `task.` and `category.`, with every other event under System), so every entry has one however old it is, and the source filter matches on the same prefixes.
