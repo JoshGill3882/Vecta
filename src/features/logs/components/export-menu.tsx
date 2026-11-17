@@ -26,6 +26,11 @@ const CHOICES: { format: ExportFormat; label: string; suits: string }[] = [
  * browser saves the file it answers with and the page stays where it is. The
  * menu says what an export will hold before it is picked, and is disabled
  * when that is nothing.
+ *
+ * Below 520px the button shrinks to its icon, so it stays on the heading's
+ * row rather than wrapping under it. Its label is hidden visually rather than
+ * removed, so a screen reader still names it, and `title` names it for a
+ * pointer.
  */
 export function ExportMenu({ page, filters }: { page: LogPage; filters: LogFilters }) {
   const filtered = filters.level.length > 0 || filters.source.length > 0;
@@ -34,10 +39,15 @@ export function ExportMenu({ page, filters }: { page: LogPage; filters: LogFilte
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={page.matching === 0}>
-        <Button variant="outline" size="lg">
+        <Button
+          variant="outline"
+          size="lg"
+          title="Export"
+          className="max-[520px]:size-11 max-[520px]:gap-0 max-[520px]:px-0"
+        >
           <Download aria-hidden />
-          Export
-          <ChevronDown aria-hidden className="text-text-3 size-[13px]" />
+          <span className="max-[520px]:sr-only">Export</span>
+          <ChevronDown aria-hidden className="text-text-3 size-[13px] max-[520px]:hidden" />
         </Button>
       </DropdownMenuTrigger>
 
