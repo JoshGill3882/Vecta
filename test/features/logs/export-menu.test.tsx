@@ -115,6 +115,24 @@ describe("ExportMenu", () => {
     expect(screen.getByRole("button", { name: "Export" }).hasAttribute("disabled")).toBe(true);
   });
 
+  it("keeps its name on a narrow screen, where only its icon shows", () => {
+    render(<ExportMenu page={logPage()} filters={filters()} />);
+
+    // jsdom applies no media queries, so this checks what the narrow layout
+    // keeps: a name for a screen reader and a tooltip for a pointer, with the
+    // label hidden visually rather than removed.
+    const button = screen.getByRole("button", { name: "Export" });
+    expect(button.getAttribute("title")).toBe("Export");
+    const label = Array.from(button.querySelectorAll("span")).find(
+      (s) => s.textContent === "Export"
+    );
+    expect(label?.className).toContain("max-[520px]:sr-only");
+    expect(label?.className).not.toContain("hidden");
+    // The chevron goes, so the icon has the square to itself.
+    const chevron = button.querySelector("svg.lucide-chevron-down");
+    expect(chevron?.getAttribute("class")).toContain("max-[520px]:hidden");
+  });
+
   it("opens from the keyboard", async () => {
     render(<ExportMenu page={logPage()} filters={filters()} />);
 

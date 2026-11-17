@@ -107,6 +107,19 @@ describe("LogsView", () => {
     expect(button.hasAttribute("disabled")).toBe(false);
   });
 
+  it("keeps the Export menu on the heading's row rather than wrapping it underneath", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage({ matching: 3 })} />);
+
+    const header = screen.getByRole("heading", { level: 1, name: "Logs" }).closest("header");
+    expect(header?.className).toContain("flex");
+    expect(header?.className).not.toContain("flex-wrap");
+    // The actions sit in a flex row of their own, so a second one is spaced from the first.
+    const actions = screen.getByRole("button", { name: "Export" }).parentElement;
+    expect(actions?.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "shrink-0", "gap-2"])
+    );
+  });
+
   it("disables the Export menu when nothing matches", () => {
     render(
       <LogsView
