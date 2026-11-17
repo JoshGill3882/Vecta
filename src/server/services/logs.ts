@@ -28,6 +28,9 @@ export const MAX_LOG_LIST = 500;
 /** How many entries a listing returns when the caller does not say. */
 export const DEFAULT_LOG_LIST = 100;
 
+/** How many entries `readLogBatches` reads at a time, unless the caller says. */
+export const LOG_BATCH_SIZE = 500;
+
 /** Which entries to list, and how many. */
 export interface ListLogsOptions {
   /** Only entries of this kind. Omitted lists both. */
@@ -133,7 +136,7 @@ function sourceWhere(source: LogSource): LogWhereInput {
  * @param filters The page's filters. An empty one matches every entry.
  * @returns A filter for the matching entries.
  */
-function filtersWhere(filters: LogFilters): LogWhereInput {
+function filtersWhere(filters: Pick<LogFilters, "level" | "source">): LogWhereInput {
   const where: LogWhereInput = {};
   if (filters.level.length > 0) where.level = { in: filters.level };
   if (filters.source.length > 0) where.OR = filters.source.map(sourceWhere);
@@ -190,6 +193,62 @@ export async function listLogPage(filters: LogFilters): Promise<LogPage> {
     levelCounts,
     sourceCounts: { auth, tasks, categories, system: total - auth - tasks - categories },
   };
+}
+
+/** The two fields that place an entry in a newest-first listing. */
+interface ListPlace {
+  /** When the entry was written. */
+  createdAt: Date;
+  /** Its id, which orders entries written in the same millisecond. */
+  id: string;
+}
+
+/** Matches the entries that come after one in a newest-first listing.
+ *
+ * Those are the older entries, and the ones written in the same millisecond
+ * with a lower id, matching the listing's order.
+ *
+ * @param entry The last entry already read.
+ * @returns A filter for the entries that follow it.
+ */
+function listedAfter(entry: ListPlace): LogWhereInput {
+  return {
+    OR: [
+      { createdAt: { lt: entry.createdAt } },
+      { createdAt: entry.createdAt, id: { lt: entry.id } },
+    ],
+  };
+}
+
+/** Reads every entry the Logs page's filters match, newest first, a batch at a time.
+ *
+ * Each batch starts after the last entry of the one before rather than at an
+ * offset. An entry written while the reading goes on would otherwise push
+ * one already read into the next batch, and it would be read twice. An entry
+ * written after the first batch is newer than everything in it, so it is left
+ * out.
+ *
+ * @param filters The page's levels and sources. Its page, if it has one, is
+ *   ignored: every matching entry is read.
+ * @param batchSize How many entries to read at a time.
+ * @yields Each batch of entries, never an empty one.
+ */
+export async function* readLogBatches(
+  filters: Pick<LogFilters, "level" | "source">,
+  batchSize = LOG_BATCH_SIZE
+): AsyncGenerator<LogEntryDTO[]> {
+  const where = filtersWhere(filters);
+  let last: ListPlace | undefined;
+  while (true) {
+    const rows = await prisma.log.findMany({
+      where: last ? { AND: [where, listedAfter(last)] } : where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: batchSize,
+    });
+    if (rows.length > 0) yield rows.map(toLogEntryDTO);
+    if (rows.length < batchSize) return;
+    last = rows[rows.length - 1];
+  }
 }
 
 /** Deletes every entry written before a moment.
