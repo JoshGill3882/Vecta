@@ -68,8 +68,9 @@ function exported(entry: LogEntryDTO): ExportedEntry {
 /** Writes one CSV cell, made safe for a spreadsheet to open.
  *
  * A cell that would start a formula gets an apostrophe in front, which a
- * spreadsheet reads as "this is text". Task titles are typed by the user, so
- * one could otherwise run as a formula on the computer that opens the file.
+ * spreadsheet reads as "this is text". Every cell is guarded, not only those
+ * that hold typed text such as a task's title, so a field that comes to carry
+ * it cannot run as a formula on the computer that opens the file.
  * A cell holding a quote, a comma or a line break is quoted, with its quotes
  * doubled.
  *
