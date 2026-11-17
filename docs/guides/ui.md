@@ -273,6 +273,7 @@ Filtering an array already in memory is sub-millisecond; a debounce would only a
 The Logs page (`src/features/logs/`) is narrowed **on the server, with its filters in the URL**: the opposite of the task list, for the opposite reason.
 The log grows with everything the app does, so the page reads one page of 50 entries through `listLogPage` rather than fetching the table.
 A filter therefore has to reach the server, and the URL is how it gets there.
+The header holds the Export menu, which downloads what the filters match; see [The Export menu](#the-export-menu).
 Between the header and the filters sits the Retention card, which chooses how long entries are kept; see [The Retention card](#the-retention-card).
 
 - **The URL is the only copy of the filters.**
@@ -297,13 +298,30 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar and the Retention card's two controls are the page's only client components.
+  The filter bar, the Retention card's two controls and the parts of the Export menu's dropdown are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
 - **Two empty states**, through the shared `EmptyState`: an empty log says new entries will appear as they happen, and filters that match nothing say so, with a Clear filters link to `/logs`.
 - **Everything from an entry is shown as text.**
   Entries hold titles and names the user typed, so no message or detail value is rendered as HTML or Markdown.
+
+### The Export menu
+
+The menu (`export-menu.tsx`) downloads the entries the filters match, as CSV or JSON.
+What goes in the file, and how it is streamed, is in [Logging](./logging.md#exporting-the-entries).
+
+- **Each choice is a link, not a button.**
+  CSV and JSON are `<a download>` links to `/api/logs/export`, each the `asChild` of a Radix `DropdownMenuItem`.
+  The browser saves whatever the route answers and the page stays where it is, with no client code of the menu's own, while the arrow keys, Enter and closing on a pick work as for any menu item.
+- **The links follow the page's filters, not its page.**
+  `logExportHref` in `log-links.ts` builds its query from the same `choiceParams` as `logsHref`, so an export's address names the same filters as the page's own, in the same order.
+  The page number is left out, since an export covers every match.
+- **It says what it will export before anything is picked:** "All 1,204 entries" with no filter on, or "The 12 entries matching your filters", counting the page's `matching`.
+- **It is disabled when that is nothing.**
+  `disabled` goes on the `DropdownMenuTrigger`, which passes it to the button and keeps the menu from opening.
+- **It is a Server Component.**
+  It renders the shared dropdown, whose parts are the client components, so the menu adds no client code of its own.
 
 ### The Retention card
 
