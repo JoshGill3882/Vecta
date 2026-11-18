@@ -29,6 +29,9 @@ Internal refactors that change nothing observable are not listed.
 - **Log entries can be downloaded** from the Logs page's new **Export** menu, as CSV for a spreadsheet or JSON for full detail.
   It exports whatever the page's filters match, or every entry with none on, says how many before you pick, and names the file by the date and time, such as `vecta-logs-2026-11-17-1930.csv`.
   In the CSV each entry's detail is one column of JSON, and a cell that would start a formula gets an apostrophe in front, so nothing in the file can run as one in a spreadsheet
+- **Log entries can be purged** with the Logs page's new **Purge** button, either the entries the filters match or every entry.
+  The confirmation counts what will go, names the number on its button, and offers **Export these first** to download them as JSON before they are deleted.
+  Only the entries it counted are deleted, so one written while it is open is kept, and each purge leaves a single entry recording what it removed
 - **`TZ`** sets the server's time zone, such as `Europe/London`, so the nightly clear-out and the times on the Logs page follow your own clock rather than UTC
 
 ### Changed
