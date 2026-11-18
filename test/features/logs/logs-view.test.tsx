@@ -17,6 +17,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/src/features/logs/actions", () => ({
   setLogRetentionAction: vi.fn(),
   removeOldLogsAction: vi.fn(),
+  purgeLogsAction: vi.fn(),
 }));
 
 /** The default retention, with nothing due to go and no run yet. */
@@ -119,6 +120,23 @@ describe("LogsView", () => {
     expect(actions?.className.split(" ")).toEqual(
       expect.arrayContaining(["flex", "shrink-0", "gap-2"])
     );
+  });
+
+  it("offers Purge in the header's actions, after Export", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage({ total: 3 })} />);
+
+    const exportButton = screen.getByRole("button", { name: "Export" });
+    const purge = screen.getByRole("button", { name: "Purge…" });
+    expect(purge.parentElement).toBe(exportButton.parentElement);
+    expect(exportButton.compareDocumentPosition(purge) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
+  it("disables Purge when the log is empty", () => {
+    render(<LogsView retention={RETENTION} filters={NO_FILTERS} page={logPage()} />);
+
+    expect(screen.getByRole("button", { name: "Purge…" }).hasAttribute("disabled")).toBe(true);
   });
 
   it("disables the Export menu when nothing matches", () => {
