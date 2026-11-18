@@ -471,6 +471,22 @@ describe("readLogBatches (integration)", () => {
     expect(events).toEqual(["action.unexpected_error", "auth.sign_in_failed"]);
   });
 
+  it("reads only entries written up to the moment the counts were read, when given one", async () => {
+    await seed(Array.from({ length: 5 }, () => ({})));
+
+    const readAt = new Date("2026-11-14T09:00:02.000Z");
+    const events = (await collect(readLogBatches({ ...NONE, readAt }, 2))).flat();
+    expect(events.map((e) => e.event)).toEqual(["test.entry_2", "test.entry_1", "test.entry_0"]);
+  });
+
+  it("reads the entries a purge would delete, filters and moment together", async () => {
+    await seed([{ level: "error" }, { level: "info" }, { level: "error" }, { level: "error" }]);
+
+    const readAt = new Date("2026-11-14T09:00:02.000Z");
+    const [batch] = await collect(readLogBatches({ level: ["error"], source: [], readAt }));
+    expect(batch.map((e) => e.event)).toEqual(["test.entry_2", "test.entry_0"]);
+  });
+
   it("reads each entry as the Logs page shows it, with its detail parsed", async () => {
     await seed([{ event: "task.deleted", detail: '{"id":"t1"}' }, { detail: "{oops" }]);
 
