@@ -77,8 +77,8 @@ export type LogFilters = z.output<typeof logFiltersSchema>;
 /** What a purge deletes: the entries the filters match, or every entry. */
 export const PURGE_SCOPES = ["filtered", "all"] as const;
 
-/** When a purge's entries were counted, which bounds what it deletes. */
-const readAtSchema = z.iso.datetime().transform((value) => new Date(value));
+/** When the Logs page's counts were read, which bounds a purge and its export. */
+export const logReadAtSchema = z.iso.datetime().transform((value) => new Date(value));
 
 /** Validates a purge before it runs.
  *
@@ -88,13 +88,13 @@ const readAtSchema = z.iso.datetime().transform((value) => new Date(value));
  * recorded as filtered always was.
  */
 export const logPurgeSchema = z.discriminatedUnion("scope", [
-  z.object({ scope: z.literal("all"), readAt: readAtSchema }),
+  z.object({ scope: z.literal("all"), readAt: logReadAtSchema }),
   z
     .object({
       scope: z.literal("filtered"),
       level: z.array(z.enum(LOG_LEVELS)),
       source: z.array(z.enum(LOG_SOURCES)),
-      readAt: readAtSchema,
+      readAt: logReadAtSchema,
     })
     .refine((purge) => purge.level.length > 0 || purge.source.length > 0, {
       message: "Turn a filter on to purge what it matches",

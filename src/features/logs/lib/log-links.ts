@@ -45,10 +45,13 @@ export function logsHref(filters: Choices & { page?: number }): string {
  *
  * @param filters The levels and sources the export follows.
  * @param format The file's format.
+ * @param readAt When the page's counts were read, as an ISO 8601 timestamp,
+ *   to leave out entries written since. Omitted, the export holds every match.
  * @returns The address, such as `/api/logs/export?format=csv&level=error`.
  */
-export function logExportHref(filters: Choices, format: ExportFormat): string {
+export function logExportHref(filters: Choices, format: ExportFormat, readAt?: string): string {
   const params = new URLSearchParams({ format });
   for (const [name, value] of choiceParams(filters)) params.append(name, value);
+  if (readAt !== undefined) params.set("readAt", readAt);
   return `/api/logs/export?${params}`;
 }
