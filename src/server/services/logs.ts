@@ -59,6 +59,12 @@ export interface LogPage {
   levelCounts: Record<LogLevel, number>;
   /** How many entries there are from each source, whatever the filters. */
   sourceCounts: Record<LogSource, number>;
+  /** When the counts were read, as an ISO 8601 timestamp.
+   *
+   * A purge confirmed from the page deletes only entries written up to then,
+   * so it deletes what the page counted.
+   */
+  readAt: string;
 }
 
 /** Keeps a requested listing size within what one listing may return.
@@ -154,6 +160,7 @@ function filtersWhere(filters: Pick<LogFilters, "level" | "source">): LogWhereIn
  */
 export async function listLogPage(filters: LogFilters): Promise<LogPage> {
   const where = filtersWhere(filters);
+  const readAt = new Date();
   const [matching, total, oldest, levels, auth, tasks, categories] = await Promise.all([
     prisma.log.count({ where }),
     prisma.log.count(),
@@ -192,6 +199,7 @@ export async function listLogPage(filters: LogFilters): Promise<LogPage> {
     oldest: oldest ? oldest.createdAt.toISOString() : null,
     levelCounts,
     sourceCounts: { auth, tasks, categories, system: total - auth - tasks - categories },
+    readAt: readAt.toISOString(),
   };
 }
 
@@ -262,6 +270,25 @@ export async function* readLogBatches(
  */
 export async function deleteLogsBefore(cutoff: Date): Promise<number> {
   const { count } = await prisma.log.deleteMany({ where: { createdAt: { lt: cutoff } } });
+  return count;
+}
+
+/** Deletes the entries the Logs page's filters match, written up to a moment.
+ *
+ * One delete, which the `createdAt` index serves. An entry written after the
+ * moment is kept, whatever it matches.
+ *
+ * @param filters The levels and sources to match. Empty ones match every entry.
+ * @param readAt The moment the entries were counted. An entry written at it is deleted.
+ * @returns How many entries were deleted.
+ */
+export async function deleteLogs(
+  filters: Pick<LogFilters, "level" | "source">,
+  readAt: Date
+): Promise<number> {
+  const { count } = await prisma.log.deleteMany({
+    where: { AND: [filtersWhere(filters), { createdAt: { lte: readAt } }] },
+  });
   return count;
 }
 
