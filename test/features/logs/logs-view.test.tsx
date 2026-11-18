@@ -45,6 +45,7 @@ function logPage(change: Partial<LogPage> = {}): LogPage {
     oldest: null,
     levelCounts: { debug: 0, info: 0, warn: 0, error: 0 },
     sourceCounts: { auth: 0, tasks: 0, categories: 0, system: 0 },
+    readAt: "2026-11-17T19:30:00.000Z",
     ...change,
   };
 }

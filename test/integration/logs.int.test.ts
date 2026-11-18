@@ -5,6 +5,7 @@ import {
   DEFAULT_LOG_LIST,
   LOG_BATCH_SIZE,
   MAX_LOG_LIST,
+  deleteLogs,
   listLogPage,
   listLogs,
   readLogBatches,
@@ -240,7 +241,18 @@ describe("listLogPage (integration)", () => {
       oldest: null,
       levelCounts: { debug: 0, info: 0, warn: 0, error: 0 },
       sourceCounts: { auth: 0, tasks: 0, categories: 0, system: 0 },
+      readAt: expect.any(String),
     });
+  });
+
+  it("says when its counts were read", async () => {
+    const before = Date.now();
+    const { readAt } = await listLogPage(filters());
+    const after = Date.now();
+
+    expect(new Date(readAt).toISOString()).toBe(readAt);
+    expect(Date.parse(readAt)).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(readAt)).toBeLessThanOrEqual(after);
   });
 
   it(`shows ${LOG_PAGE_SIZE} entries a page, newest first`, async () => {
@@ -467,5 +479,74 @@ describe("readLogBatches (integration)", () => {
       ["system", { unparsed: "{oops" }],
       ["tasks", { id: "t1" }],
     ]);
+  });
+});
+
+describe("deleteLogs (integration)", () => {
+  /** No filters on, as a purge of every entry deletes. */
+  const NONE = { level: [], source: [] };
+
+  /** The moment the third seeded entry was written, two seconds after the first. */
+  const THIRD = new Date("2026-11-14T09:00:02.000Z");
+
+  /** The events of the entries left, newest first.
+   *
+   * @returns Each remaining entry's event.
+   */
+  async function remaining(): Promise<string[]> {
+    return (await listLogs()).map((e) => e.event);
+  }
+
+  it("deletes every entry written up to the moment, and says how many", async () => {
+    await seed([{}, {}, {}]);
+
+    expect(await deleteLogs(NONE, THIRD)).toBe(3);
+    expect(await remaining()).toEqual([]);
+  });
+
+  it("keeps an entry written after the moment", async () => {
+    await seed([{}, {}, {}, {}, {}]);
+
+    expect(await deleteLogs(NONE, THIRD)).toBe(3);
+    expect(await remaining()).toEqual(["test.entry_4", "test.entry_3"]);
+  });
+
+  it("deletes an entry written at the moment itself", async () => {
+    await seed([{}, {}, {}]);
+
+    await deleteLogs(NONE, THIRD);
+    expect(await remaining()).not.toContain("test.entry_2");
+  });
+
+  it("deletes only the entries the levels and sources match", async () => {
+    await seed([
+      { event: "auth.sign_in_failed", level: "warn" },
+      { event: "auth.signed_in", level: "info" },
+      { event: "task.deleted", level: "warn" },
+      { event: "server.started", level: "info" },
+      { event: "action.unexpected_error", level: "error" },
+    ]);
+
+    const removed = await deleteLogs(
+      { level: ["warn", "error"], source: ["auth", "system"] },
+      new Date("2026-11-14T10:00:00.000Z")
+    );
+
+    expect(removed).toBe(2);
+    expect(await remaining()).toEqual(["server.started", "task.deleted", "auth.signed_in"]);
+  });
+
+  it("keeps a matching entry written after the moment", async () => {
+    await seed([{ level: "error" }, { level: "error" }, { level: "error" }, { level: "error" }]);
+
+    expect(await deleteLogs({ level: ["error"], source: [] }, THIRD)).toBe(3);
+    expect(await remaining()).toEqual(["test.entry_3"]);
+  });
+
+  it("deletes nothing, and says so, when nothing matches", async () => {
+    await seed([{ level: "info" }]);
+
+    expect(await deleteLogs({ level: ["error"], source: [] }, THIRD)).toBe(0);
+    expect(await remaining()).toHaveLength(1);
   });
 });
