@@ -49,6 +49,7 @@ src/
     logger.ts             The shared logger, to stdout and the Log table
     log-retention.ts      Ages old entries out of the Log table, at start-up and nightly
     log-export.ts         Writes log entries as a streamed CSV or JSON download
+    log-purge.ts          Deletes log entries on demand, and records that it did
     rate-limit.ts         The in-memory sign-in attempt limiter
     start-up.ts           Configuration checks and the start-up entry
 prisma/
@@ -311,13 +312,16 @@ The table is read by the Logs page, at `/logs`, through the log service's `listL
 It pages and filters on the server, with the filters held in the URL, because the table grows with everything the app does.
 The task list is the opposite case: small enough to fetch whole and narrow in the browser.
 The same page downloads what its filters match as CSV or JSON, through a route handler that streams the entries a batch at a time, so a large log is never held in memory, and that writes nothing to the log it reads.
+It also purges entries on demand, behind a confirmation that counts them.
+A purge deletes only entries written up to the moment the page read its counts, so one written while the confirmation was open is kept and the count confirmed is the count deleted.
+A purge, unlike the age-out described next, is recorded in the log itself, as an activity entry written after the deletion, so an emptied log still shows when it was cleared.
 
 The table does not keep everything forever.
 Entries older than a chosen age, 90 days unless changed on the Logs page, are deleted once at start-up and then every night at 03:00 server time, by a timer inside the server rather than cron or a second container, so a self-host stays one container.
 The deletion is one query that can be repeated safely, so two instances sharing a database can each run their own timer without harm.
 A run records what it did in `Settings`, never in the log, so retention never adds to the log it trims.
 
-→ [Logging](./docs/guides/logging.md) · [Retention](./docs/guides/logging.md#retention) · [The Logs page](./docs/guides/ui.md#the-logs-page)
+→ [Logging](./docs/guides/logging.md) · [Purging](./docs/guides/logging.md#purging-entries) · [Retention](./docs/guides/logging.md#retention) · [The Logs page](./docs/guides/ui.md#the-logs-page)
 
 ---
 

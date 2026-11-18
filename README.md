@@ -261,6 +261,8 @@ The same entries are also written to the app's own database, where the **Logs** 
 It filters them by level and by source, and opening an entry shows everything recorded with it.
 Its **Export** menu downloads the entries the filters match, or every entry, as CSV for a spreadsheet or JSON for full detail.
 A CSV cell that would start a formula gets an apostrophe in front, so nothing in the file can run as one when it is opened.
+Its **Purge** button deletes entries on demand, either those the filters match or every entry, after a confirmation that counts them and offers to export them first.
+Each purge is recorded as a `log.purged` entry, which the purge itself keeps, so an emptied log still shows when it was cleared.
 stdout is still the one to rely on: it keeps working when the database does not.
 
 The database copy does not grow forever.
