@@ -152,6 +152,7 @@ Every destructive action gets a confirmation step.
 Use the shadcn **`AlertDialog`** primitive, not `Dialog`:
 it's the modal-confirm variant, and it can't be dismissed by clicking the overlay.
 Name the thing being destroyed in the description so the prompt is unambiguous.
+The Logs page's Purge confirmation is the one exception: it closes on a click outside as well as on Cancel and Escape, which `AlertDialog` never allows, so it is a `Dialog` given `role="alertdialog"`; see [Purge](#purge).
 The task delete flow (`src/features/tasks/components/list/delete-task-dialog.tsx`) is the reference;
 the categories delete reuses the same shape.
 
@@ -273,7 +274,7 @@ Filtering an array already in memory is sub-millisecond; a debounce would only a
 The Logs page (`src/features/logs/`) is narrowed **on the server, with its filters in the URL**: the opposite of the task list, for the opposite reason.
 The log grows with everything the app does, so the page reads one page of 50 entries through `listLogPage` rather than fetching the table.
 A filter therefore has to reach the server, and the URL is how it gets there.
-The header holds the Export menu, which downloads what the filters match; see [The Export menu](#the-export-menu).
+The header holds the Export menu, which downloads what the filters match, and Purge, which deletes entries behind a confirmation; see [The Export menu](#the-export-menu) and [Purge](#purge).
 Between the header and the filters sits the Retention card, which chooses how long entries are kept; see [The Retention card](#the-retention-card).
 
 - **The URL is the only copy of the filters.**
@@ -298,7 +299,7 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar, the Retention card's two controls and the parts of the Export menu's dropdown are the page's only client components.
+  The filter bar, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
@@ -325,6 +326,28 @@ What goes in the file, and how it is streamed, is in [Logging](./logging.md#expo
   The actions sit in their own `shrink-0` flex group beside the heading, which has `min-w-0` so a long count gives way first.
 - **It is a Server Component.**
   It renders the shared dropdown, whose parts are the client components, so the menu adds no client code of its own.
+
+### Purge
+
+Purge (`purge-dialog.tsx`) is a button in the header's actions, after Export, that opens a confirmation and deletes the entries chosen there.
+What a purge deletes and records is in [Logging](./logging.md#purging-entries).
+
+- **The confirmation offers two choices, each with its count**: "Entries matching the current filters", counting the page's `matching`, and "Every log entry", counting its `total`.
+  The first is chosen by default while a filter is on, and is disabled, saying "No filters are on", when none is.
+  The choice goes back to that default each time the confirmation opens.
+  They are native radio inputs inside a `<fieldset>`, with a visually hidden legend.
+- **The confirm button names the count**, as "Purge 1,204 entries", and is disabled when the choice holds none.
+  It sends the page's `readAt` with the choice, so the purge deletes only what the page counted.
+- **"Export these first" is a link, not a button**: an `<a download>` to the export route for the chosen entries as JSON, with the same `readAt`, so the browser saves the file and the confirmation stays open.
+  With nothing to export it is a disabled button, since a link cannot be disabled.
+- **It is a `Dialog` with the alert dialog's role**, so Cancel, Escape and a click outside all close it.
+  `AlertDialog` would refuse the click outside; here closing is safe however it happens, since nothing is deleted until the confirm button is pressed.
+  It cannot be closed while the purge runs: `onOpenChange` ignores a close while it is pending, and both buttons are disabled.
+- **After a purge it closes and says so in a toast.**
+  A purge of the filtered entries then goes to plain `/logs`, since the filters now match nothing; a purge of every entry keeps the filters on.
+  A failed purge leaves the confirmation open, with the error in a toast.
+- **The button is disabled when the log is empty.**
+- **Below 520px it shrinks to its icon**, as Export does, with its "Purge…" label `sr-only` there and `title="Purge log entries"` naming it for a pointer.
 
 ### The Retention card
 

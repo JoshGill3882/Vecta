@@ -59,6 +59,12 @@ export interface LogPage {
   levelCounts: Record<LogLevel, number>;
   /** How many entries there are from each source, whatever the filters. */
   sourceCounts: Record<LogSource, number>;
+  /** When the counts were read, as an ISO 8601 timestamp.
+   *
+   * A purge confirmed from the page deletes only entries written up to then,
+   * so it deletes what the page counted.
+   */
+  readAt: string;
 }
 
 /** Keeps a requested listing size within what one listing may return.
@@ -143,6 +149,21 @@ function filtersWhere(filters: Pick<LogFilters, "level" | "source">): LogWhereIn
   return where;
 }
 
+/** Matches the entries the Logs page's filters pick that were written up to a moment.
+ *
+ * @param filters The page's levels and sources. Empty ones match every entry.
+ * @param readAt The moment to stop at, which an entry written at it is within,
+ *   or undefined to match an entry whenever it was written.
+ * @returns A filter for those entries.
+ */
+function writtenUpTo(
+  filters: Pick<LogFilters, "level" | "source">,
+  readAt: Date | undefined
+): LogWhereInput {
+  const where = filtersWhere(filters);
+  return readAt ? { AND: [where, { createdAt: { lte: readAt } }] } : where;
+}
+
 /** Lists one page of the entries the Logs page's filters match, newest first.
  *
  * The counts come first, so a page past the last can show the last instead of
@@ -154,6 +175,7 @@ function filtersWhere(filters: Pick<LogFilters, "level" | "source">): LogWhereIn
  */
 export async function listLogPage(filters: LogFilters): Promise<LogPage> {
   const where = filtersWhere(filters);
+  const readAt = new Date();
   const [matching, total, oldest, levels, auth, tasks, categories] = await Promise.all([
     prisma.log.count({ where }),
     prisma.log.count(),
@@ -192,6 +214,7 @@ export async function listLogPage(filters: LogFilters): Promise<LogPage> {
     oldest: oldest ? oldest.createdAt.toISOString() : null,
     levelCounts,
     sourceCounts: { auth, tasks, categories, system: total - auth - tasks - categories },
+    readAt: readAt.toISOString(),
   };
 }
 
@@ -228,16 +251,17 @@ function listedAfter(entry: ListPlace): LogWhereInput {
  * written after the first batch is newer than everything in it, so it is left
  * out.
  *
- * @param filters The page's levels and sources. Its page, if it has one, is
+ * @param filters The page's levels and sources, and the moment its counts were
+ *   read, if the reading should stop there. Its page, if it has one, is
  *   ignored: every matching entry is read.
  * @param batchSize How many entries to read at a time.
  * @yields Each batch of entries, never an empty one.
  */
 export async function* readLogBatches(
-  filters: Pick<LogFilters, "level" | "source">,
+  filters: Pick<LogFilters, "level" | "source"> & { readAt?: Date },
   batchSize = LOG_BATCH_SIZE
 ): AsyncGenerator<LogEntryDTO[]> {
-  const where = filtersWhere(filters);
+  const where = writtenUpTo(filters, filters.readAt);
   let last: ListPlace | undefined;
   while (true) {
     const rows = await prisma.log.findMany({
@@ -262,6 +286,23 @@ export async function* readLogBatches(
  */
 export async function deleteLogsBefore(cutoff: Date): Promise<number> {
   const { count } = await prisma.log.deleteMany({ where: { createdAt: { lt: cutoff } } });
+  return count;
+}
+
+/** Deletes the entries the Logs page's filters match, written up to a moment.
+ *
+ * One delete, which the `createdAt` index serves. An entry written after the
+ * moment is kept, whatever it matches.
+ *
+ * @param filters The levels and sources to match. Empty ones match every entry.
+ * @param readAt The moment the entries were counted. An entry written at it is deleted.
+ * @returns How many entries were deleted.
+ */
+export async function deleteLogs(
+  filters: Pick<LogFilters, "level" | "source">,
+  readAt: Date
+): Promise<number> {
+  const { count } = await prisma.log.deleteMany({ where: writtenUpTo(filters, readAt) });
   return count;
 }
 

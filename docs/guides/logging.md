@@ -3,7 +3,7 @@
 The server records what happens through one shared logger.
 Every entry goes to **stdout** as a JSON line and to the **`Log` table**, and the two are deliberately not equal:
 stdout always works, while the table is best-effort.
-This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read and exported, how old ones age out of the table, and how to test code that logs.
+This guide covers how to log, the two kinds of entry, what happens to an entry, how the entries are read, exported and purged, how old ones age out of the table, and how to test code that logs.
 
 ## Key files
 
@@ -13,10 +13,11 @@ This guide covers how to log, the two kinds of entry, what happens to an entry, 
 - `src/server/start-up.ts` — the start-up checks, the `server.started` entry, and the start of the nightly age-out
 - `src/server/log-retention.ts` — `ageOutLogs()`, `getRetentionStatus()` and the nightly timer
 - `src/server/log-export.ts` — `exportStream()` and `exportFileName()`, which write an export as CSV or JSON
+- `src/server/log-purge.ts` — `purgeLogs()`, which deletes entries on demand and records that it did
 - `app/api/logs/export/route.ts` — the route the Logs page's Export menu downloads from
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
 - `src/server/services/settings.ts` — the settings service, which holds the chosen retention and the last run; see [Database & service layer](./database.md#the-settings-service)
-- `src/features/logs/` — the Logs page, which lists the table's entries and holds the Export menu and the Retention card; see [UI & frontend](./ui.md#the-logs-page)
+- `src/features/logs/` — the Logs page, which lists the table's entries and holds the Export menu, Purge and the Retention card; see [UI & frontend](./ui.md#the-logs-page)
 
 ## Two kinds of entry
 
@@ -52,23 +53,24 @@ It is server-only (`import "server-only"`), so it cannot be imported into a Clie
 
 ### Events the app logs
 
-| Event                     | Kind        | Level   | When                                                                                                        |
-| ------------------------- | ----------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `server.started`          | operational | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider`                                     |
-| `server.config_invalid`   | operational | `error` | Start-up found a configuration problem, just before it refuses to start                                     |
-| `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                                  |
-| `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                                      |
-| `log.age_out_failed`      | operational | `error` | A start-up or nightly age-out run failed, or the nightly runs could not be started. `detail.error` says why |
-| `log.export_failed`       | operational | `error` | An export failed partway through. `detail` holds `format` and `error`                                       |
-| `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                                     |
-| `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed                           |
-| `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                                         |
-| `category.created`        | activity    | `info`  | A category was created. `detail` holds `categoryId` and `name`                                              |
-| `category.updated`        | activity    | `info`  | A category was updated. `detail` adds `changed`                                                             |
-| `category.deleted`        | activity    | `info`  | A category was deleted. `detail` adds `uncategorisedTasks`, how many tasks lost it                          |
-| `auth.signed_in`          | activity    | `info`  | A sign-in succeeded. No detail                                                                              |
-| `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else                   |
-| `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                                              |
+| Event                     | Kind        | Level   | When                                                                                                                                                       |
+| ------------------------- | ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.started`          | operational | `info`  | Start-up succeeded. `detail` holds `version`, `revision` and `provider`                                                                                    |
+| `server.config_invalid`   | operational | `error` | Start-up found a configuration problem, just before it refuses to start                                                                                    |
+| `action.unexpected_error` | operational | `error` | `toActionError()` met an error that is not a `DomainError`                                                                                                 |
+| `log.write_failed`        | operational | `error` | Writing an entry to the table failed. **stdout only**, never the table                                                                                     |
+| `log.age_out_failed`      | operational | `error` | A start-up or nightly age-out run failed, or the nightly runs could not be started. `detail.error` says why                                                |
+| `log.export_failed`       | operational | `error` | An export failed partway through. `detail` holds `format` and `error`                                                                                      |
+| `task.created`            | activity    | `info`  | A task was created. `detail` holds `taskId` and `title`                                                                                                    |
+| `task.updated`            | activity    | `info`  | A task was updated. `detail` adds `changed`, the names of the fields that changed                                                                          |
+| `task.deleted`            | activity    | `info`  | A task was deleted. `detail` holds the title it had                                                                                                        |
+| `category.created`        | activity    | `info`  | A category was created. `detail` holds `categoryId` and `name`                                                                                             |
+| `category.updated`        | activity    | `info`  | A category was updated. `detail` adds `changed`                                                                                                            |
+| `category.deleted`        | activity    | `info`  | A category was deleted. `detail` adds `uncategorisedTasks`, how many tasks lost it                                                                         |
+| `auth.signed_in`          | activity    | `info`  | A sign-in succeeded. No detail                                                                                                                             |
+| `auth.sign_in_failed`     | activity    | `warn`  | A sign-in failed. `detail.reason` is `wrong_password` or `rate_limited`, and nothing else                                                                  |
+| `auth.signed_out`         | activity    | `info`  | The user signed out. No detail                                                                                                                             |
+| `log.purged`              | activity    | `warn`  | Log entries were purged from the Logs page. `detail` holds `scope` (`filtered` or `all`), `removed`, and the `level` and `source` filters, empty for `all` |
 
 The Logs page files each event under a source by its prefix: `auth.` is Auth, `task.` is Tasks, `category.` is Categories, and anything else is System.
 A new event with one of those prefixes is filed with its entity, and any other lands under System with no change needed.
@@ -111,7 +113,7 @@ Loading it opens the database, and `src/server/db.ts` throws as it loads when `D
 Every write shares that one load, so a database that cannot be opened is tried once, not again for every entry.
 
 `flushLogs()` waits for table writes still in progress.
-Nothing on a request path calls it.
+A purge calls it, so the page it refreshes shows the purge's own entry.
 Start-up calls it before refusing to start, to give the `server.config_invalid` entry its chance to reach the table, and tests call it to wait for writes deterministically.
 
 ## Reading the entries
@@ -131,6 +133,8 @@ That is one more reason the rules under [What is never logged](#what-is-never-lo
 The Logs page's Export menu downloads the entries its filters match, newest first, or every entry when no filter is on, as CSV for a spreadsheet or JSON for full detail.
 The download is `GET /api/logs/export?format=csv` or `format=json`, with the page's `level` and `source` parameters.
 The route reads them with `logFiltersSchema`, as the page does, and `logExportHref` in `src/features/logs/lib/log-links.ts` writes the address from the same filters as the page's own, so an export always holds what the page lists.
+A `readAt` parameter, an ISO 8601 moment read with `logReadAtSchema`, leaves out entries written after it: Purge's "Export these first" sends the moment the page's counts were read, so its file holds what the purge would delete.
+An unreadable `readAt` is ignored, as an unknown filter is, and every match is exported.
 
 - **Both formats hold the same six fields:** `time`, the ISO 8601 timestamp in UTC, then `kind`, `level`, `event`, `message` and `detail`.
   `message` is the stored message, not the page's wording for it.
@@ -149,6 +153,22 @@ The route reads them with `logFiltersSchema`, as the page does, and `logExportHr
 
 **An export writes no entry**, since it only reads the log, as the Logs page does.
 A failure partway through logs `log.export_failed` with the format and the error, and ends the download with an error, so the browser reports it failed rather than saving a file that looks complete.
+
+## Purging entries
+
+The Logs page's Purge button deletes entries on demand, behind a confirmation: either the entries the filters match or every entry.
+Deleting entries older than a date is what Retention's Remove now does, so a purge has no date of its own.
+
+- **It deletes what the page counted.** `listLogPage` notes the moment it reads its counts as `readAt`, and the confirmation sends it back.
+  `deleteLogs` in the log service then deletes only the matching entries written up to that moment, in one `deleteMany` on the `createdAt` index, so an entry written while the confirmation was open is kept and the number on its button is the number deleted.
+- **Its input is checked strictly.** `purgeLogsAction` validates with `logPurgeSchema`, which uses the same levels and sources as the page's filters but refuses an unknown one rather than clearing it, since clearing it would widen the purge.
+  A purge of the filtered entries needs a filter on, so one recorded as filtered always was.
+- **It is always recorded.** `purgeLogs()` in `src/server/log-purge.ts` writes `log.purged` at `warn` after the deletion, as an activity entry so `LOG_LEVEL` never drops it.
+  It is written after the moment the purge deletes up to, so it survives the purge it records, and a log emptied by a purge still shows when.
+  The purge waits for the entry to reach the table before the page refreshes, so the page shows it.
+- **"Export these first"** downloads the chosen entries as JSON, bounded by the same `readAt`, and leaves the confirmation open; see [Exporting the entries](#exporting-the-entries).
+
+A failed purge is reported like any other failed Server Action, as `action.unexpected_error`, with a toast on the page and the confirmation left open.
 
 ## Retention
 
@@ -251,6 +271,10 @@ The deletion itself runs against the real table in `test/integration/log-retenti
 `test/server/log-export.test.ts` hands `exportStream` batches directly and runs the real logger for the failure entry.
 `test/app/logs-export-route.test.ts` calls the route with a `NextRequest`, with the session and the log service stood in for.
 `test/integration/logs.int.test.ts` runs `readLogBatches` against the real table.
+
+**A purge** is tested in three places too.
+`test/integration/log-purge.int.test.ts` runs `purgeLogs` against the real table with the real logger, and checks the `log.purged` entry is in the table by the time it returns.
+`test/integration/logs.int.test.ts` covers `deleteLogs` and its bound, and `test/features/logs/actions.test.ts` covers `purgeLogsAction` with the purge stood in for.
 
 **In an integration test**, read entries back with `activityEntries()` from `test/support/activity.ts`.
 It waits for pending writes, then returns the activity entries sorted by event name, since entries written in the same millisecond have no reliable order.

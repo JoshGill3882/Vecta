@@ -161,6 +161,35 @@ describe("GET /api/logs/export", () => {
     );
   });
 
+  it("exports every match, whenever written, when no moment is given", async () => {
+    await exportWith("format=json");
+
+    expect(mockReadLogBatches).toHaveBeenCalledWith(expect.objectContaining({ readAt: undefined }));
+  });
+
+  it("exports only entries written up to the moment the Purge confirmation sends", async () => {
+    await exportWith("format=json&level=warn&readAt=2026-11-17T19:30:00.000Z");
+
+    expect(mockReadLogBatches).toHaveBeenCalledWith({
+      level: ["warn"],
+      source: [],
+      page: 1,
+      readAt: new Date("2026-11-17T19:30:00.000Z"),
+    });
+  });
+
+  it.each(["yesterday", "2026-11-17", ""])(
+    "ignores the unreadable moment %j, as it does an unknown filter",
+    async (readAt) => {
+      const res = await exportWith(`format=csv&readAt=${readAt}`);
+
+      expect(res.status).toBe(200);
+      expect(mockReadLogBatches).toHaveBeenCalledWith(
+        expect.objectContaining({ readAt: undefined })
+      );
+    }
+  );
+
   it("writes nothing to the log", async () => {
     const res = await exportWith("format=csv");
     await res.text();

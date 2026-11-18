@@ -4,7 +4,9 @@ import {
   LOG_KINDS,
   LOG_LEVELS,
   LOG_SOURCES,
+  PURGE_SCOPES,
   logFiltersSchema,
+  logPurgeSchema,
   logWriteSchema,
 } from "@/src/shared/lib/schemas/logs";
 
@@ -167,5 +169,83 @@ describe("logFiltersSchema", () => {
       source: [],
       page: 1,
     });
+  });
+});
+
+describe("logPurgeSchema", () => {
+  const READ_AT = "2026-11-17T19:30:00.000Z";
+
+  it("lists the scopes in the order the confirmation offers them", () => {
+    expect(PURGE_SCOPES).toEqual(["filtered", "all"]);
+  });
+
+  it("reads a purge of every entry, with when its count was read as a moment", () => {
+    expect(logPurgeSchema.parse({ scope: "all", readAt: READ_AT })).toEqual({
+      scope: "all",
+      readAt: new Date(READ_AT),
+    });
+  });
+
+  it("drops the filters from a purge of every entry, which ignores them", () => {
+    const purge = logPurgeSchema.parse({
+      scope: "all",
+      level: ["warn"],
+      source: ["auth"],
+      readAt: READ_AT,
+    });
+
+    expect(purge).toEqual({ scope: "all", readAt: new Date(READ_AT) });
+  });
+
+  it.each([
+    ["a level", { level: ["warn", "error"], source: [] }],
+    ["a source", { level: [], source: ["auth"] }],
+    ["both", { level: ["error"], source: ["tasks", "system"] }],
+  ])("reads a filtered purge with %s on", (_, filters) => {
+    expect(logPurgeSchema.parse({ scope: "filtered", ...filters, readAt: READ_AT })).toEqual({
+      scope: "filtered",
+      ...filters,
+      readAt: new Date(READ_AT),
+    });
+  });
+
+  it("refuses a filtered purge with no filter on, which would delete every entry", () => {
+    const result = logPurgeSchema.safeParse({
+      scope: "filtered",
+      level: [],
+      source: [],
+      readAt: READ_AT,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(z.flattenError(result.error).formErrors).toContain(
+        "Turn a filter on to purge what it matches"
+      );
+    }
+  });
+
+  it.each([
+    ["an unknown level", { level: ["fatal"], source: [] }],
+    ["one unknown level among known ones", { level: ["warn", "fatal"], source: [] }],
+    ["a level in the wrong case", { level: ["WARN"], source: [] }],
+    ["an unknown source", { level: [], source: ["settings"] }],
+    ["a level given once rather than as a list", { level: "warn", source: [] }],
+    ["no filters at all", {}],
+  ])("refuses a filtered purge with %s, rather than clearing it", (_, filters) => {
+    expect(
+      logPurgeSchema.safeParse({ scope: "filtered", ...filters, readAt: READ_AT }).success
+    ).toBe(false);
+  });
+
+  it.each([
+    ["no scope", { readAt: READ_AT }],
+    ["an unknown scope", { scope: "older", readAt: READ_AT }],
+    ["no moment", { scope: "all" }],
+    ["a moment that is not a timestamp", { scope: "all", readAt: "yesterday" }],
+    ["a moment as a number", { scope: "all", readAt: Date.parse(READ_AT) }],
+    ["a date without a time", { scope: "all", readAt: "2026-11-17" }],
+  ])("refuses %s", (_, purge) => {
+    expect(logPurgeSchema.safeParse(purge).success).toBe(false);
   });
 });

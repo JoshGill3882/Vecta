@@ -75,6 +75,12 @@ describe("logExportHref", () => {
     expect(logExportHref(filters, "csv")).toBe("/api/logs/export?format=csv&level=info");
   });
 
+  it("adds when the page's counts were read, after the filters, when given", () => {
+    expect(
+      logExportHref({ level: ["error"], source: [] }, "json", "2026-11-17T19:30:00.000Z")
+    ).toBe("/api/logs/export?format=json&level=error&readAt=2026-11-17T19%3A30%3A00.000Z");
+  });
+
   it("carries the same filters as the page's own address", () => {
     const filters: LogFilters = { level: ["debug", "error"], source: ["categories"], page: 1 };
     const exportQuery = new URL(logExportHref(filters, "csv"), "http://vecta.test").searchParams;

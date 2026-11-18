@@ -73,3 +73,33 @@ export const logFiltersSchema = z.object({
 
 /** The Logs page's filters, once read from the query string. */
 export type LogFilters = z.output<typeof logFiltersSchema>;
+
+/** What a purge deletes: the entries the filters match, or every entry. */
+export const PURGE_SCOPES = ["filtered", "all"] as const;
+
+/** When the Logs page's counts were read, which bounds a purge and its export. */
+export const logReadAtSchema = z.iso.datetime().transform((value) => new Date(value));
+
+/** Validates a purge before it runs.
+ *
+ * Stricter than the page's filters: an unknown level or source is refused
+ * rather than cleared, because clearing it would widen the purge to entries the
+ * confirmation never counted. A filtered purge needs a filter on, so one
+ * recorded as filtered always was.
+ */
+export const logPurgeSchema = z.discriminatedUnion("scope", [
+  z.object({ scope: z.literal("all"), readAt: logReadAtSchema }),
+  z
+    .object({
+      scope: z.literal("filtered"),
+      level: z.array(z.enum(LOG_LEVELS)),
+      source: z.array(z.enum(LOG_SOURCES)),
+      readAt: logReadAtSchema,
+    })
+    .refine((purge) => purge.level.length > 0 || purge.source.length > 0, {
+      message: "Turn a filter on to purge what it matches",
+    }),
+]);
+
+/** A purge, once validated. */
+export type LogPurge = z.output<typeof logPurgeSchema>;

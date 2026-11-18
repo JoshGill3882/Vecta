@@ -11,6 +11,7 @@ import { ExportMenu } from "./export-menu";
 import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
 import { LogPager } from "./log-pager";
+import { PurgeDialog } from "./purge-dialog";
 import { RetentionCard } from "./retention-card";
 
 /** Logs view - the content of the `/logs` route.
@@ -49,6 +50,7 @@ export function LogsView({
         </div>
         <div className="flex shrink-0 gap-2">
           <ExportMenu page={page} filters={filters} />
+          <PurgeDialog page={page} filters={filters} />
         </div>
       </header>
 

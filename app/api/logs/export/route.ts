@@ -8,7 +8,7 @@ import {
   type ExportFormat,
 } from "@/src/server/log-export";
 import { readLogBatches } from "@/src/server/services/logs";
-import { logFiltersSchema } from "@/src/shared/lib/schemas/logs";
+import { logFiltersSchema, logReadAtSchema } from "@/src/shared/lib/schemas/logs";
 import { getSession } from "@/src/shared/lib/session";
 
 /** The media type each format is served as. */
@@ -25,6 +25,11 @@ const formatSchema = z.enum(EXPORT_FORMATS);
  * Called as `/api/logs/export?format=csv`, with the page's `level` and
  * `source` parameters. The filters are read as the page reads them, so an
  * unknown level or source clears that filter rather than refusing the export.
+ *
+ * With `readAt`, as the Purge confirmation sends it, only entries written up
+ * to then are exported, so the file holds what the purge would delete. An
+ * unreadable one is ignored as an unknown filter is, and every match is
+ * exported.
  *
  * The proxy leaves `/api` routes alone, so the session is checked here: an
  * export can hold the history of everything the user has done. The entries
@@ -49,8 +54,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     level: params.getAll("level"),
     source: params.getAll("source"),
   });
+  const readAt = logReadAtSchema.safeParse(params.get("readAt"));
+  const batches = readLogBatches({ ...filters, readAt: readAt.data });
 
-  return new Response(exportStream(format.data, readLogBatches(filters)), {
+  return new Response(exportStream(format.data, batches), {
     headers: {
       "Content-Type": CONTENT_TYPES[format.data],
       "Content-Disposition": `attachment; filename="${exportFileName(format.data, new Date())}"`,

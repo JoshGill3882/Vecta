@@ -48,6 +48,7 @@ const PAGE: LogPage = {
   oldest: null,
   levelCounts: { debug: 0, info: 30, warn: 6, error: 4 },
   sourceCounts: { auth: 10, tasks: 20, categories: 0, system: 10 },
+  readAt: "2026-11-17T19:30:00.000Z",
 };
 
 describe("ClearFiltersLink", () => {

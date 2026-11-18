@@ -202,8 +202,9 @@ export const logger: LogMethods & { activity: LogMethods } = {
 
 /** Waits for every table write still in progress.
  *
- * Nothing on a request path calls this. It is for tests, and for anything that
- * wants the table up to date before it stops, such as the process exiting.
+ * A purge waits on it, so the page refreshed after one shows the entry that
+ * records it. Otherwise it is for tests, and for anything that wants the table
+ * up to date before it stops, such as the process exiting.
  *
  * @returns A promise that settles once every pending write has.
  */
