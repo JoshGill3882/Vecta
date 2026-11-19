@@ -1,9 +1,10 @@
-import { Funnel, ScrollText } from "lucide-react";
+import { ScrollText, Search } from "lucide-react";
 
 import type { LogPage } from "@/src/server/services/logs";
 import { EmptyState } from "@/src/shared/components/empty-state";
 import type { RetentionStatusDTO } from "@/src/shared/lib/dtos/settings";
 import type { LogFilters } from "@/src/shared/lib/schemas/logs";
+import { normaliseQuery } from "@/src/shared/lib/text-search";
 import { entryCount, logDate } from "@/src/features/logs/lib/log-format";
 
 import { ClearFiltersLink } from "./clear-filters-link";
@@ -59,7 +60,7 @@ export function LogsView({
       <LogFilterBar page={page} filters={filters} />
 
       {page.entries.length > 0 ? (
-        <LogList entries={page.entries} now={now} />
+        <LogList entries={page.entries} now={now} needle={normaliseQuery(filters.q)} />
       ) : page.total === 0 ? (
         <EmptyState icon={ScrollText} heading="No log entries">
           New activity will appear here as it happens.
@@ -67,8 +68,8 @@ export function LogsView({
       ) : (
         // A page past the last shows the last, so a log with entries can only
         // show none when the filters match none of them.
-        <EmptyState icon={Funnel} heading="No matching entries" action={<ClearFiltersLink />}>
-          Nothing matches the filters you have on.
+        <EmptyState icon={Search} heading="No matching entries" action={<ClearFiltersLink />}>
+          Nothing matches the search and filters you have on.
         </EmptyState>
       )}
 
