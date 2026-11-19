@@ -226,7 +226,7 @@ Several things here are easy to get wrong.
   `status` is polite, so fast typing coalesces into one announcement rather than one per keystroke.
 - **Match highlighting uses `indexOf`, not a `RegExp`.**
   The query is user input, so a pattern built from it would need every metacharacter escaped before it could be trusted — a search for `.*` must highlight those two characters rather than the whole title, and an unclosed `[` must not throw.
-  `findMatches` returns index pairs into the original string, which also keeps the title's own casing in the output.
+  `findMatches` (`src/shared/lib/text-search.ts`) returns index pairs into the original string, which also keeps the title's own casing in the output, and `Highlight` (`src/shared/components/highlight.tsx`) marks them.
 - **A global key shortcut must not fire mid-typing.**
   `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
 - **Every narrowing control answers to one predicate.**

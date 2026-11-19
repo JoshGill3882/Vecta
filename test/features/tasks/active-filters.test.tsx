@@ -8,7 +8,8 @@ import { ActiveFilters } from "@/src/features/tasks/components/toolbar/active-fi
 import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
 import type { TaskNarrowingState } from "@/src/features/tasks/hooks/use-task-narrowing";
 import type { DueBucket } from "@/src/features/tasks/lib/due-date";
-import { isNarrowing, normaliseQuery } from "@/src/features/tasks/lib/task-search";
+import { isNarrowing } from "@/src/features/tasks/lib/task-search";
+import { normaliseQuery } from "@/src/shared/lib/text-search";
 
 const categories: CategoryDTO[] = [
   { id: "c1", name: "Infrastructure", color: "#3b9eff", createdAt: "2026-09-01T00:00:00.000Z" },
