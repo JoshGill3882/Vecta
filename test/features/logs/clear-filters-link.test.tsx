@@ -62,7 +62,10 @@ describe("ClearFiltersLink", () => {
     const user = userEvent.setup();
     render(
       <>
-        <LogFilterBar page={PAGE} filters={{ level: ["error"], source: ["categories"], page: 1 }} />
+        <LogFilterBar
+          page={PAGE}
+          filters={{ q: "", level: ["error"], source: ["categories"], range: null, page: 1 }}
+        />
         <ClearFiltersLink />
       </>
     );

@@ -36,7 +36,7 @@ const PAGE: LogPage = {
  * @returns The filters.
  */
 function filters(change: Partial<LogFilters> = {}): LogFilters {
-  return { level: [], source: [], page: 1, ...change };
+  return { q: "", level: [], source: [], range: null, page: 1, ...change };
 }
 
 describe("LogFilterBar buttons", () => {
@@ -119,6 +119,16 @@ describe("LogFilterBar menus", () => {
     expect(push).toHaveBeenCalledWith("/logs?level=error&source=auth", { scroll: false });
   });
 
+  it("keeps the search and the range when a choice changes", async () => {
+    const user = userEvent.setup();
+    render(<LogFilterBar page={PAGE} filters={filters({ q: "milk", range: "7d", page: 3 })} />);
+
+    await user.click(screen.getByRole("button", { name: "Source" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /Tasks/ }));
+
+    expect(push).toHaveBeenCalledWith("/logs?q=milk&source=tasks&range=7d", { scroll: false });
+  });
+
   it("stays open, so a second choice adds to the first", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<LogFilterBar page={PAGE} filters={filters()} />);
@@ -175,6 +185,30 @@ describe("LogFilterBar summary", () => {
     );
 
     expect(screen.getByRole("status").textContent).toBe("21 of 1,204 entries");
+  });
+
+  it.each([
+    ["a search", { q: "milk" }],
+    ["a range", { range: "30d" as const }],
+  ])("says how many entries match with only %s on", (_, change) => {
+    render(<LogFilterBar page={{ ...PAGE, matching: 3 }} filters={filters(change)} />);
+
+    expect(screen.getByRole("status").textContent).toBe("3 of 1,204 entries");
+    expect(screen.getByRole("button", { name: "Clear filters" })).toBeDefined();
+  });
+
+  it("clears the search and the range with the other filters", async () => {
+    const user = userEvent.setup();
+    render(
+      <LogFilterBar
+        page={PAGE}
+        filters={filters({ q: "milk", level: ["warn"], range: "24h", page: 2 })}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(push).toHaveBeenCalledWith("/logs", { scroll: false });
   });
 
   it("marks only the Level button as where clearing sends focus", () => {

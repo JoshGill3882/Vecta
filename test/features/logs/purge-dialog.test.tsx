@@ -57,7 +57,7 @@ function logPage(change: Partial<LogPage> = {}): LogPage {
  * @returns The filters.
  */
 function filters(change: Partial<LogFilters> = {}): LogFilters {
-  return { level: [], source: [], page: 1, ...change };
+  return { q: "", level: [], source: [], range: null, page: 1, ...change };
 }
 
 /** Warnings and errors from Auth, on the second page, matching 12 of the entries. */
@@ -250,8 +250,10 @@ describe("PurgeDialog", () => {
 
       expect(mockPurge).toHaveBeenCalledExactlyOnceWith({
         scope: "filtered",
+        q: "",
         level: ["warn", "error"],
         source: ["auth"],
+        range: null,
         readAt: READ_AT,
       });
       await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
@@ -268,8 +270,10 @@ describe("PurgeDialog", () => {
 
       expect(mockPurge).toHaveBeenCalledExactlyOnceWith({
         scope: "all",
+        q: "",
         level: [],
         source: [],
+        range: null,
         readAt: READ_AT,
       });
       await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
@@ -310,6 +314,79 @@ describe("PurgeDialog", () => {
       purge.finish(12);
       await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
       expect(mockPurge).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("with a search or a range on", () => {
+    it.each([
+      ["a search", { q: "milk" }],
+      ["a range", { range: "7d" as const }],
+    ])("offers and chooses the filtered entries with only %s on", async (_, change) => {
+      render(<PurgeDialog page={logPage({ matching: 7 })} filters={filters(change)} />);
+
+      const dialog = await openConfirmation();
+      const choice = within(dialog).getByRole("radio", { name: /Entries matching/ });
+      expect(choice.hasAttribute("disabled")).toBe(false);
+      expect((choice as HTMLInputElement).checked).toBe(true);
+      within(dialog).getByRole("button", { name: "Purge 7 entries" });
+    });
+
+    it("exports what the search and range match first", async () => {
+      render(
+        <PurgeDialog
+          page={logPage({ matching: 7 })}
+          filters={filters({ q: "milk", range: "24h", page: 2 })}
+        />
+      );
+
+      const dialog = await openConfirmation();
+      expect(
+        within(dialog).getByRole("link", { name: "Export these first" }).getAttribute("href")
+      ).toBe("/api/logs/export?format=json&q=milk&range=24h&readAt=2026-11-17T19%3A30%3A00.000Z");
+    });
+
+    it("sends the search and range with a filtered purge, but not the page", async () => {
+      render(
+        <PurgeDialog
+          page={logPage({ matching: 7 })}
+          filters={filters({ q: "milk", source: ["tasks"], range: "30d", page: 2 })}
+        />
+      );
+
+      const dialog = await openConfirmation();
+      await userEvent.click(within(dialog).getByRole("button", { name: "Purge 7 entries" }));
+
+      expect(mockPurge).toHaveBeenCalledExactlyOnceWith({
+        scope: "filtered",
+        q: "milk",
+        level: [],
+        source: ["tasks"],
+        range: "30d",
+        readAt: READ_AT,
+      });
+      await waitFor(() => expect(push).toHaveBeenCalledExactlyOnceWith("/logs"));
+    });
+
+    it("sends no search or range with a purge of every entry", async () => {
+      render(
+        <PurgeDialog
+          page={logPage({ matching: 7 })}
+          filters={filters({ q: "milk", range: "30d" })}
+        />
+      );
+
+      const dialog = await openConfirmation();
+      await userEvent.click(within(dialog).getByRole("radio", { name: /Every log entry/ }));
+      await userEvent.click(within(dialog).getByRole("button", { name: "Purge 1,204 entries" }));
+
+      expect(mockPurge).toHaveBeenCalledExactlyOnceWith({
+        scope: "all",
+        q: "",
+        level: [],
+        source: [],
+        range: null,
+        readAt: READ_AT,
+      });
     });
   });
 

@@ -3,8 +3,13 @@ import { z } from "zod";
 import {
   LOG_KINDS,
   LOG_LEVELS,
+  LOG_RANGES,
+  LOG_SEARCH_MAX,
   LOG_SOURCES,
+  NO_FILTERS,
   PURGE_SCOPES,
+  RANGE_SPANS,
+  isFiltered,
   logFiltersSchema,
   logPurgeSchema,
   logWriteSchema,
@@ -105,7 +110,61 @@ describe("logWriteSchema", () => {
 
 describe("logFiltersSchema", () => {
   it("reads an empty query string as no filters, on the first page", () => {
-    expect(logFiltersSchema.parse({})).toEqual({ level: [], source: [], page: 1 });
+    expect(logFiltersSchema.parse({})).toEqual({
+      q: "",
+      level: [],
+      source: [],
+      range: null,
+      page: 1,
+    });
+  });
+
+  it("reads the search, trimmed, keeping its case for the page to show", () => {
+    expect(logFiltersSchema.parse({ q: "  Buy Milk " }).q).toBe("Buy Milk");
+  });
+
+  it("keeps a search's wildcard and pattern characters as they were typed", () => {
+    expect(logFiltersSchema.parse({ q: "50% a_b .*" }).q).toBe("50% a_b .*");
+  });
+
+  it.each([
+    ["a search", "q", "milk"],
+    ["a range", "range", "7d"],
+  ])("reads %s given as a list of one as that one value", (_, field, value) => {
+    expect(logFiltersSchema.parse({ [field]: [value] })).toMatchObject({ [field]: value });
+  });
+
+  it(`accepts a search of ${LOG_SEARCH_MAX} characters`, () => {
+    const q = "a".repeat(LOG_SEARCH_MAX);
+    expect(logFiltersSchema.parse({ q }).q).toBe(q);
+  });
+
+  it.each([
+    ["a search longer than the limit", "a".repeat(LOG_SEARCH_MAX + 1)],
+    ["a repeated search", ["milk", "eggs"]],
+  ])("clears the search for %s rather than refusing", (_, q) => {
+    expect(logFiltersSchema.parse({ q, level: "warn" })).toMatchObject({ q: "", level: ["warn"] });
+  });
+
+  it("lists the ranges from the shortest", () => {
+    expect(LOG_RANGES).toEqual(["24h", "7d", "30d"]);
+  });
+
+  it.each([...LOG_RANGES])("accepts the range %s", (range) => {
+    expect(logFiltersSchema.parse({ range }).range).toBe(range);
+  });
+
+  it.each([
+    ["an unknown range", "1y"],
+    ["Any time's name", "any"],
+    ["a range in the wrong case", "7D"],
+    ["a repeated range", ["7d", "30d"]],
+    ["an empty range", ""],
+  ])("reads %s as any time rather than refusing", (_, range) => {
+    expect(logFiltersSchema.parse({ range, source: "auth" })).toMatchObject({
+      range: null,
+      source: ["auth"],
+    });
   });
 
   it("lists the sources in the order the page shows them", () => {
@@ -165,10 +224,41 @@ describe("logFiltersSchema", () => {
 
   it("keeps the other filters when the page is unreadable", () => {
     expect(logFiltersSchema.parse({ level: "error", page: "x" })).toEqual({
+      q: "",
       level: ["error"],
       source: [],
+      range: null,
       page: 1,
     });
+  });
+});
+
+describe("RANGE_SPANS", () => {
+  it.each([
+    ["24h", 24],
+    ["7d", 7 * 24],
+    ["30d", 30 * 24],
+  ] as const)("reaches %s back as %d hours", (range, hours) => {
+    expect(RANGE_SPANS[range]).toBe(hours * 60 * 60 * 1000);
+  });
+});
+
+describe("isFiltered", () => {
+  it("is off with no filters", () => {
+    expect(isFiltered(NO_FILTERS)).toBe(false);
+  });
+
+  it.each([
+    ["a search", { q: "milk" }],
+    ["a level", { level: ["warn" as const] }],
+    ["a source", { source: ["auth" as const] }],
+    ["a range", { range: "7d" as const }],
+  ])("is on with %s", (_, change) => {
+    expect(isFiltered({ ...NO_FILTERS, ...change })).toBe(true);
+  });
+
+  it("is off with a search of only spaces, which matches every entry", () => {
+    expect(isFiltered({ ...NO_FILTERS, q: "   " })).toBe(false);
   });
 });
 
@@ -189,8 +279,10 @@ describe("logPurgeSchema", () => {
   it("drops the filters from a purge of every entry, which ignores them", () => {
     const purge = logPurgeSchema.parse({
       scope: "all",
+      q: "milk",
       level: ["warn"],
       source: ["auth"],
+      range: "7d",
       readAt: READ_AT,
     });
 
@@ -198,9 +290,11 @@ describe("logPurgeSchema", () => {
   });
 
   it.each([
-    ["a level", { level: ["warn", "error"], source: [] }],
-    ["a source", { level: [], source: ["auth"] }],
-    ["both", { level: ["error"], source: ["tasks", "system"] }],
+    ["a search", { ...NO_FILTERS, q: "milk" }],
+    ["a level", { ...NO_FILTERS, level: ["warn", "error"] }],
+    ["a source", { ...NO_FILTERS, source: ["auth"] }],
+    ["a range", { ...NO_FILTERS, range: "24h" }],
+    ["all four", { q: "milk", level: ["error"], source: ["tasks", "system"], range: "30d" }],
   ])("reads a filtered purge with %s on", (_, filters) => {
     expect(logPurgeSchema.parse({ scope: "filtered", ...filters, readAt: READ_AT })).toEqual({
       scope: "filtered",
@@ -209,13 +303,22 @@ describe("logPurgeSchema", () => {
     });
   });
 
-  it("refuses a filtered purge with no filter on, which would delete every entry", () => {
-    const result = logPurgeSchema.safeParse({
+  it("trims a filtered purge's search, as the page does", () => {
+    const purge = logPurgeSchema.parse({
       scope: "filtered",
-      level: [],
-      source: [],
+      ...NO_FILTERS,
+      q: "  milk ",
       readAt: READ_AT,
     });
+
+    expect(purge).toMatchObject({ q: "milk" });
+  });
+
+  it.each([
+    ["no filter on", NO_FILTERS],
+    ["only a search of spaces", { ...NO_FILTERS, q: "   " }],
+  ])("refuses a filtered purge with %s, which would delete every entry", (_, filters) => {
+    const result = logPurgeSchema.safeParse({ scope: "filtered", ...filters, readAt: READ_AT });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -226,11 +329,16 @@ describe("logPurgeSchema", () => {
   });
 
   it.each([
-    ["an unknown level", { level: ["fatal"], source: [] }],
-    ["one unknown level among known ones", { level: ["warn", "fatal"], source: [] }],
-    ["a level in the wrong case", { level: ["WARN"], source: [] }],
-    ["an unknown source", { level: [], source: ["settings"] }],
-    ["a level given once rather than as a list", { level: "warn", source: [] }],
+    ["an unknown level", { ...NO_FILTERS, level: ["fatal"] }],
+    ["one unknown level among known ones", { ...NO_FILTERS, level: ["warn", "fatal"] }],
+    ["a level in the wrong case", { ...NO_FILTERS, level: ["WARN"] }],
+    ["an unknown source", { ...NO_FILTERS, source: ["settings"] }],
+    ["a level given once rather than as a list", { ...NO_FILTERS, level: "warn" }],
+    ["an unknown range", { ...NO_FILTERS, level: ["warn"], range: "1y" }],
+    ["Any time's name as a range", { ...NO_FILTERS, level: ["warn"], range: "any" }],
+    ["a search longer than the limit", { ...NO_FILTERS, q: "a".repeat(LOG_SEARCH_MAX + 1) }],
+    ["no search", { level: ["warn"], source: [], range: null }],
+    ["no range", { q: "", level: ["warn"], source: [] }],
     ["no filters at all", {}],
   ])("refuses a filtered purge with %s, rather than clearing it", (_, filters) => {
     expect(

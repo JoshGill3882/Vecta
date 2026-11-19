@@ -29,7 +29,7 @@ const RETENTION: RetentionStatusDTO = {
 };
 
 /** No filters, on the first page. */
-const NO_FILTERS: LogFilters = { level: [], source: [], page: 1 };
+const NO_FILTERS: LogFilters = { q: "", level: [], source: [], range: null, page: 1 };
 
 /** An empty page of the log, for a test to fill in what it needs.
  *
@@ -98,7 +98,7 @@ describe("LogsView", () => {
     render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: [], page: 1 }}
+        filters={{ q: "", level: ["error"], source: [], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 3 })}
       />
     );
@@ -143,7 +143,7 @@ describe("LogsView", () => {
     render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: [], page: 1 }}
+        filters={{ q: "", level: ["error"], source: [], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 0 })}
       />
     );
@@ -243,7 +243,7 @@ describe("LogsView", () => {
     const { container } = render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: ["auth"], page: 1 }}
+        filters={{ q: "", level: ["error"], source: ["auth"], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 0, oldest: "2026-11-01T12:00:00.000Z" })}
       />
     );
