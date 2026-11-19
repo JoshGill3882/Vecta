@@ -15,15 +15,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/src/shared/components/ui/dropdown-menu";
-import { LOG_LEVELS, LOG_SOURCES, type LogFilters } from "@/src/shared/lib/schemas/logs";
+import {
+  isFiltered,
+  LOG_LEVELS,
+  LOG_SOURCES,
+  NO_FILTERS,
+  type LogFilters,
+  type LogNarrowing,
+} from "@/src/shared/lib/schemas/logs";
 import { toggled } from "@/src/shared/lib/selection";
 import { entryCount, formatCount } from "@/src/features/logs/lib/log-format";
 import { logsHref } from "@/src/features/logs/lib/log-links";
 
 import { LEVEL_LABELS, SOURCE_LABELS, type LogLabel } from "./log-meta";
-
-/** The levels and sources picked, which is all a filter change sets. */
-type Choices = Pick<LogFilters, "level" | "source">;
 
 /** Finds the button that clearing the filters sends focus to.
  *
@@ -133,18 +137,19 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
   const [, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(filters);
 
-  /** Shows the entries a new set of choices matches, from the first page.
+  /** Shows the entries a new set of filters matches, from the first page.
    *
-   * @param next The levels and sources to show.
+   * @param next The filters to show.
    */
-  function apply(next: Choices) {
+  function apply(next: LogNarrowing) {
+    const chosen = { ...next, page: 1 };
     startTransition(() => {
-      setShown({ ...next, page: 1 });
-      router.push(logsHref(next), { scroll: false });
+      setShown(chosen);
+      router.push(logsHref(chosen), { scroll: false });
     });
   }
 
-  const filtered = shown.level.length > 0 || shown.source.length > 0;
+  const filtered = isFiltered(shown);
 
   return (
     <div className="mb-3">
@@ -156,7 +161,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
           labels={LEVEL_LABELS}
           counts={page.levelCounts}
           selected={shown.level}
-          onSelectedChange={(level) => apply({ level, source: shown.source })}
+          onSelectedChange={(level) => apply({ ...shown, level })}
           focusTarget
         />
         <FilterMenu
@@ -166,7 +171,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
           labels={SOURCE_LABELS}
           counts={page.sourceCounts}
           selected={shown.source}
-          onSelectedChange={(source) => apply({ level: shown.level, source })}
+          onSelectedChange={(source) => apply({ ...shown, source })}
         />
       </div>
 
@@ -184,7 +189,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
             className="text-text-3"
             onClick={() => {
               focusFilters();
-              apply({ level: [], source: [] });
+              apply(NO_FILTERS);
             }}
           >
             Clear filters

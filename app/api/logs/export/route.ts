@@ -22,9 +22,10 @@ const formatSchema = z.enum(EXPORT_FORMATS);
 
 /** Downloads the log entries the Logs page's filters match, as CSV or JSON.
  *
- * Called as `/api/logs/export?format=csv`, with the page's `level` and
- * `source` parameters. The filters are read as the page reads them, so an
- * unknown level or source clears that filter rather than refusing the export.
+ * Called as `/api/logs/export?format=csv`, with the page's `q`, `level`,
+ * `source` and `range` parameters. The filters are read as the page reads
+ * them, so an unknown level, source or range clears that filter rather than
+ * refusing the export.
  *
  * With `readAt`, as the Purge confirmation sends it, only entries written up
  * to then are exported, so the file holds what the purge would delete. An
@@ -51,8 +52,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const filters = logFiltersSchema.parse({
+    q: params.getAll("q"),
     level: params.getAll("level"),
     source: params.getAll("source"),
+    range: params.getAll("range"),
   });
   const readAt = logReadAtSchema.safeParse(params.get("readAt"));
   const batches = readLogBatches({ ...filters, readAt: readAt.data });

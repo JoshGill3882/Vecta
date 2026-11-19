@@ -10,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/src/shared/components/ui/dropdown-menu";
-import type { LogFilters } from "@/src/shared/lib/schemas/logs";
+import { isFiltered, type LogFilters } from "@/src/shared/lib/schemas/logs";
 import { entryCount } from "@/src/features/logs/lib/log-format";
 import { logExportHref } from "@/src/features/logs/lib/log-links";
 
@@ -33,7 +33,7 @@ const CHOICES: { format: ExportFormat; label: string; suits: string }[] = [
  * pointer.
  */
 export function ExportMenu({ page, filters }: { page: LogPage; filters: LogFilters }) {
-  const filtered = filters.level.length > 0 || filters.source.length > 0;
+  const filtered = isFiltered(filters);
   const count = entryCount(page.matching);
 
   return (
