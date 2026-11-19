@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 
 import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
 import { detailLayout } from "@/src/features/logs/lib/detail-fields";
-import { entryMessage } from "@/src/features/logs/lib/entry-message";
+import { entryMessage } from "@/src/shared/lib/entry-message";
 import { logTime } from "@/src/features/logs/lib/log-format";
 import { cn } from "@/src/shared/lib/utils";
 

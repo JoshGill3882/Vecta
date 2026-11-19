@@ -121,7 +121,7 @@ Start-up calls it before refusing to start, to give the `server.config_invalid` 
 Signed in, the Logs page at `/logs` lists the table's entries, newest first, 50 to a page, and filters them by level and source.
 It shows the table only, so an entry that failed to reach it is on stdout alone, as `log.write_failed` is by design.
 
-A row's message is written by `entryMessage()` in `src/features/logs/lib/entry-message.ts`, from the event and its detail rather than the stored message.
+A row's message is written by `entryMessage()` in `src/shared/lib/entry-message.ts`, from the event and its detail rather than the stored message.
 A task or category entry names what it was about, such as `Deleted category “Work”`, and a failed sign-in says why.
 An event with no wording there, or whose detail lacks what its wording needs, shows its stored message, so a new event reads sensibly without a change to the page; give it wording there when the stored message alone would leave a reader asking what it was about.
 
