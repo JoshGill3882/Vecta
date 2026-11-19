@@ -250,7 +250,7 @@ describe("LogsView", () => {
 
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByRole("heading", { level: 2, name: "No matching entries" })).toBeDefined();
-    expect(screen.getByText("Nothing matches the filters you have on.")).toBeDefined();
+    expect(screen.getByText("Nothing matches the search and filters you have on.")).toBeDefined();
     expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href")).toBe("/logs");
   });
 
@@ -282,5 +282,34 @@ describe("LogsView", () => {
 
     expect(screen.queryByRole("heading", { name: "No log entries" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "No matching entries" })).toBeNull();
+  });
+
+  it("marks the page's search in each entry's message, whatever its case or the spaces around it", () => {
+    const createdAt = new Date().toISOString();
+    const { container } = render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ ...NO_FILTERS, q: "  START " }}
+        page={logPage({
+          entries: [
+            {
+              id: "log_1",
+              createdAt,
+              kind: "operational",
+              level: "info",
+              event: "app.started",
+              source: "system",
+              message: "Started",
+              detail: null,
+            },
+          ],
+          total: 1,
+          matching: 1,
+          oldest: createdAt,
+        })}
+      />
+    );
+
+    expect(container.querySelector("summary mark")?.textContent).toBe("Start");
   });
 });
