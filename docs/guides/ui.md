@@ -278,17 +278,30 @@ The header holds the Export menu, which downloads what the filters match, and Pu
 Between the header and the filters sits the Retention card, which chooses how long entries are kept; see [The Retention card](#the-retention-card).
 
 - **The URL is the only copy of the filters.**
-  `app/(app)/logs/page.tsx` reads them with `logFiltersSchema`, and `LogFilterBar` changes them by navigating to a new address with `router.push(href, { scroll: false })`.
-  A refresh, the back button and a shared link all keep them, and there is no client state to fall out of step with the page.
+  `app/(app)/logs/page.tsx` reads them with `logFiltersSchema`, and `LogFilterBar` changes them by navigating to a new address with `router.push(href, { scroll: false })`, or `router.replace` for the search.
+  A refresh, the back button and a shared link all keep them.
+  The one client state is the search box's text, held only until it is sent.
 - **Addresses come from `logsHref`** (`src/features/logs/lib/log-links.ts`).
-  It writes choices in the menus' order and leaves out an empty filter and the first page, so the same filters always make the same address and an unfiltered log is plain `/logs`.
+  It writes the search first, then the levels and sources in the menus' order, then the range, and leaves out a filter that is off and the first page, so the same filters always make the same address and an unfiltered log is plain `/logs`.
   A filter change goes back to the first page, since a later page of the new filters may not exist.
 - **A tick shows before the server answers.**
   The menus render an optimistic copy of the filters (`useOptimistic`), set inside the same `startTransition` as the navigation, so React drops it once the new page arrives.
   A second pick made in the meantime builds on the first.
 - **Each choice's count ignores the filters**, so a menu shows what ticking a choice would add rather than what is left.
+- **One test says whether a filter is on.**
+  `isFiltered` in `src/shared/lib/schemas/logs.ts` is what the count line, Clear filters, Export, Purge and the purge's schema all ask, so they agree, and a new filter is added there once.
+- **The search is sent once typing pauses**, 300ms after the last keystroke, unlike the task list's, because each change here is a request to the server rather than a filter over memory.
+  It replaces the address rather than adding to the history, so the back button steps past a search instead of back through it a word at a time; the menus still push.
+  What is typed is held in `LogFilterBar`, not in the box (`log-search-field.tsx`), so a menu picked while a search is waiting sends both and cancels the wait.
+  The box follows the address when something else changes the search, such as the back button or the empty state's Clear filters, by comparing the search it last saw in the component body, as the task list's collapse reset does.
+  It holds off while a search of its own is waiting or loading, which would lose what was typed since, and ignores a difference of spaces at the ends, which the address trims.
+  The clear button and Escape both clear the box and leave focus in it.
+- **The range menu names its choice on its button**, such as "Last 7 days", rather than counting it, and its `aria-label` adds "Time range" for a screen reader, since the range alone would not say what the button is for.
+  Only one range can be on, so its choices are radio items and the menu closes once one is picked.
+- **A row marks the search in its message** with the shared `Highlight` and `findMatches`, as the task list does; see [Narrowing the task list](#narrowing-the-task-list).
+  An entry can match on its detail alone, and then shows no mark until it is opened.
 - **Both Clear filters controls send focus to the Level button before they go.**
-  The one beside the count and the empty state's link each disappear once the filters are cleared.
+  The one beside the count and the empty state's link each clear the search with the other filters, and each disappear once they have.
   Left alone, the next Tab would carry on from wherever the control was, which for the empty state is the first entry of the list it brought back.
   Both call `focusFilters()` in `log-filter-bar.tsx`, which finds the Level button by a data attribute rather than an id: the menu names itself by its button's id, and an id of ours would replace it.
 - **Paging is links.**
@@ -299,11 +312,11 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
+  The filter bar with its search box, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
-- **Two empty states**, through the shared `EmptyState`: an empty log says new entries will appear as they happen, and filters that match nothing say so, with a Clear filters link to `/logs`.
+- **Two empty states**, through the shared `EmptyState`: an empty log says new entries will appear as they happen, and a search or filters that match nothing say so, with a Clear filters link to `/logs`.
 - **Everything from an entry is shown as text.**
   Entries hold titles and names the user typed, so no message or detail value is rendered as HTML or Markdown.
 
@@ -316,9 +329,9 @@ What goes in the file, and how it is streamed, is in [Logging](./logging.md#expo
   CSV and JSON are `<a download>` links to `/api/logs/export`, each the `asChild` of a Radix `DropdownMenuItem`.
   The browser saves whatever the route answers and the page stays where it is, with no client code of the menu's own, while the arrow keys, Enter and closing on a pick work as for any menu item.
 - **The links follow the page's filters, not its page.**
-  `logExportHref` in `log-links.ts` builds its query from the same `choiceParams` as `logsHref`, so an export's address names the same filters as the page's own, in the same order.
+  `logExportHref` in `log-links.ts` builds its query from the same `filterParams` as `logsHref`, so an export's address names the same filters as the page's own, in the same order.
   The page number is left out, since an export covers every match.
-- **It says what it will export before anything is picked:** "All 1,204 entries" with no filter on, or "The 12 entries matching your filters", counting the page's `matching`.
+- **It says what it will export before anything is picked:** "All 1,204 entries" with no filter on, or "The 12 entries matching your filters", counting the page's `matching`, with a search or a range counting as a filter.
 - **It is disabled when that is nothing.**
   `disabled` goes on the `DropdownMenuTrigger`, which passes it to the button and keeps the menu from opening.
 - **Below 520px it shrinks to its icon**, a 44px square, so the header keeps the heading and its actions on one row rather than wrapping them underneath.

@@ -310,6 +310,7 @@ Pino redacts values at paths listed ahead of time, where this needs a key such a
 
 The table is read by the Logs page, at `/logs`, through the log service's `listLogPage`.
 It pages and filters on the server, with the filters held in the URL, because the table grows with everything the app does.
+Its search is the exception within that: matched in code rather than by the database, since a database's substring match reads `%` and `_` as wildcards and ignores case differently on SQLite and Postgres, so a search reads every entry the other filters match.
 The task list is the opposite case: small enough to fetch whole and narrow in the browser.
 The same page downloads what its filters match as CSV or JSON, through a route handler that streams the entries a batch at a time, so a large log is never held in memory, and that writes nothing to the log it reads.
 It also purges entries on demand, behind a confirmation that counts them.

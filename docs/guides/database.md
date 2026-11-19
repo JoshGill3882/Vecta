@@ -119,17 +119,23 @@ Entries written in the same millisecond are ordered by id, so a listing reads th
 It takes the filters `logFiltersSchema` reads from the page's URL and returns a `LogPage`: up to `LOG_PAGE_SIZE` (50) entries, newest first, with which page they are and how many pages there are, how many entries match and how many there are in all, when the oldest was written, and how many entries each level and each source holds.
 The counts for each level and source ignore the filters, so a filter menu still shows what ticking another choice would add.
 The counts are read before the entries, so a page past the last can be read as the last rather than coming back empty.
+With no search, the database counts the matches and reads only the page.
+With one, every entry the level, source and range match is read and searched in code by `entryMatches` in `src/server/log-search.ts`, and the page is cut from what holds the text; why it is not matched by the database is in [Logging](./logging.md#reading-the-entries).
+A range reaches back from `readAt`.
 The page also says when its counts were read, as `readAt`, the moment taken just before them; a purge confirmed from the page deletes up to it, and its "Export these first" exports up to it.
 
 `readLogBatches` is what an export reads.
-It is an async generator that yields the entries the page's levels and sources match, newest first, `LOG_BATCH_SIZE` (500) at a time, ignoring any page, and reads the next batch only when its caller asks for it.
+It is an async generator that yields the entries the page's filters match, newest first, `LOG_BATCH_SIZE` (500) at a time, ignoring any page, and reads the next batch only when its caller asks for it.
 Given a `readAt` beside the filters, it reads only the entries written up to that moment.
 Each batch asks for the entries after the last one read, older or as old with a lower id, rather than skipping an offset.
+A search is matched against each batch once it is read, so a batch can hold fewer entries than were read for it, though never none.
 An entry written while it runs therefore cannot push one already read into the next batch, and anything written after the first batch is left out.
 How the batches become a file is in [Logging](./logging.md#exporting-the-entries).
 
 `deleteLogs` is what a purge uses.
-It deletes the entries the levels and sources match, or every entry when both are empty, that were written up to `readAt`, an entry written at that moment included, as one `deleteMany` on the `createdAt` index.
+It deletes the entries the filters match, or every entry with none on, that were written up to `readAt`, an entry written at that moment included.
+With no search that is one `deleteMany` on the `createdAt` index.
+With one, the matching entries are found through `readLogBatches`, then deleted by id, `LOG_BATCH_SIZE` to a `deleteMany`, in one array `prisma.$transaction([...])`, so a purge that fails partway deletes nothing.
 The bound is applied by the same private `writtenUpTo` as `readLogBatches` uses, so a purge and its "Export these first" cover the same entries.
 It records no activity itself: `purgeLogs` in `src/server/log-purge.ts` writes the `log.purged` entry once it returns. See [Logging](./logging.md#purging-entries).
 
