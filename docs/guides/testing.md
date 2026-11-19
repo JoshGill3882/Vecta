@@ -179,7 +179,8 @@ Rendering is slower, and an assertion about matching rules made through a render
 
 Keep the logic out of the component where it will go: extract it into a pure module — the feature's own `lib/`, or `src/shared/lib/` where more than one feature needs it — and test that directly.
 `src/features/tasks/lib/task-search.ts` is the reference.
-The task list's matching and highlighting rules live there as plain functions over `TaskDTO[]`, and `test/features/tasks/task-search.test.ts` covers them with no mocks at all.
+The task list's matching rules live there as plain functions over `TaskDTO[]`, and `test/features/tasks/task-search.test.ts` covers them with no mocks at all.
+Highlighting is not about tasks, so it lives in `src/shared/lib/text-search.ts`, with its tests in `test/shared/lib/text-search.test.ts`.
 `tasks-view.tsx` keeps the wiring: state, memoisation, and what renders.
 
 Draw the line at the edge cases.

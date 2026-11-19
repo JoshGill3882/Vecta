@@ -16,7 +16,13 @@ import {
   DialogTitle,
 } from "@/src/shared/components/ui/dialog";
 import { useServerAction } from "@/src/shared/hooks/use-server-action";
-import type { LogFilters, LogPurge } from "@/src/shared/lib/schemas/logs";
+import {
+  isFiltered,
+  NO_FILTERS,
+  type LogFilters,
+  type LogNarrowing,
+  type LogPurge,
+} from "@/src/shared/lib/schemas/logs";
 import { purgeLogsAction } from "@/src/features/logs/actions";
 import { entryCount } from "@/src/features/logs/lib/log-format";
 import { logExportHref, logsHref } from "@/src/features/logs/lib/log-links";
@@ -116,12 +122,12 @@ export function PurgeDialog({ page, filters }: { page: LogPage; filters: LogFilt
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const filtered = filters.level.length > 0 || filters.source.length > 0;
+  const filtered = isFiltered(filters);
   const [scope, setScope] = useState<Scope>("all");
 
   const count = scope === "all" ? page.total : page.matching;
-  const scoped =
-    scope === "all" ? { level: [], source: [] } : { level: filters.level, source: filters.source };
+  const { page: _page, ...narrowing } = filters;
+  const scoped: LogNarrowing = scope === "all" ? NO_FILTERS : narrowing;
 
   /** Opens the confirmation on the default choice, whatever was chosen last time. */
   function openConfirmation() {
@@ -138,7 +144,7 @@ export function PurgeDialog({ page, filters }: { page: LogPage; filters: LogFilt
       });
       if (removed === null) return;
       setOpen(false);
-      if (scope === "filtered") router.push(logsHref({ level: [], source: [] }));
+      if (scope === "filtered") router.push(logsHref(NO_FILTERS));
     });
   }
 

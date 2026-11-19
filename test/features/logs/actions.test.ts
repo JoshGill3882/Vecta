@@ -160,7 +160,14 @@ describe("removeOldLogsAction", () => {
 
 describe("purgeLogsAction", () => {
   const READ_AT = "2026-11-17T19:30:00.000Z";
-  const FILTERED = { scope: "filtered", level: ["warn"], source: ["auth"], readAt: READ_AT };
+  const FILTERED = {
+    scope: "filtered",
+    q: "milk",
+    level: ["warn"],
+    source: ["auth"],
+    range: "7d",
+    readAt: READ_AT,
+  };
 
   it("refuses when signed out, deleting nothing", async () => {
     mockGetSession.mockResolvedValue(null);
@@ -199,7 +206,11 @@ describe("purgeLogsAction", () => {
   });
 
   it.each([
-    ["a filtered purge with no filter on", { ...FILTERED, level: [], source: [] }],
+    [
+      "a filtered purge with no filter on",
+      { ...FILTERED, q: "", level: [], source: [], range: null },
+    ],
+    ["an unknown range, rather than clearing it", { ...FILTERED, range: "1y" }],
     ["an unknown level, rather than clearing it", { ...FILTERED, level: ["fatal"] }],
     ["an unknown scope", { scope: "older", readAt: READ_AT }],
     ["no moment", { scope: "all" }],

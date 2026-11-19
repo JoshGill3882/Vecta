@@ -32,7 +32,7 @@ function logPage(change: Partial<LogPage> = {}): LogPage {
  * @returns The filters.
  */
 function filters(change: Partial<LogFilters> = {}): LogFilters {
-  return { level: [], source: [], page: 1, ...change };
+  return { q: "", level: [], source: [], range: null, page: 1, ...change };
 }
 
 /** Opens the menu as a reader would.
@@ -62,6 +62,26 @@ describe("ExportMenu", () => {
 
     const menu = await openMenu();
     expect(menu.textContent).toContain("The 12 entries matching your filters");
+  });
+
+  it.each([
+    ["a search", { q: "milk" }],
+    ["a range", { range: "24h" as const }],
+  ])("says it will export the matching entries with only %s on", async (_, change) => {
+    render(<ExportMenu page={logPage({ matching: 4 })} filters={filters(change)} />);
+
+    expect((await openMenu()).textContent).toContain("The 4 entries matching your filters");
+  });
+
+  it("links each choice to a download of what the search and range match", async () => {
+    render(
+      <ExportMenu page={logPage({ matching: 4 })} filters={filters({ q: "milk", range: "7d" })} />
+    );
+    await openMenu();
+
+    expect(screen.getByRole("menuitem", { name: /CSV/ }).getAttribute("href")).toBe(
+      "/api/logs/export?format=csv&q=milk&range=7d"
+    );
   });
 
   it("counts a single entry as one", async () => {

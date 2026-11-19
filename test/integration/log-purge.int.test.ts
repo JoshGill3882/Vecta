@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/src/server/db";
 import { purgeLogs } from "@/src/server/log-purge";
 import { listLogs } from "@/src/server/services/logs";
+import { NO_FILTERS } from "@/src/shared/lib/schemas/logs";
 
 /** The moment the confirmation's counts were read, between the seeded entries. */
 const READ_AT = new Date("2026-11-14T09:00:02.000Z");
@@ -10,10 +11,10 @@ let lines: Record<string, unknown>[];
 
 /** Inserts one entry per event, one second apart, oldest first.
  *
- * @param rows The event and level of each entry.
+ * @param rows The event and level of each entry, and its detail as stored, if any.
  * @returns Nothing; the rows are in the table.
  */
-async function seed(rows: { event: string; level: string }[]): Promise<void> {
+async function seed(rows: { event: string; level: string; detail?: string }[]): Promise<void> {
   const start = Date.parse("2026-11-14T09:00:00.000Z");
   await prisma.log.createMany({
     data: rows.map((row, i) => ({
@@ -60,7 +61,7 @@ describe("purgeLogs (integration)", () => {
 
     const removed = await purgeLogs({
       scope: "filtered",
-      level: [],
+      ...NO_FILTERS,
       source: ["auth", "system"],
       readAt: READ_AT,
     });
@@ -73,10 +74,41 @@ describe("purgeLogs (integration)", () => {
     ]);
   });
 
+  it("deletes only the counted entries the search matches", async () => {
+    await seed([
+      { event: "task.deleted", level: "info", detail: '{"title":"Buy milk"}' },
+      { event: "task.deleted", level: "info", detail: '{"title":"Post letters"}' },
+      { event: "task.created", level: "info", detail: '{"title":"Milk the goat"}' },
+      { event: "task.deleted", level: "info", detail: '{"title":"Buy more milk"}' },
+    ]);
+
+    const removed = await purgeLogs({
+      scope: "filtered",
+      ...NO_FILTERS,
+      q: "MILK",
+      readAt: READ_AT,
+    });
+
+    expect(removed).toBe(2);
+    const left = await listLogs();
+    expect(left.map((e) => e.detail?.title ?? e.event)).toEqual([
+      "log.purged",
+      "Buy more milk",
+      "Post letters",
+    ]);
+  });
+
   it("records the purge as a warning, with its scope, the number removed and the filters", async () => {
     await seed(ENTRIES);
 
-    await purgeLogs({ scope: "filtered", level: ["warn"], source: ["auth"], readAt: READ_AT });
+    await purgeLogs({
+      scope: "filtered",
+      q: "sign",
+      level: ["warn"],
+      source: ["auth"],
+      range: null,
+      readAt: READ_AT,
+    });
 
     const [entry] = await listLogs();
     expect(entry).toMatchObject({
@@ -84,8 +116,24 @@ describe("purgeLogs (integration)", () => {
       level: "warn",
       event: "log.purged",
       message: "Log entries purged",
-      detail: { scope: "filtered", removed: 1, level: ["warn"], source: ["auth"] },
+      detail: {
+        scope: "filtered",
+        removed: 1,
+        search: "sign",
+        level: ["warn"],
+        source: ["auth"],
+        range: null,
+      },
     });
+  });
+
+  it("records the range a purge reached back over", async () => {
+    await seed(ENTRIES);
+
+    await purgeLogs({ scope: "filtered", ...NO_FILTERS, range: "24h", readAt: READ_AT });
+
+    const [entry] = await listLogs();
+    expect(entry.detail).toMatchObject({ scope: "filtered", removed: 3, range: "24h" });
   });
 
   it("records a purge of every entry with no filters, whatever the page had on", async () => {
@@ -94,7 +142,14 @@ describe("purgeLogs (integration)", () => {
     await purgeLogs({ scope: "all", readAt: READ_AT });
 
     const [entry] = await listLogs();
-    expect(entry.detail).toEqual({ scope: "all", removed: 3, level: [], source: [] });
+    expect(entry.detail).toEqual({
+      scope: "all",
+      removed: 3,
+      search: "",
+      level: [],
+      source: [],
+      range: null,
+    });
   });
 
   it("has the record in the table by the time it returns", async () => {

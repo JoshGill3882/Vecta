@@ -64,7 +64,7 @@ describe("LevelBadge", () => {
 
 describe("LogRow", () => {
   it("sums the entry up in one line: time, level, source and message", () => {
-    const { container } = render(<LogRow entry={entry()} />);
+    const { container } = render(<LogRow entry={entry()} needle="" />);
 
     const summary = summaryOf(container);
     expect(summary.textContent).toBe("09:30:05InfoTasksCreated “Buy milk”");
@@ -79,6 +79,7 @@ describe("LogRow", () => {
           source: "categories",
           detail: { categoryId: "c1", name: "Work" },
         })}
+        needle=""
       />
     );
 
@@ -87,13 +88,13 @@ describe("LogRow", () => {
   });
 
   it("offers the whole message on hover, for a line cut short", () => {
-    const { container } = render(<LogRow entry={entry()} />);
+    const { container } = render(<LogRow entry={entry()} needle="" />);
 
     expect(within(summaryOf(container)).getByTitle("Created “Buy milk”")).toBeDefined();
   });
 
   it("starts closed and opens when its line is clicked", async () => {
-    const { container } = render(<LogRow entry={entry()} />);
+    const { container } = render(<LogRow entry={entry()} needle="" />);
     const details = container.querySelector("details");
 
     expect(details?.open).toBe(false);
@@ -102,7 +103,7 @@ describe("LogRow", () => {
   });
 
   it("lists the entry's own fields, then every detail field", () => {
-    const { container } = render(<LogRow entry={entry()} />);
+    const { container } = render(<LogRow entry={entry()} needle="" />);
 
     const names = Array.from(container.querySelectorAll("dt")).map((dt) => dt.textContent);
     const values = Array.from(container.querySelectorAll("dd")).map((dd) => dd.textContent);
@@ -124,6 +125,7 @@ describe("LogRow", () => {
           event: "task.updated",
           detail: { taskId: "t1", title: "Buy milk", changed: ["title", "status"] },
         })}
+        needle=""
       />
     );
 
@@ -142,6 +144,7 @@ describe("LogRow", () => {
           message: "A server action failed unexpectedly",
           detail: { error: { name: "TypeError", message: "boom", stack } },
         })}
+        needle=""
       />
     );
 
@@ -156,22 +159,51 @@ describe("LogRow", () => {
   });
 
   it("shows no stack block when there is no stack", () => {
-    const { container } = render(<LogRow entry={entry()} />);
+    const { container } = render(<LogRow entry={entry()} needle="" />);
 
     expect(container.querySelector("pre")).toBeNull();
   });
 
   it("lists only the entry's own fields when it has no detail", () => {
     const { container } = render(
-      <LogRow entry={entry({ event: "auth.signed_in", source: "auth", detail: null })} />
+      <LogRow entry={entry({ event: "auth.signed_in", source: "auth", detail: null })} needle="" />
     );
 
     expect(container.querySelectorAll("dt")).toHaveLength(4);
   });
 
+  it("marks the search wherever it appears in the message, keeping its case", () => {
+    const { container } = render(
+      <LogRow
+        entry={entry({ detail: { taskId: "t1", title: "Milk, then more milk" } })}
+        needle="milk"
+      />
+    );
+
+    const summary = summaryOf(container);
+    const marks = Array.from(summary.querySelectorAll("mark")).map((mark) => mark.textContent);
+    expect(marks).toEqual(["Milk", "milk"]);
+    // The marks break up only how it looks: the message still reads as one.
+    expect(summary.textContent).toBe("09:30:05InfoTasksCreated “Milk, then more milk”");
+  });
+
+  it("marks nothing when the search matched only the detail", () => {
+    const { container } = render(<LogRow entry={entry()} needle="t1" />);
+
+    expect(summaryOf(container).querySelector("mark")).toBeNull();
+  });
+
+  it("marks nothing with no search", () => {
+    const { container } = render(<LogRow entry={entry()} needle="" />);
+
+    expect(container.querySelector("mark")).toBeNull();
+  });
+
   it("renders a title holding markup as the text it is", () => {
     const title = "<b>bold</b> <img src=x onerror=alert(1)>";
-    const { container } = render(<LogRow entry={entry({ detail: { taskId: "t1", title } })} />);
+    const { container } = render(
+      <LogRow entry={entry({ detail: { taskId: "t1", title } })} needle="" />
+    );
 
     expect(container.querySelector("b")).toBeNull();
     expect(container.querySelector("img")).toBeNull();

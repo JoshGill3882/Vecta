@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import type { LogLevel, LogSource } from "@/src/shared/lib/dtos/logs";
+import type { LogRange } from "@/src/shared/lib/schemas/logs";
 
 /** How a level or a source is shown: its name and its icon. */
 export interface LogLabel {
@@ -60,4 +61,14 @@ export const SOURCE_LABELS: Record<LogSource, LogLabel> = {
   tasks: { label: "Tasks", Icon: List },
   categories: { label: "Categories", Icon: Tag },
   system: { label: "System", Icon: Server },
+};
+
+/** What the range menu calls having no range, which shows every entry whenever it was written. */
+export const ANY_TIME = "Any time";
+
+/** Each range's name, as its menu lists it and its button shows it once picked. */
+export const RANGE_LABELS: Record<LogRange, string> = {
+  "24h": "Last 24 hours",
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
 };

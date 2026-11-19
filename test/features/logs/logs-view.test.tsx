@@ -29,7 +29,7 @@ const RETENTION: RetentionStatusDTO = {
 };
 
 /** No filters, on the first page. */
-const NO_FILTERS: LogFilters = { level: [], source: [], page: 1 };
+const NO_FILTERS: LogFilters = { q: "", level: [], source: [], range: null, page: 1 };
 
 /** An empty page of the log, for a test to fill in what it needs.
  *
@@ -98,7 +98,7 @@ describe("LogsView", () => {
     render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: [], page: 1 }}
+        filters={{ q: "", level: ["error"], source: [], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 3 })}
       />
     );
@@ -143,7 +143,7 @@ describe("LogsView", () => {
     render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: [], page: 1 }}
+        filters={{ q: "", level: ["error"], source: [], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 0 })}
       />
     );
@@ -243,14 +243,14 @@ describe("LogsView", () => {
     const { container } = render(
       <LogsView
         retention={RETENTION}
-        filters={{ level: ["error"], source: ["auth"], page: 1 }}
+        filters={{ q: "", level: ["error"], source: ["auth"], range: null, page: 1 }}
         page={logPage({ total: 40, matching: 0, oldest: "2026-11-01T12:00:00.000Z" })}
       />
     );
 
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByRole("heading", { level: 2, name: "No matching entries" })).toBeDefined();
-    expect(screen.getByText("Nothing matches the filters you have on.")).toBeDefined();
+    expect(screen.getByText("Nothing matches the search and filters you have on.")).toBeDefined();
     expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href")).toBe("/logs");
   });
 
@@ -282,5 +282,34 @@ describe("LogsView", () => {
 
     expect(screen.queryByRole("heading", { name: "No log entries" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "No matching entries" })).toBeNull();
+  });
+
+  it("marks the page's search in each entry's message, whatever its case or the spaces around it", () => {
+    const createdAt = new Date().toISOString();
+    const { container } = render(
+      <LogsView
+        retention={RETENTION}
+        filters={{ ...NO_FILTERS, q: "  START " }}
+        page={logPage({
+          entries: [
+            {
+              id: "log_1",
+              createdAt,
+              kind: "operational",
+              level: "info",
+              event: "app.started",
+              source: "system",
+              message: "Started",
+              detail: null,
+            },
+          ],
+          total: 1,
+          matching: 1,
+          oldest: createdAt,
+        })}
+      />
+    );
+
+    expect(container.querySelector("summary mark")?.textContent).toBe("Start");
   });
 });

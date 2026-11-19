@@ -9,9 +9,18 @@ import { LOG_COLUMNS, LogRow } from "./log-row";
  * Each day is a section named by its heading, so a screen reader can move
  * from day to day. The column header is drawn for sighted readers on a wide
  * screen only: each row's cells already say what they are. `now` is the
- * moment "today" is taken from, taken once by the caller.
+ * moment "today" is taken from, taken once by the caller, and `needle` is the
+ * search each row marks in its message, already normalised.
  */
-export function LogList({ entries, now }: { entries: LogEntryDTO[]; now: Date }) {
+export function LogList({
+  entries,
+  now,
+  needle,
+}: {
+  entries: LogEntryDTO[];
+  now: Date;
+  needle: string;
+}) {
   return (
     <div className="bg-card overflow-hidden rounded-[13px] border">
       <div
@@ -38,7 +47,7 @@ export function LogList({ entries, now }: { entries: LogEntryDTO[]; now: Date })
               {day.label}
             </h2>
             {day.entries.map((entry) => (
-              <LogRow key={entry.id} entry={entry} />
+              <LogRow key={entry.id} entry={entry} needle={needle} />
             ))}
           </section>
         );

@@ -2,13 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import {
-  isNarrowing,
-  normaliseQuery,
-  type TaskNarrowing,
-} from "@/src/features/tasks/lib/task-search";
+import { isNarrowing, type TaskNarrowing } from "@/src/features/tasks/lib/task-search";
 import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
+import { normaliseQuery } from "@/src/shared/lib/text-search";
 
 /** The narrowing controls' state, and the criteria they add up to. */
 export interface TaskNarrowingState {

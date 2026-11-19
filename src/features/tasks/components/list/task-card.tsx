@@ -7,7 +7,7 @@ import { cn } from "@/src/shared/lib/utils";
 import { DuePill } from "@/src/features/tasks/components/due-pill";
 
 import { TaskCardMenu } from "./task-card-menu";
-import { Highlight } from "./highlight";
+import { Highlight } from "@/src/shared/components/highlight";
 
 /** One task in the list: title, status, category, age. */
 export function TaskCard({

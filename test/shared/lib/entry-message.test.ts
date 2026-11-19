@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { entryMessage } from "@/src/features/logs/lib/entry-message";
+import { entryMessage } from "@/src/shared/lib/entry-message";
 
 /** Builds an entry the way the services record one.
  *

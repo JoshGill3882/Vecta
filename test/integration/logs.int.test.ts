@@ -12,7 +12,7 @@ import {
   writeLog,
 } from "@/src/server/services/logs";
 import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
-import { LOG_PAGE_SIZE, type LogFilters } from "@/src/shared/lib/schemas/logs";
+import { LOG_PAGE_SIZE, NO_FILTERS, type LogFilters } from "@/src/shared/lib/schemas/logs";
 
 const ENTRY = {
   kind: "activity",
@@ -21,7 +21,7 @@ const ENTRY = {
   message: "Deleted a task",
 } as const;
 
-/** Inserts rows directly, one second apart, oldest first.
+/** Inserts rows directly, one second apart, oldest first, unless a row gives its own time.
  *
  * Bypasses the service so a test controls each entry's time and can store
  * what the service would refuse.
@@ -30,7 +30,14 @@ const ENTRY = {
  * @returns Nothing; the rows are in the table.
  */
 async function seed(
-  rows: { kind?: string; level?: string; event?: string; detail?: string | null }[]
+  rows: {
+    kind?: string;
+    level?: string;
+    event?: string;
+    message?: string;
+    detail?: string | null;
+    createdAt?: Date;
+  }[]
 ): Promise<void> {
   const start = Date.parse("2026-11-14T09:00:00.000Z");
   await prisma.log.createMany({
@@ -39,10 +46,20 @@ async function seed(
       level: "info",
       event: `test.entry_${i}`,
       message: `Entry ${i}`,
-      ...row,
       createdAt: new Date(start + i * 1000),
+      ...row,
     })),
   });
+}
+
+/** A moment some hours before another.
+ *
+ * @param hours How many hours before.
+ * @param from The moment to count back from.
+ * @returns The earlier moment.
+ */
+function hoursBefore(hours: number, from: Date): Date {
+  return new Date(from.getTime() - hours * 60 * 60 * 1000);
 }
 
 describe("writeLog (integration)", () => {
@@ -216,7 +233,7 @@ describe("listLogPage (integration)", () => {
    * @returns The full set of filters.
    */
   function filters(change: Partial<LogFilters> = {}): LogFilters {
-    return { level: [], source: [], page: 1, ...change };
+    return { ...NO_FILTERS, page: 1, ...change };
   }
 
   /** One entry from each source, at the levels the filter tests pick between. */
@@ -377,6 +394,157 @@ describe("listLogPage (integration)", () => {
     expect(result.oldest).toBe("2026-11-14T09:00:00.000Z");
   });
 
+  it("searches the message a row shows, the stored message, the event and the detail's values", async () => {
+    await seed([
+      { event: "task.deleted", message: "Task deleted", detail: '{"title":"Buy milk"}' },
+      { event: "category.created", message: "Category created", detail: '{"name":"Home"}' },
+      { event: "server.started", message: "Server started", detail: '{"version":"1.3.0"}' },
+      {
+        event: "auth.sign_in_failed",
+        message: "Sign-in failed",
+        detail: '{"reason":"rate_limited"}',
+      },
+    ]);
+
+    /** The events of the entries a search lists.
+     *
+     * @param q The search as typed.
+     * @returns Each listed entry's event, newest first.
+     */
+    async function found(q: string): Promise<string[]> {
+      return (await listLogPage(filters({ q }))).entries.map((e) => e.event);
+    }
+
+    expect(await found("deleted “buy")).toEqual(["task.deleted"]);
+    expect(await found("too many attempts")).toEqual(["auth.sign_in_failed"]);
+    expect(await found("category created")).toEqual(["category.created"]);
+    expect(await found("server.st")).toEqual(["server.started"]);
+    expect(await found("1.3.0")).toEqual(["server.started"]);
+    expect(await found("version")).toEqual([]);
+  });
+
+  it("counts and pages only the entries the search matches, newest first", async () => {
+    await seed(
+      Array.from({ length: LOG_PAGE_SIZE * 2 + 20 }, (_, i) => ({
+        message: i % 2 === 0 ? `Milk run ${i}` : `Errand ${i}`,
+      }))
+    );
+
+    const first = await listLogPage(filters({ q: "milk" }));
+    expect(first).toMatchObject({ matching: LOG_PAGE_SIZE + 10, pageCount: 2, page: 1 });
+    expect(first.entries).toHaveLength(LOG_PAGE_SIZE);
+    expect(first.entries[0].message).toBe(`Milk run ${LOG_PAGE_SIZE * 2 + 18}`);
+
+    const second = await listLogPage(filters({ q: "milk", page: 2 }));
+    expect(second.entries.map((e) => e.message)).toEqual(
+      Array.from({ length: 10 }, (_, i) => `Milk run ${18 - i * 2}`)
+    );
+  });
+
+  it("shows the last page of the matches for a page past it", async () => {
+    await seed([{ message: "Milk" }, { message: "Eggs" }]);
+
+    expect(await listLogPage(filters({ q: "milk", page: 5 }))).toMatchObject({
+      page: 1,
+      pageCount: 1,
+      matching: 1,
+    });
+  });
+
+  it.each([
+    ["%", "50% done", "500 done"],
+    ["_", "a_b", "axb"],
+  ])("searches for %j as text, not as a database wildcard", async (q, holds, lacks) => {
+    // An event of its own, since the seeded ones hold an underscore.
+    await seed([
+      { event: "test.wildcard", message: holds },
+      { event: "test.wildcard", message: lacks },
+    ]);
+
+    const { entries, matching } = await listLogPage(filters({ q }));
+    expect(matching).toBe(1);
+    expect(entries.map((e) => e.message)).toEqual([holds]);
+  });
+
+  it("searches ignoring case, accented letters included", async () => {
+    await seed([{ message: "Écrire le rapport" }, { message: "Lire le rapport" }]);
+
+    const { entries } = await listLogPage(filters({ q: "ÉCRIRE" }));
+    expect(entries.map((e) => e.message)).toEqual(["Écrire le rapport"]);
+  });
+
+  it("narrows a search by level and source as well", async () => {
+    await seed([
+      { event: "task.deleted", level: "warn", message: "Milk" },
+      { event: "task.deleted", level: "info", message: "Milk" },
+      { event: "auth.signed_in", level: "warn", message: "Milk" },
+      { event: "task.deleted", level: "warn", message: "Eggs" },
+    ]);
+
+    const page = await listLogPage(filters({ q: "milk", level: ["warn"], source: ["tasks"] }));
+    expect(page.matching).toBe(1);
+    expect(page.entries.map((e) => [e.event, e.level, e.message])).toEqual([
+      ["task.deleted", "warn", "Milk"],
+    ]);
+  });
+
+  it.each([
+    [null, 4],
+    ["30d", 3],
+    ["7d", 2],
+    ["24h", 1],
+  ] as const)("with the range %j, counts the entries written within it", async (range, count) => {
+    const now = new Date();
+    await seed([
+      { event: "test.forty_days", createdAt: hoursBefore(40 * 24, now) },
+      { event: "test.ten_days", createdAt: hoursBefore(10 * 24, now) },
+      { event: "test.three_days", createdAt: hoursBefore(3 * 24, now) },
+      { event: "test.two_hours", createdAt: hoursBefore(2, now) },
+    ]);
+
+    const page = await listLogPage(filters({ range }));
+    expect(page.matching).toBe(count);
+    expect(page.entries).toHaveLength(count);
+  });
+
+  it("measures the range back from when its counts were read", async () => {
+    const now = new Date();
+    await seed([
+      { event: "test.outside", createdAt: hoursBefore(24.01, now) },
+      { event: "test.inside", createdAt: hoursBefore(23.99, now) },
+    ]);
+
+    const page = await listLogPage(filters({ range: "24h" }));
+    expect(page.entries.map((e) => e.event)).toEqual(["test.inside"]);
+  });
+
+  it("narrows a search by the range as well", async () => {
+    const now = new Date();
+    await seed([
+      { message: "Milk", createdAt: hoursBefore(48, now) },
+      { message: "Milk", createdAt: hoursBefore(1, now) },
+      { message: "Eggs", createdAt: hoursBefore(1, now) },
+    ]);
+
+    expect((await listLogPage(filters({ q: "milk", range: "24h" }))).matching).toBe(1);
+  });
+
+  it("counts every entry by level and source, whatever the search and range", async () => {
+    await seed([
+      { level: "warn", message: "Milk" },
+      { level: "error" },
+      { event: "auth.signed_in" },
+    ]);
+
+    const page = await listLogPage(filters({ q: "milk", range: "24h" }));
+    expect(page).toMatchObject({
+      matching: 0,
+      total: 3,
+      levelCounts: { debug: 0, info: 1, warn: 1, error: 1 },
+      sourceCounts: { auth: 1, tasks: 0, categories: 0, system: 2 },
+    });
+  });
+
   it("gives each entry its source", async () => {
     await seed([{ event: "category.created" }, { event: "auth.signed_out" }]);
 
@@ -387,7 +555,7 @@ describe("listLogPage (integration)", () => {
 
 describe("readLogBatches (integration)", () => {
   /** No filters on, as an unfiltered export reads. */
-  const NONE = { level: [], source: [] };
+  const NONE = NO_FILTERS;
 
   /** Reads every batch an export would.
    *
@@ -466,7 +634,12 @@ describe("readLogBatches (integration)", () => {
       { event: "action.unexpected_error", level: "error" },
     ]);
 
-    const filters: LogFilters = { level: ["warn", "error"], source: ["auth", "system"], page: 9 };
+    const filters: LogFilters = {
+      ...NO_FILTERS,
+      level: ["warn", "error"],
+      source: ["auth", "system"],
+      page: 9,
+    };
     const events = (await collect(readLogBatches(filters, 1))).flat().map((e) => e.event);
     expect(events).toEqual(["action.unexpected_error", "auth.sign_in_failed"]);
   });
@@ -483,8 +656,59 @@ describe("readLogBatches (integration)", () => {
     await seed([{ level: "error" }, { level: "info" }, { level: "error" }, { level: "error" }]);
 
     const readAt = new Date("2026-11-14T09:00:02.000Z");
-    const [batch] = await collect(readLogBatches({ level: ["error"], source: [], readAt }));
+    const [batch] = await collect(readLogBatches({ ...NO_FILTERS, level: ["error"], readAt }));
     expect(batch.map((e) => e.event)).toEqual(["test.entry_2", "test.entry_0"]);
+  });
+
+  it("reads only the entries the search matches, in batches that are never empty", async () => {
+    await seed(
+      Array.from({ length: 7 }, (_, i) => ({ message: i === 1 || i >= 5 ? "Milk" : "Eggs" }))
+    );
+
+    const batches = await collect(readLogBatches({ ...NONE, q: "MILK" }, 2));
+    // Read two at a time: entries 6 and 5 match, 4 and 3 do not, 2 and 1 hold
+    // one match, and 0 does not.
+    expect(batches.map((batch) => batch.map((e) => e.event))).toEqual([
+      ["test.entry_6", "test.entry_5"],
+      ["test.entry_1"],
+    ]);
+  });
+
+  it("reads a search's matches written up to the moment, when given one", async () => {
+    await seed([
+      { message: "Milk" },
+      { message: "Eggs" },
+      { message: "Milk" },
+      { message: "Milk" },
+    ]);
+
+    const readAt = new Date("2026-11-14T09:00:02.000Z");
+    const [batch] = await collect(readLogBatches({ ...NONE, q: "milk", readAt }));
+    expect(batch.map((e) => e.event)).toEqual(["test.entry_2", "test.entry_0"]);
+  });
+
+  it("reads the range back from the moment, when given one", async () => {
+    const readAt = new Date("2026-11-14T12:00:00.000Z");
+    await seed([
+      { event: "test.before_range", createdAt: hoursBefore(25, readAt) },
+      { event: "test.in_range", createdAt: hoursBefore(23, readAt) },
+      { event: "test.at_moment", createdAt: readAt },
+      { event: "test.after_moment", createdAt: hoursBefore(-1, readAt) },
+    ]);
+
+    const [batch] = await collect(readLogBatches({ ...NONE, range: "24h", readAt }));
+    expect(batch.map((e) => e.event)).toEqual(["test.at_moment", "test.in_range"]);
+  });
+
+  it("reads the range back from now, with no moment", async () => {
+    const now = new Date();
+    await seed([
+      { event: "test.old", createdAt: hoursBefore(8 * 24, now) },
+      { event: "test.recent", createdAt: hoursBefore(6 * 24, now) },
+    ]);
+
+    const [batch] = await collect(readLogBatches({ ...NONE, range: "7d" }));
+    expect(batch.map((e) => e.event)).toEqual(["test.recent"]);
   });
 
   it("reads each entry as the Logs page shows it, with its detail parsed", async () => {
@@ -500,7 +724,7 @@ describe("readLogBatches (integration)", () => {
 
 describe("deleteLogs (integration)", () => {
   /** No filters on, as a purge of every entry deletes. */
-  const NONE = { level: [], source: [] };
+  const NONE = NO_FILTERS;
 
   /** The moment the third seeded entry was written, two seconds after the first. */
   const THIRD = new Date("2026-11-14T09:00:02.000Z");
@@ -544,7 +768,7 @@ describe("deleteLogs (integration)", () => {
     ]);
 
     const removed = await deleteLogs(
-      { level: ["warn", "error"], source: ["auth", "system"] },
+      { ...NO_FILTERS, level: ["warn", "error"], source: ["auth", "system"] },
       new Date("2026-11-14T10:00:00.000Z")
     );
 
@@ -555,14 +779,75 @@ describe("deleteLogs (integration)", () => {
   it("keeps a matching entry written after the moment", async () => {
     await seed([{ level: "error" }, { level: "error" }, { level: "error" }, { level: "error" }]);
 
-    expect(await deleteLogs({ level: ["error"], source: [] }, THIRD)).toBe(3);
+    expect(await deleteLogs({ ...NO_FILTERS, level: ["error"] }, THIRD)).toBe(3);
     expect(await remaining()).toEqual(["test.entry_3"]);
   });
 
   it("deletes nothing, and says so, when nothing matches", async () => {
     await seed([{ level: "info" }]);
 
-    expect(await deleteLogs({ level: ["error"], source: [] }, THIRD)).toBe(0);
+    expect(await deleteLogs({ ...NO_FILTERS, level: ["error"] }, THIRD)).toBe(0);
     expect(await remaining()).toHaveLength(1);
+  });
+
+  it("deletes only the entries the search matches, written up to the moment", async () => {
+    await seed([
+      { message: "Milk" },
+      { message: "Eggs" },
+      { message: "MILK" },
+      { message: "Milk" },
+    ]);
+
+    expect(await deleteLogs({ ...NONE, q: "milk" }, THIRD)).toBe(2);
+    expect(await remaining()).toEqual(["test.entry_3", "test.entry_1"]);
+  });
+
+  it("deletes a search's matches together with the other filters", async () => {
+    await seed([
+      { level: "warn", message: "Milk" },
+      { level: "info", message: "Milk" },
+      { level: "warn", message: "Eggs" },
+    ]);
+
+    expect(await deleteLogs({ ...NONE, q: "milk", level: ["warn"] }, THIRD)).toBe(1);
+    expect(await remaining()).toEqual(["test.entry_2", "test.entry_1"]);
+  });
+
+  it("treats a wildcard character in the search as text", async () => {
+    await seed([{ message: "50% done" }, { message: "500 done" }, { message: "a_b" }]);
+
+    expect(await deleteLogs({ ...NONE, q: "%" }, THIRD)).toBe(1);
+    expect(await remaining()).toEqual(["test.entry_2", "test.entry_1"]);
+  });
+
+  it(`deletes more matches than one delete of ${LOG_BATCH_SIZE} holds`, async () => {
+    const count = LOG_BATCH_SIZE * 2 + 3;
+    await seed(
+      Array.from({ length: count + 4 }, (_, i) => ({ message: i < count ? "Milk" : "Eggs" }))
+    );
+
+    expect(await deleteLogs({ ...NONE, q: "milk" }, new Date("2026-11-15T00:00:00.000Z"))).toBe(
+      count
+    );
+    expect(await prisma.log.count()).toBe(4);
+  });
+
+  it("deletes nothing, and says so, when the search matches nothing", async () => {
+    await seed([{ message: "Eggs" }]);
+
+    expect(await deleteLogs({ ...NONE, q: "milk" }, THIRD)).toBe(0);
+    expect(await remaining()).toHaveLength(1);
+  });
+
+  it("deletes only the entries within the range of the moment", async () => {
+    const readAt = new Date("2026-11-14T12:00:00.000Z");
+    await seed([
+      { event: "test.before_range", createdAt: hoursBefore(25, readAt) },
+      { event: "test.in_range", createdAt: hoursBefore(23, readAt) },
+      { event: "test.after_moment", createdAt: hoursBefore(-1, readAt) },
+    ]);
+
+    expect(await deleteLogs({ ...NONE, range: "24h" }, readAt)).toBe(1);
+    expect(await remaining()).toEqual(["test.after_moment", "test.before_range"]);
   });
 });

@@ -6,7 +6,7 @@ import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { LogPager } from "@/src/features/logs/components/log-pager";
 
 /** No filters, on the first page. */
-const NO_FILTERS: LogFilters = { level: [], source: [], page: 1 };
+const NO_FILTERS: LogFilters = { q: "", level: [], source: [], range: null, page: 1 };
 
 /** A page of a log of 1,204 matching entries, which fills 25 pages.
  *
@@ -67,7 +67,7 @@ describe("LogPager", () => {
     render(
       <LogPager
         page={logPage(2)}
-        filters={{ level: ["warn", "error"], source: ["auth"], page: 2 }}
+        filters={{ q: "", level: ["warn", "error"], source: ["auth"], range: null, page: 2 }}
       />
     );
 

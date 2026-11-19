@@ -1,8 +1,9 @@
 import { ChevronDown } from "lucide-react";
 
 import type { LogEntryDTO } from "@/src/shared/lib/dtos/logs";
+import { Highlight } from "@/src/shared/components/highlight";
 import { detailLayout } from "@/src/features/logs/lib/detail-fields";
-import { entryMessage } from "@/src/features/logs/lib/entry-message";
+import { entryMessage } from "@/src/shared/lib/entry-message";
 import { logTime } from "@/src/features/logs/lib/log-format";
 import { cn } from "@/src/shared/lib/utils";
 
@@ -65,8 +66,11 @@ function LogDetail({ entry }: { entry: LogEntryDTO }) {
  *
  * On a phone the line wraps in two: level, source, time and chevron above, the
  * message beneath across the whole width.
+ *
+ * The search is marked wherever it appears in the message. An entry can match
+ * on its detail alone, and then shows no mark until it is opened.
  */
-export function LogRow({ entry }: { entry: LogEntryDTO }) {
+export function LogRow({ entry, needle }: { entry: LogEntryDTO; needle: string }) {
   const { label: source, Icon: SourceIcon } = SOURCE_LABELS[entry.source];
   const message = entryMessage(entry);
 
@@ -102,7 +106,7 @@ export function LogRow({ entry }: { entry: LogEntryDTO }) {
           title={message}
           className="line-clamp-2 text-[13.5px] [overflow-wrap:anywhere] [grid-area:msg] min-[720px]:line-clamp-1"
         >
-          {message}
+          <Highlight text={message} needle={needle} />
         </span>
         <ChevronDown
           className="text-text-3 size-[15px] transition-transform [grid-area:chev] group-open:rotate-180"

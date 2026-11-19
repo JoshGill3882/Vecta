@@ -141,7 +141,23 @@ describe("GET /api/logs/export", () => {
     await exportWith("format=csv");
 
     expect(mockReadLogBatches).toHaveBeenCalledWith(
-      expect.objectContaining({ level: [], source: [] })
+      expect.objectContaining({ q: "", level: [], source: [], range: null })
+    );
+  });
+
+  it("exports what the search and the range match", async () => {
+    await exportWith("format=csv&q=%20buy%20milk%20&range=7d");
+
+    expect(mockReadLogBatches).toHaveBeenCalledWith(
+      expect.objectContaining({ q: "buy milk", range: "7d" })
+    );
+  });
+
+  it("clears an unknown range, and a search given twice, as the page does", async () => {
+    await exportWith("format=csv&q=milk&q=eggs&range=1y&level=warn");
+
+    expect(mockReadLogBatches).toHaveBeenCalledWith(
+      expect.objectContaining({ q: "", range: null, level: ["warn"] })
     );
   });
 
@@ -171,8 +187,10 @@ describe("GET /api/logs/export", () => {
     await exportWith("format=json&level=warn&readAt=2026-11-17T19:30:00.000Z");
 
     expect(mockReadLogBatches).toHaveBeenCalledWith({
+      q: "",
       level: ["warn"],
       source: [],
+      range: null,
       page: 1,
       readAt: new Date("2026-11-17T19:30:00.000Z"),
     });

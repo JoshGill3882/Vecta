@@ -7,7 +7,7 @@ A schema is the single source of truth for both **run-time validation** and the 
 
 - `src/shared/lib/schemas/tasks.ts` — `taskCreateSchema`, `taskUpdateSchema`
 - `src/shared/lib/schemas/categories.ts` — `categoryCreateSchema`, `categoryUpdateSchema`
-- `src/shared/lib/schemas/logs.ts` — `logWriteSchema` and `logFiltersSchema`, with the `LOG_KINDS`, `LOG_LEVELS` and `LOG_SOURCES` lists and `LOG_PAGE_SIZE`
+- `src/shared/lib/schemas/logs.ts` — `logWriteSchema`, `logFiltersSchema` and `logPurgeSchema`, with the `LOG_KINDS`, `LOG_LEVELS`, `LOG_SOURCES` and `LOG_RANGES` lists, `LOG_PAGE_SIZE`, `LOG_SEARCH_MAX`, and `isFiltered`
 - `src/shared/lib/schemas/settings.ts` — `logRetentionDaysSchema`, with the `LOG_RETENTION_DAYS` list and `DEFAULT_LOG_RETENTION_DAYS`
 - `src/shared/lib/validation.ts` — the shared `validate()` helper + `ValidationResult` type
 
@@ -113,8 +113,9 @@ Log entries are written by server code, never typed by the user, so nothing call
 `writeLog` parses it and throws on a malformed entry, which is a bug in the code that wrote it.
 
 `logFiltersSchema` reads the Logs page's query string, which anyone can edit, and it never refuses one.
-Next passes a parameter given once as a string and a repeated one as an array, so each is read as a list first.
-An unknown level or source then clears that filter, and a page that is not a whole number from 1 reads as the first, so a stale or hand-edited link shows the log rather than an error.
+Next passes a parameter given once as a string and a repeated one as an array, so a level or source is read as a list first.
+The search and the range hold one value each, and a list of one is read as its value, since the export route reads its parameters with `getAll`.
+An unknown level, source or range then clears that filter, as does a search that is repeated or over 200 characters, and a page that is not a whole number from 1 reads as the first, so a stale or hand-edited link shows the log rather than an error.
 The page calls `parse` rather than `validate()`, since there is no error to report.
 Writing an address from the filters is the other direction, done by `logsHref` in `src/features/logs/lib/log-links.ts`, and its tests read every address it writes back through this schema.
 

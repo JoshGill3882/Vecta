@@ -33,7 +33,7 @@ const ENTRIES = [
 
 describe("LogList", () => {
   it("heads each day, newest first", () => {
-    render(<LogList entries={ENTRIES} now={NOW} />);
+    render(<LogList entries={ENTRIES} now={NOW} needle="" />);
 
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
       "Today",
@@ -43,7 +43,7 @@ describe("LogList", () => {
   });
 
   it("puts each entry under its own day, as a region named by the heading", () => {
-    render(<LogList entries={ENTRIES} now={NOW} />);
+    render(<LogList entries={ENTRIES} now={NOW} needle="" />);
 
     const today = screen.getByRole("region", { name: "Today" });
     expect(within(today).getByText("Created “a”")).toBeDefined();
@@ -55,7 +55,7 @@ describe("LogList", () => {
   });
 
   it("keeps the entries in the order given", () => {
-    const { container } = render(<LogList entries={ENTRIES} now={NOW} />);
+    const { container } = render(<LogList entries={ENTRIES} now={NOW} needle="" />);
 
     const messages = Array.from(container.querySelectorAll("summary")).map(
       (summary) => summary.querySelector("span[title]")?.textContent
@@ -63,8 +63,19 @@ describe("LogList", () => {
     expect(messages).toEqual(["Created “a”", "Created “b”", "Created “c”", "Created “d”"]);
   });
 
+  it("marks the search in every row's message", () => {
+    const { container } = render(<LogList entries={ENTRIES} now={NOW} needle="created" />);
+
+    expect(Array.from(container.querySelectorAll("mark"), (mark) => mark.textContent)).toEqual([
+      "Created",
+      "Created",
+      "Created",
+      "Created",
+    ]);
+  });
+
   it("hides the column header from screen readers, whose rows say what each cell is", () => {
-    render(<LogList entries={ENTRIES} now={NOW} />);
+    render(<LogList entries={ENTRIES} now={NOW} needle="" />);
 
     expect(screen.getByText("Message").parentElement?.getAttribute("aria-hidden")).toBe("true");
   });
