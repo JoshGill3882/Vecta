@@ -8,7 +8,7 @@ import {
   type ExportFormat,
 } from "@/src/server/log-export";
 import { readLogBatches } from "@/src/server/services/logs";
-import { logFiltersSchema, logReadAtSchema } from "@/src/shared/lib/schemas/logs";
+import { logFiltersFromParams, logReadAtSchema } from "@/src/shared/lib/schemas/logs";
 import { getSession } from "@/src/shared/lib/session";
 
 /** The media type each format is served as. */
@@ -51,12 +51,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return new Response("Choose a format: csv or json.", { status: 400 });
   }
 
-  const filters = logFiltersSchema.parse({
-    q: params.getAll("q"),
-    level: params.getAll("level"),
-    source: params.getAll("source"),
-    range: params.getAll("range"),
-  });
+  const filters = logFiltersFromParams(params);
   const readAt = logReadAtSchema.safeParse(params.get("readAt"));
   const batches = readLogBatches({ ...filters, readAt: readAt.data });
 
