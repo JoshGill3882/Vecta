@@ -42,7 +42,7 @@ Internal refactors that change nothing observable are not listed.
 ### Changed
 
 - **A new, flat Vecta logo**, drawn as clean shapes without the glow, in the top bar, on the login screen and on every icon.
-  It always sits on the app's dark background, so the browser tab icon looks the same in a light or dark browser.
+  It always sits on the app's dark background, so the browser tab icon looks the same in a light or dark browser, and the tab icon draws it smaller on its dark rounded tile, so it sits lightly among other tabs rather than as a dark square.
   The desktop icon, which was small and looked off-centre, is now a rounded tile the logo fills, and the phone and iPhone home-screen icons show it larger
 - **The dots beside Open, In Progress and Closed** above each part of the task list are plain dots, without the faint ring around them
 
