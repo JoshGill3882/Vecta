@@ -394,6 +394,40 @@ describe("listLogPage (integration)", () => {
     expect(result.oldest).toBe("2026-11-14T09:00:00.000Z");
   });
 
+  it("leaves an entry written after its counts were read out of the page and every count", async () => {
+    // An entry dated ahead of the clock stands in for one written while the
+    // page is read, after the moment it is read up to.
+    const later = new Date(Date.now() + 60 * 60 * 1000);
+    await seed([
+      { event: "task.created", level: "info" },
+      { event: "auth.sign_in_failed", level: "warn", createdAt: later },
+    ]);
+
+    const result = await listLogPage(filters());
+    expect(result.entries.map((e) => e.event)).toEqual(["task.created"]);
+    expect(result).toMatchObject({
+      matching: 1,
+      total: 1,
+      levelCounts: { debug: 0, info: 1, warn: 0, error: 0 },
+      sourceCounts: { auth: 0, tasks: 1, categories: 0, system: 0 },
+    });
+  });
+
+  it("leaves an entry written after its counts were read out of a search's matches", async () => {
+    const later = new Date(Date.now() + 60 * 60 * 1000);
+    await seed([{ message: "Bought milk" }, { message: "Bought more milk", createdAt: later }]);
+
+    const result = await listLogPage(filters({ q: "milk" }));
+    expect(result.entries.map((e) => e.message)).toEqual(["Bought milk"]);
+    expect(result.matching).toBe(1);
+  });
+
+  it("gives no oldest entry when every entry was written after its counts were read", async () => {
+    await seed([{ createdAt: new Date(Date.now() + 60 * 60 * 1000) }]);
+
+    expect(await listLogPage(filters())).toMatchObject({ total: 0, oldest: null, entries: [] });
+  });
+
   it("searches the message a row shows, the stored message, the event and the detail's values", async () => {
     await seed([
       { event: "task.deleted", message: "Task deleted", detail: '{"title":"Buy milk"}' },
