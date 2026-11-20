@@ -31,6 +31,7 @@ import { toggled } from "@/src/shared/lib/selection";
 import { entryCount, formatCount } from "@/src/features/logs/lib/log-format";
 import { logsHref } from "@/src/features/logs/lib/log-links";
 
+import { LogFilterSheet } from "./log-filter-sheet";
 import { LogSearchField } from "./log-search-field";
 import { ANY_TIME, LEVEL_LABELS, RANGE_LABELS, SOURCE_LABELS, type LogLabel } from "./log-meta";
 
@@ -44,21 +45,24 @@ const SEARCH_WAIT = 300;
 /** The range menu's value for no range, since a menu's values are strings. */
 const ANY = "any";
 
-/** Finds the button that clearing the filters sends focus to.
+/** Finds the buttons that clearing the filters sends focus to: the Level button, and the sheet's button that stands in for it on a narrow screen.
  *
- * It is marked with a data attribute rather than an id, since the menu gives
- * its button an id of its own, which names the open menu for a screen reader.
+ * They are marked with a data attribute rather than an id, since the menu
+ * gives its button an id of its own, which names the open menu for a screen
+ * reader.
  */
 const FOCUS_TARGET = "[data-filter-focus-target]";
 
-/** Sends focus to the first filter's button.
+/** Sends focus to the first filter's button, or to the sheet's button where the filters are folded into it.
  *
  * Every Clear filters control disappears once it is pressed, so each sends
  * focus here first, where the reader can filter again, rather than leaving it
- * wherever the control was.
+ * wherever the control was. Both buttons are always rendered, with CSS hiding
+ * one, so the one on screen is the one with a box.
  */
 export function focusFilters(): void {
-  document.querySelector<HTMLElement>(FOCUS_TARGET)?.focus();
+  const targets = Array.from(document.querySelectorAll<HTMLElement>(FOCUS_TARGET));
+  (targets.find((target) => target.getClientRects().length > 0) ?? targets[0])?.focus();
 }
 
 /** One filter's menu: a checkbox per choice, each with how many entries it holds.
@@ -202,6 +206,11 @@ function RangeMenu({
  * adding to the history, so the back button steps past a search instead of
  * through it a word at a time. What is typed is held here until then, and a
  * menu picked meanwhile sends it with its own choice.
+ *
+ * Two layouts, switched at the same 720px as the task list's toolbar. From
+ * there up, the menus sit beside the search box and wrap below it if they run
+ * out of room. Below it they fold into one button that opens a sheet, so the
+ * search box and its filters stay on one row.
  */
 export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFilters }) {
   const router = useRouter();
@@ -256,7 +265,7 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
 
   return (
     <div className="mb-3">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 min-[720px]:flex-wrap">
         <LogSearchField
           value={text}
           onChange={search}
@@ -265,7 +274,9 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
             apply({ ...shown, q: "" }, "replace");
           }}
         />
-        <div className="flex flex-wrap gap-2">
+        {/* `contents` removes the wrapper's own box, so from 720px up the menus
+            are items of the row itself and wrap with it. */}
+        <div className="hidden min-[720px]:contents">
           <FilterMenu
             label="Level"
             icon={Funnel}
@@ -290,6 +301,12 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
             onRangeChange={(range) => apply({ ...shown, q: text, range })}
           />
         </div>
+        <LogFilterSheet
+          page={page}
+          filters={shown}
+          onFiltersChange={(change) => apply({ ...shown, q: text, ...change })}
+          className="min-[720px]:hidden"
+        />
       </div>
 
       {filtered && (
