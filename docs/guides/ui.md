@@ -247,7 +247,7 @@ Several things here are easy to get wrong.
   A task due next month is in none of them.
   A closed task is only ever in No due date, since the other options ask what still needs doing.
 - **A coloured option gives its colour up while its row is highlighted.**
-  Overdue's red and Due today's orange both hold 4.5:1 against the menu and the sheet, but the red falls short against the highlighted row, so the row's own text colour takes over there (`toneOnRow` in `filter-sheet.tsx`; Radix's highlight does the same in the menu).
+  Overdue's red and Due today's orange both hold 4.5:1 against the menu and the sheet, but the red falls short against the highlighted row, so the row's own text colour takes over there (`toneOnRow` in the task list's `filter-sheet.tsx`; Radix's highlight does the same in the menu).
   The thresholds are pinned in `due-pill-contrast.test.ts`, so a palette change that breaks them fails a test rather than a reader.
 - **What narrows the list is named in a row of chips** (`active-filters.tsx`), each removable on its own, with Clear all at the end.
   Chips follow the menus' order rather than the order they were picked, so a chip does not move as others come and go.
@@ -298,12 +298,19 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The clear button and Escape both clear the box and leave focus in it.
 - **The range menu names its choice on its button**, such as "Last 7 days", rather than counting it, and its `aria-label` adds "Time range" for a screen reader, since the range alone would not say what the button is for.
   Only one range can be on, so its choices are radio items and the menu closes once one is picked.
+- **Below 720px the filters fold into a sheet**, at the same width as the task list's toolbar, so the search box and one Filters button keep to one row.
+  From 720px up the menus sit beside the search box instead, wrapping below it if they run out of room.
+  Both forms are always rendered, with CSS showing one, so a change of width needs no JavaScript.
+  The sheet (`log-filter-sheet.tsx`) holds Level, Source and Time range, in the menus' order, with the same choices and counts, and a pick there goes through the same `apply` as a menu's, so it keeps the search and sends one still waiting.
+  Its badge counts each level and source picked and one for a range, leaving out the search beside it, and its Clear filters leaves the search too.
+  It is built from the parts it shares with the task list's sheet in `src/shared/components/filter-sheet.tsx`: `FilterSheetFrame` for the button, the handle, the title bar and the foot, and `SheetSection` and `OptionRow` for what goes inside.
 - **A row marks the search in its message** with the shared `Highlight` and `findMatches`, as the task list does; see [Narrowing the task list](#narrowing-the-task-list).
   An entry can match on its detail alone, and then shows no mark until it is opened.
-- **Both Clear filters controls send focus to the Level button before they go.**
+- **Both Clear filters controls send focus to the first filter's button before they go.**
   The one beside the count and the empty state's link each clear the search with the other filters, and each disappear once they have.
   Left alone, the next Tab would carry on from wherever the control was, which for the empty state is the first entry of the list it brought back.
-  Both call `focusFilters()` in `log-filter-bar.tsx`, which finds the Level button by a data attribute rather than an id: the menu names itself by its button's id, and an id of ours would replace it.
+  Both call `focusFilters()` in `log-filter-bar.tsx`, which finds the Level button and the sheet's button by a data attribute rather than an id: the menu names itself by its button's id, and an id of ours would replace it.
+  Of the two, it focuses the one with a box on screen, since CSS hides the other.
 - **Paging is links.**
   Newer and Older (`log-pager.tsx`) are `<Link>`s to the neighbouring page's address, so they behave like any other link.
   At either end the missing one is a disabled button, since a link cannot be disabled.
@@ -312,7 +319,7 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar with its search box, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
+  The filter bar with its search box and sheet, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
