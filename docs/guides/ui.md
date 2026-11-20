@@ -382,9 +382,16 @@ How retention itself works is in [Logging](./logging.md#retention).
   The status holds the choice, the cut-off, how many entries are older than it, and the last run.
 - **The choice is a Radix `RadioGroup`**, styled as a segmented control.
   It is one tab stop, landing on the saved choice, and the arrow keys move between the choices and pick each one, wrapping at either end, as a group of radio buttons does.
-- **A pick shows straight away and saves in the background.**
+  It is `w-max`, so it never wraps onto a second line.
+- **On a column narrower than 360px it is a dropdown instead**, a 44px button reading "Keep for 90 days", or "Keep forever", that fills the column up to 320px and opens a menu of the five as radio items, with a tick beside the saved one.
+  Its `aria-label` names the choice as "Keep log entries for: 90 days", since the button's text alone would not say what it is for.
+  Which shows is decided by a container query rather than a breakpoint: the choice's box is an `@container`, the segments carry `@max-[360px]:hidden` and the button `@max-[360px]:inline-flex`, because the column's width depends on the card's layout as well as the window's.
+  The box is `w-full`, since a size container takes no width from what it holds, and in a column lined up with `items-start` it would otherwise shrink to nothing.
+  Both forms are always rendered and CSS shows one, as with the filter bar's sheet, so a change of width needs no JavaScript.
+- **A pick shows straight away and saves in the background**, from either form.
   It is held in `useOptimistic`, set inside the same `startTransition` as the save, so the choice moves at once and goes back by itself if the save fails.
   The save goes through `useServerAction`, which confirms it in a toast or shows why it failed.
+  Picking the saved choice again saves nothing: the menu reports that pick where the segments do not, so `choose` ignores it.
 - **The line under the choice says one of three things.**
   With Forever chosen, entries are kept until they are purged.
   With nothing older than the cut-off, it says so, naming the date.
