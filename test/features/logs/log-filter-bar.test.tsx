@@ -378,6 +378,21 @@ describe("LogFilterBar search", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("sends a waiting search with a choice picked in the sheet", async () => {
+    const user = typist();
+    render(<LogFilterBar page={PAGE} filters={filters()} />);
+
+    await user.type(box(), "milk");
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog", { name: "Filters" });
+    await user.click(within(sheet).getByRole("button", { name: /^Source/ }));
+    await user.click(within(sheet).getByRole("checkbox", { name: /Tasks/ }));
+    pause();
+
+    expect(push).toHaveBeenCalledWith("/logs?q=milk&source=tasks", { scroll: false });
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("empties the box when the filters are cleared", async () => {
     const user = typist();
     render(<LogFilterBar page={PAGE} filters={filters({ q: "milk" })} />);
@@ -479,5 +494,76 @@ describe("LogFilterBar range", () => {
     await user.click(await screen.findByRole("menuitemradio", { name: "Any time" }));
 
     expect(push).toHaveBeenCalledWith("/logs", { scroll: false });
+  });
+});
+
+describe("LogFilterBar on a narrow screen", () => {
+  it("puts the menus and the sheet's button beside the search box, showing one by width", () => {
+    render(<LogFilterBar page={PAGE} filters={filters()} />);
+
+    // jsdom applies no media queries, so this checks the classes that switch
+    // the two layouts at 720px: one row below it, wrapping from it up.
+    const row = screen.getByRole("searchbox").closest("div")?.parentElement;
+    expect(row?.className).toContain("min-[720px]:flex-wrap");
+    expect(row?.className).not.toMatch(/(^| )flex-wrap/);
+    const menus = screen.getByRole("button", { name: "Level" }).parentElement;
+    expect(menus?.className).toBe("hidden min-[720px]:contents");
+    expect(screen.getByRole("button", { name: "Filters" }).className).toContain(
+      "min-[720px]:hidden"
+    );
+  });
+
+  it("goes to the address for a choice picked in the sheet, keeping the search and the other filters", async () => {
+    const user = userEvent.setup();
+    render(
+      <LogFilterBar page={PAGE} filters={filters({ q: "milk", source: ["auth"], page: 3 })} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Filters, 1 active" }));
+    const sheet = await screen.findByRole("dialog", { name: "Filters" });
+    await user.click(within(sheet).getByRole("button", { name: /^Level/ }));
+    await user.click(within(sheet).getByRole("checkbox", { name: /Error/ }));
+
+    expect(push).toHaveBeenCalledWith("/logs?q=milk&level=error&source=auth", { scroll: false });
+  });
+
+  it("goes to the address for a range picked in the sheet", async () => {
+    const user = userEvent.setup();
+    render(<LogFilterBar page={PAGE} filters={filters()} />);
+
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog", { name: "Filters" });
+    await user.click(within(sheet).getByRole("button", { name: /^Time range/ }));
+    await user.click(within(sheet).getByRole("radio", { name: "Last 7 days" }));
+
+    expect(push).toHaveBeenCalledWith("/logs?range=7d", { scroll: false });
+  });
+
+  it("keeps the search when the sheet's Clear filters is pressed", async () => {
+    const user = userEvent.setup();
+    render(
+      <LogFilterBar page={PAGE} filters={filters({ q: "milk", level: ["warn"], range: "24h" })} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Filters, 2 active" }));
+    const sheet = await screen.findByRole("dialog", { name: "Filters" });
+    await user.click(within(sheet).getByRole("button", { name: "Clear filters" }));
+
+    expect(push).toHaveBeenCalledWith("/logs?q=milk", { scroll: false });
+  });
+
+  it("sends focus to the sheet's button when clearing, where it stands in for the menus", async () => {
+    const user = userEvent.setup();
+    render(<LogFilterBar page={PAGE} filters={filters({ level: ["error"] })} />);
+    // jsdom lays nothing out, so the narrow layout is stood in for: the sheet's
+    // button has a box on screen and the hidden Level button has none.
+    const sheetButton = screen.getByRole("button", { name: "Filters, 1 active" });
+    vi.spyOn(sheetButton, "getClientRects").mockReturnValue([
+      new DOMRect(0, 0, 44, 44),
+    ] as unknown as DOMRectList);
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(document.activeElement).toBe(sheetButton);
   });
 });
