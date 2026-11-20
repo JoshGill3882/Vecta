@@ -13,6 +13,7 @@ import {
   ICO_SIZES,
   LAUNCHER_SIZES,
   SAFE_FRACTION,
+  TAB_FRACTION,
   TILE_RADIUS,
   buildIco,
   framedSvg,
@@ -327,6 +328,77 @@ describe("the shipped desktop icons' framing", () => {
   it.each(LAUNCHER_SIZES)("frames the mark as closely as the tile allows at %ipx", async (size) => {
     const { data } = await pixels(shipped(`public/icons/icon-${size}.png`));
     expect(reachOf(data, size)).toBeCloseTo(ANY_FRACTION, 1);
+  });
+});
+
+/** How many pixels of a tab icon show the mark in the band of tile round it.
+ *
+ * The band runs from the circle the mark's reach should fill out to the
+ * tile's curve, leaving a pixel either side for anti-aliasing. A mark drawn
+ * larger than the tab icon's framing reaches into it.
+ *
+ * @param data RGBA pixels.
+ * @param size The icon's width.
+ * @returns The pixels in the band that are not plain ground.
+ */
+function markInBand(data: Buffer, size: number): number {
+  let marked = 0;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const fromCentre = Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2);
+      const inBand =
+        fromCentre > (size * TAB_FRACTION) / 2 + 1 && beyondCurve(x, y, size, TILE_RADIUS) < -1;
+      if (inBand && markness(data, y * size + x) > VISIBLE) marked++;
+    }
+  }
+  return marked;
+}
+
+/** Renders the shipped app/icon.svg at a size, as a browser draws it.
+ *
+ * @param size The width to render at.
+ * @returns The pixels.
+ */
+function renderedIconSvg(size: number) {
+  const svg = shipped("app/icon.svg")
+    .toString("utf8")
+    .replace("<svg ", `<svg width="${size}" height="${size}" `);
+  return pixels(Buffer.from(svg));
+}
+
+/** Reads one size of the shipped app/favicon.ico.
+ *
+ * @param size The entry's width.
+ * @returns Its pixels.
+ */
+function faviconEntry(size: number) {
+  const entry = parseIco(shipped("app/favicon.ico")).find((e) => e.width === size);
+  if (!entry) throw new Error(`favicon.ico has no ${size}px entry`);
+  return pixels(Buffer.from(entry.png));
+}
+
+// The tab icons keep the desktop tile's rounded square but draw the mark
+// smaller on it, so a band of plain tile shows all round the mark.
+describe("the shipped tab icons' framing", () => {
+  it.each(ICO_SIZES)("leaves the band round the mark plain ground at %ipx", async (size) => {
+    const { data } = await faviconEntry(size);
+    expect(markInBand(data, size)).toBe(0);
+  });
+
+  it("frames the mark smaller than the desktop tile does", async () => {
+    const { data } = await faviconEntry(48);
+    expect(reachOf(data, 48)).toBeCloseTo(TAB_FRACTION, 1);
+    expect(TAB_FRACTION).toBeLessThan(1);
+  });
+
+  it("draws app/icon.svg as the favicon is, centred, with the same band", async () => {
+    const size = 512;
+    const { data } = await renderedIconSvg(size);
+    expect(reachOf(data, size)).toBeCloseTo(TAB_FRACTION, 2);
+    expect(markInBand(data, size)).toBe(0);
+    const centre = centreOf(data, size);
+    expect(Math.abs(centre.x - size / 2)).toBeLessThan(size * 0.01);
+    expect(Math.abs(centre.y - size / 2)).toBeLessThan(size * 0.01);
   });
 });
 
