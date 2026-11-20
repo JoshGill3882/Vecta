@@ -25,7 +25,8 @@ Internal refactors that change nothing observable are not listed.
   Level and Source filters each take several choices and show how many entries each one holds, and they are kept in the page's address, so a refresh, the back button or a shared link keeps them
 - **Search the Logs page, and narrow it to a recent period.** A search box finds entries by their message or by anything recorded with them, such as a task's title, ignoring case, and marks what it found in each message.
   A range menu beside the filters narrows the list to the **Last 24 hours**, **Last 7 days** or **Last 30 days**, or shows **Any time**, and its button names the one chosen.
-  Both work with the Level and Source filters, are kept in the page's address, count towards the number of matching entries and go with **Clear filters**, and **Export** and **Purge** cover exactly what they match
+  Both work with the Level and Source filters, are kept in the page's address, count towards the number of matching entries and go with **Clear filters**, and **Export** and **Purge** cover exactly what they match.
+  On a phone the search box and a **Filters** button share one row, and the button opens a sheet holding Level, Source and the time range, as the task list's filter button does
 - **Old log entries clear themselves.** A **Retention** card at the top of the Logs page chooses how long entries are kept: 7 days, 30 days, 90 days, 1 year or Forever, with 90 days to start with.
   Older entries are deleted when the app starts and every night at 03:00 server time, with nothing to schedule outside the container.
   The card says how many entries the next night will remove, with **Remove now** to do it straight away, and when the last run was and how many it removed
