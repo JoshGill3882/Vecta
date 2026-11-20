@@ -65,8 +65,9 @@ export interface LogPage {
   sourceCounts: Record<LogSource, number>;
   /** When the counts were read, as an ISO 8601 timestamp.
    *
-   * A purge confirmed from the page deletes only entries written up to then,
-   * so it deletes what the page counted.
+   * The page's entries and every count stop there. So do an export from the
+   * page and a purge confirmed from it, so each covers what the page counted,
+   * however much has been written since.
    */
   readAt: string;
 }
@@ -214,24 +215,32 @@ async function readPage(where: LogWhereInput, skip: number): Promise<LogEntryDTO
  * With one, every entry the other filters match is read and searched, and the
  * page is cut from what holds the text.
  *
+ * Every read stops at one moment, taken first and returned as `readAt`. The
+ * reads run side by side, so an entry written while they do would otherwise
+ * be in some of them and not others; this way the page and its counts
+ * describe the same entries, and anything written since is newer than all of
+ * them.
+ *
  * @param filters The page's filters and the page asked for.
  * @returns The page's entries, with the counts the page shows around them.
  */
 export async function listLogPage(filters: LogFilters): Promise<LogPage> {
   const readAt = new Date();
-  const where = filtersWhere(filters, readAt);
+  const where = writtenUpTo(filters, readAt);
+  const upTo: LogWhereInput = { createdAt: { lte: readAt } };
   const needle = normaliseQuery(filters.q);
   const [found, total, oldest, levels, auth, tasks, categories] = await Promise.all([
     needle === "" ? prisma.log.count({ where }) : searchLogs(where, needle),
-    prisma.log.count(),
+    prisma.log.count({ where: upTo }),
     prisma.log.findFirst({
+      where: upTo,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       select: { createdAt: true },
     }),
-    prisma.log.groupBy({ by: ["level"], _count: { _all: true } }),
-    prisma.log.count({ where: sourceWhere("auth") }),
-    prisma.log.count({ where: sourceWhere("tasks") }),
-    prisma.log.count({ where: sourceWhere("categories") }),
+    prisma.log.groupBy({ by: ["level"], where: upTo, _count: { _all: true } }),
+    prisma.log.count({ where: { AND: [upTo, sourceWhere("auth")] } }),
+    prisma.log.count({ where: { AND: [upTo, sourceWhere("tasks")] } }),
+    prisma.log.count({ where: { AND: [upTo, sourceWhere("categories")] } }),
   ]);
 
   const matching = typeof found === "number" ? found : found.length;

@@ -27,10 +27,10 @@ const formatSchema = z.enum(EXPORT_FORMATS);
  * them, so an unknown level, source or range clears that filter rather than
  * refusing the export.
  *
- * With `readAt`, as the Purge confirmation sends it, only entries written up
- * to then are exported, so the file holds what the purge would delete. An
- * unreadable one is ignored as an unknown filter is, and every match is
- * exported.
+ * With `readAt`, as the Logs page's Export menu and Purge confirmation send
+ * it, only entries written up to then are exported, so the file holds what
+ * the page counted. An unreadable one is ignored as an unknown filter is, and
+ * every match is exported.
  *
  * The proxy leaves `/api` routes alone, so the session is checked here: an
  * export can hold the history of everything the user has done. The entries
