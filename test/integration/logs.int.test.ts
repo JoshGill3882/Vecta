@@ -5,6 +5,7 @@ import {
   DEFAULT_LOG_LIST,
   LOG_BATCH_SIZE,
   MAX_LOG_LIST,
+  countLogsSince,
   deleteLogs,
   listLogPage,
   listLogs,
@@ -584,6 +585,73 @@ describe("listLogPage (integration)", () => {
 
     const { entries } = await listLogPage(filters());
     expect(entries.map((e) => e.source)).toEqual(["auth", "categories"]);
+  });
+});
+
+describe("countLogsSince (integration)", () => {
+  /** The seeded entries' second one, at 09:00:01: entries 2 onwards are after it. */
+  const MOMENT = new Date("2026-11-14T09:00:01.000Z");
+
+  it("counts nothing in an empty log", async () => {
+    expect(await countLogsSince(NO_FILTERS, MOMENT)).toBe(0);
+  });
+
+  it("counts only the entries written after the moment, not one written at it", async () => {
+    await seed(Array.from({ length: 5 }, () => ({})));
+
+    expect(await countLogsSince(NO_FILTERS, MOMENT)).toBe(3);
+  });
+
+  it("counts nothing when nothing was written after the moment", async () => {
+    await seed(Array.from({ length: 2 }, () => ({})));
+
+    expect(await countLogsSince(NO_FILTERS, MOMENT)).toBe(0);
+  });
+
+  it("counts only the entries the levels and sources match", async () => {
+    await seed([
+      { event: "auth.sign_in_failed", level: "warn" },
+      { event: "auth.sign_in_failed", level: "warn" },
+      { event: "auth.sign_in_failed", level: "warn" },
+      { event: "auth.signed_in", level: "info" },
+      { event: "task.created", level: "warn" },
+    ]);
+
+    const filters = { ...NO_FILTERS, level: ["warn" as const], source: ["auth" as const] };
+    expect(await countLogsSince(filters, MOMENT)).toBe(1);
+  });
+
+  it("counts only the entries the search matches", async () => {
+    await seed([
+      { message: "Bought milk" },
+      { message: "Bought milk" },
+      { message: "Bought more milk" },
+      { message: "Bought eggs" },
+      { message: "Spilt the MILK" },
+    ]);
+
+    expect(await countLogsSince({ ...NO_FILTERS, q: "milk" }, MOMENT)).toBe(2);
+  });
+
+  it("measures the range back from now, not from the moment", async () => {
+    const now = new Date();
+    await seed([
+      { event: "test.outside", createdAt: hoursBefore(30, now) },
+      { event: "test.inside", createdAt: hoursBefore(1, now) },
+    ]);
+
+    const since = hoursBefore(48, now);
+    expect(await countLogsSince({ ...NO_FILTERS, range: "24h" }, since)).toBe(1);
+    expect(await countLogsSince(NO_FILTERS, since)).toBe(2);
+  });
+
+  it("counts an entry the page's own read left out as written after it", async () => {
+    const later = new Date(Date.now() + 60 * 60 * 1000);
+    await seed([{}, { createdAt: later }]);
+
+    const { readAt, total } = await listLogPage({ ...NO_FILTERS, page: 1 });
+    expect(total).toBe(1);
+    expect(await countLogsSince(NO_FILTERS, new Date(readAt))).toBe(1);
   });
 });
 

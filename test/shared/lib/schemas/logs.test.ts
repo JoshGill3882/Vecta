@@ -10,6 +10,7 @@ import {
   PURGE_SCOPES,
   RANGE_SPANS,
   isFiltered,
+  logFiltersFromParams,
   logFiltersSchema,
   logPurgeSchema,
   logWriteSchema,
@@ -230,6 +231,34 @@ describe("logFiltersSchema", () => {
       range: null,
       page: 1,
     });
+  });
+});
+
+describe("logFiltersFromParams", () => {
+  it("reads a query string with nothing in it as no filters, on the first page", () => {
+    expect(logFiltersFromParams(new URLSearchParams())).toEqual({ ...NO_FILTERS, page: 1 });
+  });
+
+  it("reads every value of a repeated level or source", () => {
+    const params = new URLSearchParams("level=warn&level=error&source=auth&source=system");
+    expect(logFiltersFromParams(params)).toMatchObject({
+      level: ["warn", "error"],
+      source: ["auth", "system"],
+    });
+  });
+
+  it("reads a search and a range given once", () => {
+    const params = new URLSearchParams("q=+milk+&range=7d");
+    expect(logFiltersFromParams(params)).toMatchObject({ q: "milk", range: "7d" });
+  });
+
+  it("clears a repeated search or range, as the page does, rather than keeping the first", () => {
+    const params = new URLSearchParams("q=milk&q=eggs&range=24h&range=7d&level=info");
+    expect(logFiltersFromParams(params)).toMatchObject({ q: "", range: null, level: ["info"] });
+  });
+
+  it("leaves out a page number, since a route acts on every match", () => {
+    expect(logFiltersFromParams(new URLSearchParams("page=4")).page).toBe(1);
   });
 });
 
