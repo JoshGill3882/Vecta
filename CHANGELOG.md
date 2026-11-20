@@ -29,7 +29,8 @@ Internal refactors that change nothing observable are not listed.
   On a phone the search box and a **Filters** button share one row, and the button opens a sheet holding Level, Source and the time range, as the task list's filter button does
 - **Old log entries clear themselves.** A **Retention** card at the top of the Logs page chooses how long entries are kept: 7 days, 30 days, 90 days, 1 year or Forever, with 90 days to start with.
   Older entries are deleted when the app starts and every night at 03:00 server time, with nothing to schedule outside the container.
-  The card says how many entries the next night will remove, with **Remove now** to do it straight away, and when the last run was and how many it removed
+  The card says how many entries the next night will remove, with **Remove now** to do it straight away, and when the last run was and how many it removed.
+  On a phone, where the five choices do not fit on one line, they are a dropdown instead, whose button names the one picked, such as **Keep for 90 days**
 - **Log entries can be downloaded** from the Logs page's new **Export** menu, as CSV for a spreadsheet or JSON for full detail.
   It exports whatever the page's filters match, or every entry with none on, says how many before you pick, and names the file by the date and time, such as `vecta-logs-2026-11-17-1930.csv`.
   In the CSV each entry's detail is one column of JSON, and a cell that would start a formula gets an apostrophe in front, so nothing in the file can run as one in a spreadsheet

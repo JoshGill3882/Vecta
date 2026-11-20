@@ -65,6 +65,29 @@ function choice(name: string): HTMLElement {
   return screen.getByRole("radio", { name });
 }
 
+/** The dropdown that stands in for the segments on a narrow column.
+ *
+ * @param name The saved choice's label, as the button's name ends.
+ * @returns Its button.
+ */
+function menuButton(name = "90 days"): HTMLElement {
+  return screen.getByRole("button", { name: `Keep log entries for: ${name}` });
+}
+
+/** Opens the dropdown and finds its choices.
+ *
+ * @param user The user tapping.
+ * @param name The saved choice's label, as the button's name ends.
+ * @returns The menu's choices, in order.
+ */
+async function openMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  name = "90 days"
+): Promise<HTMLElement[]> {
+  await user.click(menuButton(name));
+  return screen.findAllByRole("menuitemradio");
+}
+
 /** Presses an arrow key and lets it go, as a person does.
  *
  * The group moves focus a moment after the key goes down, and picks the
@@ -280,6 +303,183 @@ describe("RetentionCard", () => {
 
       expect(document.activeElement).toBe(choice("30 days"));
       await waitFor(() => expect(mockSetRetention).toHaveBeenCalledWith(30));
+    });
+  });
+
+  // jsdom applies no CSS, so which of the two shows at a width is checked by
+  // the classes that decide it, and the rest by using each control directly.
+  describe("on a column too narrow for the segments", () => {
+    it("measures the column, not the window, filling it", () => {
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      const column = screen.getByRole("radiogroup").parentElement;
+      expect(column?.className.split(" ")).toEqual(
+        expect.arrayContaining(["@container", "w-full"])
+      );
+      expect(menuButton().parentElement).toBe(column);
+    });
+
+    it("hides the segments below 360px, and keeps them on one line above it", () => {
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      const classes = screen.getByRole("radiogroup").className.split(" ");
+      expect(classes).toEqual(expect.arrayContaining(["@max-[360px]:hidden", "w-max"]));
+      expect(classes).not.toContain("flex-wrap");
+    });
+
+    it("shows the dropdown only below 360px, 44px tall and up to 320px wide", () => {
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      const classes = menuButton().className.split(" ");
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "hidden",
+          "@max-[360px]:inline-flex",
+          "h-11",
+          "w-full",
+          "max-w-[320px]",
+        ])
+      );
+    });
+
+    it.each([
+      [7, "7 days", "Keep for 7 days"],
+      [90, "90 days", "Keep for 90 days"],
+      [365, "1 year", "Keep for 1 year"],
+      [0, "Forever", "Keep forever"],
+    ] as const)("names %i on the button as %s, reading %s", (days, name, text) => {
+      render(
+        <RetentionCard
+          status={status({ logRetentionDays: days, cutoff: days === 0 ? null : CUTOFF })}
+          now={NOW}
+        />
+      );
+
+      expect(menuButton(name).textContent).toBe(text);
+    });
+
+    it("opens a menu headed with what it picks, listing the five in order", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      const options = await openMenu(user);
+
+      const menu = screen.getByRole("menu");
+      expect(within(menu).getByText("Keep log entries for")).toBeDefined();
+      expect(within(menu).getByRole("group", { name: "Keep log entries for" })).toBeDefined();
+      expect(options.map((option) => option.textContent)).toEqual([
+        "7 days",
+        "30 days",
+        "90 days",
+        "1 year",
+        "Forever",
+      ]);
+    });
+
+    it("ticks the saved choice, and only that one", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status({ logRetentionDays: 365 })} now={NOW} />);
+
+      const options = await openMenu(user, "1 year");
+
+      expect(
+        options
+          .filter((option) => option.getAttribute("aria-checked") === "true")
+          .map((option) => option.textContent)
+      ).toEqual(["1 year"]);
+    });
+
+    it("makes each choice 44px tall", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      const options = await openMenu(user);
+
+      for (const option of options) expect(option.className.split(" ")).toContain("min-h-11");
+    });
+
+    it("saves a pick as a number, confirms it, and closes", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      await openMenu(user);
+      await user.click(screen.getByRole("menuitemradio", { name: "30 days" }));
+
+      expect(mockSetRetention).toHaveBeenCalledExactlyOnceWith(30);
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith("Keeping log entries for 30 days")
+      );
+      expect(refresh).toHaveBeenCalled();
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    it("confirms forever in words", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      await openMenu(user);
+      await user.click(screen.getByRole("menuitemradio", { name: "Forever" }));
+
+      expect(mockSetRetention).toHaveBeenCalledExactlyOnceWith(0);
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith("Keeping log entries forever")
+      );
+    });
+
+    it("shows the pick on the button and the segments while it saves", async () => {
+      let finish: (result: ActionResult<never>) => void = () => {};
+      mockSetRetention.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      await openMenu(user);
+      await user.click(screen.getByRole("menuitemradio", { name: "7 days" }));
+
+      expect(menuButton("7 days").textContent).toBe("Keep for 7 days");
+      expect(choice("7 days").getAttribute("aria-checked")).toBe("true");
+      await act(async () => finish({ ok: true, data: 7 as never }));
+    });
+
+    it("goes back to the saved choice, and says why, when saving fails", async () => {
+      mockSetRetention.mockResolvedValue({
+        ok: false,
+        error: "Something went wrong. Please try again.",
+      });
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      await openMenu(user);
+      await user.click(screen.getByRole("menuitemradio", { name: "1 year" }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith("Something went wrong. Please try again.")
+      );
+      await waitFor(() => expect(menuButton("90 days").textContent).toBe("Keep for 90 days"));
+      expect(refresh).not.toHaveBeenCalled();
+    });
+
+    it("saves nothing when the saved choice is picked again", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      await openMenu(user);
+      await user.click(screen.getByRole("menuitemradio", { name: "90 days" }));
+
+      expect(mockSetRetention).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it("can be opened and picked from with the keyboard", async () => {
+      const user = userEvent.setup();
+      render(<RetentionCard status={status()} now={NOW} />);
+
+      menuButton().focus();
+      await user.keyboard("{Enter}");
+      await screen.findByRole("menu");
+      await user.keyboard("{ArrowDown}{Enter}");
+
+      await waitFor(() => expect(mockSetRetention).toHaveBeenCalledExactlyOnceWith(30));
+      expect(screen.queryByRole("menu")).toBeNull();
     });
   });
 
