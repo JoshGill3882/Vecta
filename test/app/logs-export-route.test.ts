@@ -183,7 +183,7 @@ describe("GET /api/logs/export", () => {
     expect(mockReadLogBatches).toHaveBeenCalledWith(expect.objectContaining({ readAt: undefined }));
   });
 
-  it("exports only entries written up to the moment the Purge confirmation sends", async () => {
+  it("exports only entries written up to the moment the page sends", async () => {
     await exportWith("format=json&level=warn&readAt=2026-11-17T19:30:00.000Z");
 
     expect(mockReadLogBatches).toHaveBeenCalledWith({

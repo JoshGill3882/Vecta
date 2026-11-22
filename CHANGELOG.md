@@ -37,6 +37,9 @@ Internal refactors that change nothing observable are not listed.
 - **Log entries can be purged** with the Logs page's new **Purge** button, either the entries the filters match or every entry.
   The confirmation counts what will go, names the number on its button, and offers **Export these first** to download them as JSON before they are deleted.
   Only the entries it counted are deleted, so one written while it is open is kept, and each purge leaves a single entry recording what it removed
+- **The Logs page says when new entries arrive.** While it is open, a notice above the list counts the entries matching your filters that have been written since it loaded, such as "3 new entries", without moving the rows you are reading.
+  **Show** brings them in and moves to the newest, and **Export** and **Purge** act on what the page showed until then.
+  It checks every 15 seconds while the tab is visible, and straight away when you come back to the tab
 - **`TZ`** sets the server's time zone, such as `Europe/London`, so the nightly clear-out and the times on the Logs page follow your own clock rather than UTC
 
 ### Changed

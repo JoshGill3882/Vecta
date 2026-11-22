@@ -114,6 +114,24 @@ export const logFiltersSchema = z.object({
 /** The Logs page's filters, once read from the query string. */
 export type LogFilters = z.output<typeof logFiltersSchema>;
 
+/** Reads the Logs page's filters from a route handler's query string, as the page reads its own.
+ *
+ * Every value of each parameter is read, so a repeated search or range is
+ * cleared here as the page clears it, rather than the first value winning.
+ * The page number is left out: a route acts on every match, not one page.
+ *
+ * @param params The request's query string.
+ * @returns The filters, on the first page.
+ */
+export function logFiltersFromParams(params: URLSearchParams): LogFilters {
+  return logFiltersSchema.parse({
+    q: params.getAll("q"),
+    level: params.getAll("level"),
+    source: params.getAll("source"),
+    range: params.getAll("range"),
+  });
+}
+
 /** What the Logs page's filters narrow the log to, without the page being shown. */
 export type LogNarrowing = Omit<LogFilters, "page">;
 

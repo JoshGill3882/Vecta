@@ -276,6 +276,7 @@ The log grows with everything the app does, so the page reads one page of 50 ent
 A filter therefore has to reach the server, and the URL is how it gets there.
 The header holds the Export menu, which downloads what the filters match, and Purge, which deletes entries behind a confirmation; see [The Export menu](#the-export-menu) and [Purge](#purge).
 Between the header and the filters sits the Retention card, which chooses how long entries are kept; see [The Retention card](#the-retention-card).
+Between the filters and the list, a notice says when entries matching the filters have been written since the page loaded; see [The new-entries notice](#the-new-entries-notice).
 
 - **The URL is the only copy of the filters.**
   `app/(app)/logs/page.tsx` reads them with `logFiltersSchema`, and `LogFilterBar` changes them by navigating to a new address with `router.push(href, { scroll: false })`, or `router.replace` for the search.
@@ -319,7 +320,7 @@ Between the header and the filters sits the Retention card, which chooses how lo
   The page renders on the server, so a row's time and its Today, Yesterday or date heading use the server's time zone, as the task list's due dates do.
   `LogsView` reads the clock once and hands the same moment to every heading, and Yesterday is the calendar day before rather than 24 hours back, so it holds across a clock change.
 - **A row opens with a native `<details>`** (`log-row.tsx`), so the browser opens it, closes it and announces its state with no client code.
-  The filter bar with its search box and sheet, the Retention card's two controls, the parts of the Export menu's dropdown and Purge are the page's only client components.
+  The filter bar with its search box and sheet, the Retention card's two controls, the parts of the Export menu's dropdown, Purge and the new-entries notice are the page's only client components.
 - **The level badges keep AA contrast on an open row as well as a closed one.**
   The tinted badges mix their colour into the card as an opaque ground (`log-meta.ts`), so the row's own background never shows through them.
   The ratios are pinned in `level-badge-contrast.test.ts`.
@@ -338,6 +339,7 @@ What goes in the file, and how it is streamed, is in [Logging](./logging.md#expo
 - **The links follow the page's filters, not its page.**
   `logExportHref` in `log-links.ts` builds its query from the same `filterParams` as `logsHref`, so an export's address names the same filters as the page's own, in the same order.
   The page number is left out, since an export covers every match.
+  The page's `readAt` goes with them, so the file holds the entries the menu counted, without any written since.
 - **It says what it will export before anything is picked:** "All 1,204 entries" with no filter on, or "The 12 entries matching your filters", counting the page's `matching`, with a search or a range counting as a filter.
 - **It is disabled when that is nothing.**
   `disabled` goes on the `DropdownMenuTrigger`, which passes it to the button and keeps the menu from opening.
@@ -368,6 +370,30 @@ What a purge deletes and records is in [Logging](./logging.md#purging-entries).
   A failed purge leaves the confirmation open, with the error in a toast.
 - **The button is disabled when the log is empty.**
 - **Below 520px it shrinks to its icon**, as Export does, with its "Purge…" label `sr-only` there and `title="Purge log entries"` naming it for a pointer.
+
+### The new-entries notice
+
+The notice (`new-entries-notice.tsx`) sits between the filter bar and the list and says how many entries matching the filters have been written since the page read its counts, such as "3 new entries", with a Show button.
+How the count is made is in [Logging](./logging.md#entries-written-since-the-page-loaded).
+
+- **New entries are held back rather than slipped into the list.**
+  The rows being read never move, and the counts that Export and Purge act on still describe what is on screen.
+- **It asks every 15 seconds while the tab is visible** (`CHECK_INTERVAL`), and not as the page loads, which has only just read its counts.
+  It stops while the tab is hidden and asks straight away when it is shown again, since that is when the reader comes back to look.
+- **A failed check shows nothing**, whether the server errs, the connection drops or the answer is not JSON, and the next check tries again.
+  A 401 stops the checks for good, since no later check would be answered differently.
+- **The count goes back to nothing whenever the page is read again**, by Show, a filter, a purge or a change of retention, each of which brings a new `readAt`.
+  The notice compares the `readAt` it last saw in the component body, as the search box does with the search, and a check still in flight from before is aborted, so a stale count never appears.
+- **Show loads the first page of the same filters afresh**: `router.refresh()` on the first page, and a push to its address from any other.
+  It is disabled while that loads.
+- **Focus moves to the newest entry once Show has loaded it.**
+  The button disappears with the notice, and left alone focus would fall back to the top of the document.
+  As with a delete that removes its own opener (see [Dialog focus](#dialog-focus)), Show records the intent in a ref, and an effect keyed on `readAt` focuses the first entry's `<summary>`, found by the `data-log-list` attribute on the list (`log-list.tsx`).
+  A new `readAt` for any other reason, such as a purge, leaves focus where it is.
+- **It is announced without taking focus.**
+  The `role="status"` region is always rendered, empty while there is nothing new, since a live region added at the same moment as its content is often missed.
+- **It scrolls with the page** rather than being pinned below the top bar.
+- **On a touch screen the button is a 44px target**, as every `Button` above `xs` is, and `pointer-coarse:px-3.5` widens its padding to match.
 
 ### The Retention card
 

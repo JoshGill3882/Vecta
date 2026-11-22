@@ -25,7 +25,9 @@ const CHOICES: { format: ExportFormat; label: string; suits: string }[] = [
  * Each choice is a plain link to the export route, marked `download`, so the
  * browser saves the file it answers with and the page stays where it is. The
  * menu says what an export will hold before it is picked, and is disabled
- * when that is nothing.
+ * when that is nothing. Each export stops at the moment the page's counts
+ * were read, so the file holds what the menu counts, however much has been
+ * written since.
  *
  * Below 520px the button shrinks to its icon, so it stays on the heading's
  * row rather than wrapping under it. Its label is hidden visually rather than
@@ -57,7 +59,7 @@ export function ExportMenu({ page, filters }: { page: LogPage; filters: LogFilte
         </DropdownMenuLabel>
         {CHOICES.map(({ format, label, suits }) => (
           <DropdownMenuItem key={format} asChild>
-            <a href={logExportHref(filters, format)} download>
+            <a href={logExportHref(filters, format, page.readAt)} download>
               <FileText aria-hidden className="text-text-3" />
               {label}
               <span className="text-text-3 ml-auto text-xs">{suits}</span>

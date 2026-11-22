@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { act, render, screen } from "@testing-library/react";
 
 import type { LogPage } from "@/src/server/services/logs";
 import type { RetentionStatusDTO } from "@/src/shared/lib/dtos/settings";
 import type { LogFilters } from "@/src/shared/lib/schemas/logs";
 import { LogsView } from "@/src/features/logs/components/logs-view";
+import { CHECK_INTERVAL } from "@/src/features/logs/components/new-entries-notice";
 
 // The filter bar navigates with the router, and there is no Next router in a
 // test. The bar's own behaviour is covered in log-filter-bar.test.tsx.
@@ -311,5 +312,44 @@ describe("LogsView", () => {
     );
 
     expect(container.querySelector("summary mark")?.textContent).toBe("Start");
+  });
+
+  describe("new entries", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => Response.json({ count: 2 }))
+      );
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("asks with the page's filters and moment, and says how many above the list, leaving the counts as they were", async () => {
+      const filters: LogFilters = { ...NO_FILTERS, level: ["warn"] };
+      render(
+        <LogsView
+          retention={RETENTION}
+          filters={filters}
+          page={logPage({ total: 10, matching: 4, readAt: "2026-11-17T19:30:00.000Z" })}
+        />
+      );
+
+      await act(() => vi.advanceTimersByTimeAsync(CHECK_INTERVAL));
+
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        "/api/logs/new?level=warn&readAt=2026-11-17T19%3A30%3A00.000Z",
+        expect.anything()
+      );
+      const show = screen.getByRole("button", { name: "Show" });
+      expect(show.closest("[role=status]")?.textContent).toBe("2 new entriesShow");
+      // Above the list's empty state, below the filters.
+      const empty = screen.getByRole("heading", { level: 2, name: "No matching entries" });
+      expect(show.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByText("10 entries")).toBeDefined();
+    });
   });
 });

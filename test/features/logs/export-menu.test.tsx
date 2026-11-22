@@ -80,7 +80,7 @@ describe("ExportMenu", () => {
     await openMenu();
 
     expect(screen.getByRole("menuitem", { name: /CSV/ }).getAttribute("href")).toBe(
-      "/api/logs/export?format=csv&q=milk&range=7d"
+      "/api/logs/export?format=csv&q=milk&range=7d&readAt=2026-11-17T19%3A30%3A00.000Z"
     );
   });
 
@@ -111,14 +111,28 @@ describe("ExportMenu", () => {
     const json = screen.getByRole("menuitem", { name: /JSON/ });
     expect(csv.tagName).toBe("A");
     expect(csv.getAttribute("href")).toBe(
-      "/api/logs/export?format=csv&level=warn&level=error&source=auth"
+      "/api/logs/export?format=csv&level=warn&level=error&source=auth&readAt=2026-11-17T19%3A30%3A00.000Z"
     );
     expect(json.getAttribute("href")).toBe(
-      "/api/logs/export?format=json&level=warn&level=error&source=auth"
+      "/api/logs/export?format=json&level=warn&level=error&source=auth&readAt=2026-11-17T19%3A30%3A00.000Z"
     );
     // Marked for download, so the browser saves the file and the page stays put.
     expect(csv.hasAttribute("download")).toBe(true);
     expect(json.hasAttribute("download")).toBe(true);
+  });
+
+  it("stops each download at the moment the page's counts were read", async () => {
+    render(
+      <ExportMenu page={logPage({ readAt: "2026-11-20T08:15:42.123Z" })} filters={filters()} />
+    );
+    await openMenu();
+
+    for (const name of [/CSV/, /JSON/]) {
+      const href = screen.getByRole("menuitem", { name }).getAttribute("href") ?? "";
+      expect(new URL(href, "http://vecta.test").searchParams.get("readAt")).toBe(
+        "2026-11-20T08:15:42.123Z"
+      );
+    }
   });
 
   it("is disabled, and does not open, when nothing matches", async () => {
