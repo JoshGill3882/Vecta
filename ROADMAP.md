@@ -12,28 +12,34 @@ There are no dates — [see below](#why-there-are-no-dates).
 
 ## Next
 
-Planned, and the most likely candidates for the release after the current one.
-They are tracked in the [v1.3 milestone](https://github.com/JoshGill3882/Vecta/milestone/11).
+Scheduled: each item here has a milestone and issues.
+They are tracked in the [v1.3](https://github.com/JoshGill3882/Vecta/milestone/11) and [v1.4](https://github.com/JoshGill3882/Vecta/milestone/12) milestones.
 
 - **Logging, and a record of what changed.** When something goes wrong on the server, the app says "Something went wrong" and nothing is kept that says why.
   Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
   Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
   A Logs page in the app lists the entries and searches them, and can export or clear them, while old entries age out on their own.
-  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226), [#227](https://github.com/JoshGill3882/Vecta/issues/227) and [#233](https://github.com/JoshGill3882/Vecta/issues/233).
-- **Headings and toolbars that stay in view.** On a long list, changing a filter, adding a task or exporting the log means scrolling back to the top first.
-  The Task list, the Logs page and the Categories page keep their heading, main buttons and filters pinned below the top bar as the list scrolls, with the list's own section and day headings pinned beneath them.
-  Tracked in [#242](https://github.com/JoshGill3882/Vecta/issues/242).
+  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226), [#227](https://github.com/JoshGill3882/Vecta/issues/227), [#231](https://github.com/JoshGill3882/Vecta/issues/231), [#233](https://github.com/JoshGill3882/Vecta/issues/233) and [#235](https://github.com/JoshGill3882/Vecta/issues/235).
+  In v1.3.
+- **Getting around a long list.** On a long list, changing a filter, adding a task or exporting the log means scrolling back to the top first.
+  The Task list, the Logs page and the Categories page keep their heading, main buttons and filters pinned below the top bar as the list scrolls, with the list's own section and day headings pinned beneath them, and a Back to top button appears once a page is scrolled more than a screen down.
+  The Categories page, the only one without a search, gains one, with a Sort menu ordering it by name or by how many tasks each category has.
+  Split across [#242](https://github.com/JoshGill3882/Vecta/issues/242), [#243](https://github.com/JoshGill3882/Vecta/issues/243), [#244](https://github.com/JoshGill3882/Vecta/issues/244) and [#245](https://github.com/JoshGill3882/Vecta/issues/245), in v1.4.
 
 ## Later
 
 Intended, but unscheduled.
 Roughly in order of how useful they seem, not how hard they are.
 
+- **A Settings page.** A light, dark or system theme, a 12- or 24-hour clock, and which day the week starts on in the due-date calendar.
+  On a phone, the tabs move to a bar along the bottom of the screen, with Settings beside Tasks, Categories and Logs, and Log out moves into Settings.
+- **A drag-and-drop board view**, as an alternative to the list rather than a replacement for it, chosen in Settings.
+  Moving a card between columns changes its status, with a way to do the same from the keyboard.
+  Large enough to be a release of its own rather than part of another.
 - **Acceptance criteria on a task**, as a toggleable checklist.
 - **Sub-categories.** Categories are deliberately flat today;
   nesting is the natural next step once there are enough of them to want grouping.
 - **Task dependencies and a "blocked" status.** These belong together — a blocked status without a reason attached is just a fourth column.
-- **A drag-and-drop kanban view**, as an alternative to the list rather than a replacement for it.
 - **A richer Markdown editor** with a preview toolbar.
   The current plain textarea renders on save, which is enough but not pleasant.
 - **An end-to-end test suite** (Playwright).
