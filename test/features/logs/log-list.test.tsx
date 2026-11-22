@@ -79,4 +79,11 @@ describe("LogList", () => {
 
     expect(screen.getByText("Message").parentElement?.getAttribute("aria-hidden")).toBe("true");
   });
+
+  it("is marked so the new-entries notice can find its first entry, the newest", () => {
+    const { container } = render(<LogList entries={ENTRIES} now={NOW} needle="" />);
+
+    const first = container.querySelector("[data-log-list] summary");
+    expect(first).toBe(container.querySelector("summary"));
+  });
 });

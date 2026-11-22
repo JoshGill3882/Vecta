@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { logExportHref, logsHref } from "@/src/features/logs/lib/log-links";
+import { logExportHref, logNewCountHref, logsHref } from "@/src/features/logs/lib/log-links";
 import {
   logFiltersSchema,
   NO_FILTERS,
@@ -141,5 +141,48 @@ describe("logExportHref", () => {
     exportQuery.delete("format");
 
     expect(`/logs?${exportQuery}`).toBe(logsHref(filters));
+  });
+});
+
+describe("logNewCountHref", () => {
+  const READ_AT = "2026-11-20T08:15:42.123Z";
+
+  it("names only the moment with no filters", () => {
+    expect(logNewCountHref(NO_FILTERS, READ_AT)).toBe(
+      "/api/logs/new?readAt=2026-11-20T08%3A15%3A42.123Z"
+    );
+  });
+
+  it("carries the search, levels, sources and range, in the page's order, then the moment", () => {
+    expect(
+      logNewCountHref(
+        narrowing({ q: "milk", level: ["error", "warn"], source: ["system", "auth"], range: "7d" }),
+        READ_AT
+      )
+    ).toBe(
+      "/api/logs/new?q=milk&level=warn&level=error&source=auth&source=system&range=7d&readAt=2026-11-20T08%3A15%3A42.123Z"
+    );
+  });
+
+  it("leaves out the page, since new entries are counted across every page", () => {
+    const filters: LogFilters = { ...narrowing({ level: ["info"] }), page: 4 };
+
+    expect(logNewCountHref(filters, READ_AT)).toBe(
+      "/api/logs/new?level=info&readAt=2026-11-20T08%3A15%3A42.123Z"
+    );
+  });
+
+  it("carries the same filters as the page's own address", () => {
+    const filters: LogFilters = {
+      q: "renamed",
+      level: ["debug", "error"],
+      source: ["categories"],
+      range: "30d",
+      page: 1,
+    };
+    const query = new URL(logNewCountHref(filters, READ_AT), "http://vecta.test").searchParams;
+    query.delete("readAt");
+
+    expect(`/logs?${query}`).toBe(logsHref(filters));
   });
 });
