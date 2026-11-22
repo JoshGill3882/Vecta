@@ -19,7 +19,10 @@ They are tracked in the [v1.3 milestone](https://github.com/JoshGill3882/Vecta/m
   Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
   Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
   A Logs page in the app lists the entries and searches them, and can export or clear them, while old entries age out on their own.
-  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226) and [#227](https://github.com/JoshGill3882/Vecta/issues/227).
+  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226), [#227](https://github.com/JoshGill3882/Vecta/issues/227) and [#233](https://github.com/JoshGill3882/Vecta/issues/233).
+- **Headings and toolbars that stay in view.** On a long list, changing a filter, adding a task or exporting the log means scrolling back to the top first.
+  The Task list, the Logs page and the Categories page keep their heading, main buttons and filters pinned below the top bar as the list scrolls, with the list's own section and day headings pinned beneath them.
+  Tracked in [#242](https://github.com/JoshGill3882/Vecta/issues/242).
 
 ## Later
 
