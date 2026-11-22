@@ -23,6 +23,7 @@ app/                      Routes, and nothing else. Next.js App Router.
     logs/                 page.tsx, loading.tsx
   api/health/             Liveness endpoint for Docker and reverse proxies
   api/logs/export/        The Logs page's CSV and JSON download
+  api/logs/new/           How many entries the Logs page has not shown yet
   login/                  Session entry
 src/
   features/               One per feature — the unit most changes touch

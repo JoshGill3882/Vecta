@@ -100,8 +100,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 }
 ```
 
-`app/api/logs/export/route.ts` is the example.
-Its test also checks that the proxy's matcher leaves the path out, which is what makes the route's own check the only one.
+`app/api/logs/export/route.ts` is the example, and `app/api/logs/new/route.ts` follows it.
+The export route's test also checks that the proxy's matcher leaves the path out, which is what makes the route's own check the only one.
 `/api/health` is the one route left open, deliberately, since Docker polls it without a cookie.
 
 ## How to read auth state without redirecting

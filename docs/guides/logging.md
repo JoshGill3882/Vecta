@@ -15,6 +15,7 @@ This guide covers how to log, the two kinds of entry, what happens to an entry, 
 - `src/server/log-export.ts` — `exportStream()` and `exportFileName()`, which write an export as CSV or JSON
 - `src/server/log-purge.ts` — `purgeLogs()`, which deletes entries on demand and records that it did
 - `app/api/logs/export/route.ts` — the route the Logs page's Export menu downloads from
+- `app/api/logs/new/route.ts` — the route the Logs page asks how many entries have been written since it read its counts
 - `src/server/services/logs.ts` — the log service the logger writes the table through; see [Database & service layer](./database.md#the-log-service)
 - `src/server/services/settings.ts` — the settings service, which holds the chosen retention and the last run; see [Database & service layer](./database.md#the-settings-service)
 - `src/features/logs/` — the Logs page, which lists the table's entries and holds the Export menu, Purge and the Retention card; see [UI & frontend](./ui.md#the-logs-page)
@@ -127,6 +128,24 @@ A database's substring match reads `%` and `_` as wildcards, and ignores case fo
 The cost is that a search reads every entry the level, source and range match, which retention keeps within bounds unless it is set to Forever.
 The range is the last 24 hours, 7 days or 30 days, as spans of hours, counted back from the moment the page read its counts, so the page, an export and a purge from it cover the same window.
 
+**Every read the page makes stops at one moment.**
+`listLogPage` takes the time before it reads anything and returns it as `readAt`, and its entries, the number matching, the total and each filter choice's count all leave out what was written after it.
+The reads run side by side, so without that an entry written meanwhile could be counted in some and not others.
+An export and a purge from the page send `readAt` back, so they act on what the page counted.
+
+### Entries written since the page loaded
+
+While the page is open, it asks `GET /api/logs/new` how many entries matching its filters have been written since its `readAt`, and offers to show them; see [UI & frontend](./ui.md#the-new-entries-notice).
+
+- **The route reads the filters as the export route does**, with `logFiltersFromParams`, and `readAt` with `logReadAtSchema`.
+  A missing or unreadable `readAt` is refused with a 400, since there is nothing to count from.
+- **`countLogsSince` in the log service counts the matches written after that moment.**
+  One written at it is already on the page.
+  A range reaches back from now rather than from `readAt`, as it would if the page were loaded again, and with a search on, only the entries written since are read and searched.
+- **It answers with the count alone**, as `{ "count": 3 }`, never the entries, and with `Cache-Control: no-store`, so every check reaches the server.
+- **The route checks the session itself**, as the export route does, and answers a signed-out request with a 401.
+- **A check writes no entry**, so a page left open never fills the log with its own checks.
+
 A row's message is written by `entryMessage()` in `src/shared/lib/entry-message.ts`, from the event and its detail rather than the stored message.
 A task or category entry names what it was about, such as `Deleted category “Work”`, and a failed sign-in says why.
 An event with no wording there, or whose detail lacks what its wording needs, shows its stored message, so a new event reads sensibly without a change to the page; give it wording there when the stored message alone would leave a reader asking what it was about.
@@ -138,8 +157,9 @@ That is one more reason the rules under [What is never logged](#what-is-never-lo
 
 The Logs page's Export menu downloads the entries its filters match, newest first, or every entry when no filter is on, as CSV for a spreadsheet or JSON for full detail.
 The download is `GET /api/logs/export?format=csv` or `format=json`, with the page's `q`, `level`, `source` and `range` parameters.
-The route reads them with `logFiltersSchema`, as the page does, and `logExportHref` in `src/features/logs/lib/log-links.ts` writes the address from the same filters as the page's own, so an export always holds what the page lists.
-A `readAt` parameter, an ISO 8601 moment read with `logReadAtSchema`, leaves out entries written after it: Purge's "Export these first" sends the moment the page's counts were read, so its file holds what the purge would delete.
+The route reads them with `logFiltersFromParams`, which reads them through `logFiltersSchema` as the page does, and `logExportHref` in `src/features/logs/lib/log-links.ts` writes the address from the same filters as the page's own, so an export always holds what the page lists.
+A `readAt` parameter, an ISO 8601 moment read with `logReadAtSchema`, leaves out entries written after it.
+The Export menu and Purge's "Export these first" both send the moment the page's counts were read, so the file holds the entries the page counted, and for a purge the ones it would delete.
 An unreadable `readAt` is ignored, as an unknown filter is, and every match is exported.
 
 - **Both formats hold the same six fields:** `time`, the ISO 8601 timestamp in UTC, then `kind`, `level`, `event`, `message` and `detail`.
@@ -279,6 +299,8 @@ The deletion itself runs against the real table in `test/integration/log-retenti
 `test/server/log-export.test.ts` hands `exportStream` batches directly and runs the real logger for the failure entry.
 `test/app/logs-export-route.test.ts` calls the route with a `NextRequest`, with the session and the log service stood in for.
 `test/integration/logs.int.test.ts` runs `readLogBatches` against the real table.
+
+**The count of new entries** is tested the same way: `test/app/logs-new-route.test.ts` calls the route with the session and the log service stood in for, and `test/integration/logs.int.test.ts` runs `countLogsSince` against the real table.
 
 **A purge** is tested in three places too.
 `test/integration/log-purge.int.test.ts` runs `purgeLogs` against the real table with the real logger, and checks the `log.purged` entry is in the table by the time it returns.
