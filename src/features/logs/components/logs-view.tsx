@@ -12,6 +12,7 @@ import { ExportMenu } from "./export-menu";
 import { LogFilterBar } from "./log-filter-bar";
 import { LogList } from "./log-list";
 import { LogPager } from "./log-pager";
+import { NewEntriesNotice } from "./new-entries-notice";
 import { PurgeDialog } from "./purge-dialog";
 import { RetentionCard } from "./retention-card";
 
@@ -58,6 +59,8 @@ export function LogsView({
       <RetentionCard status={retention} now={now} />
 
       <LogFilterBar page={page} filters={filters} />
+
+      <NewEntriesNotice filters={filters} readAt={page.readAt} page={page.page} />
 
       {page.entries.length > 0 ? (
         <LogList entries={page.entries} now={now} needle={normaliseQuery(filters.q)} />

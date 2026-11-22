@@ -22,7 +22,9 @@ export function LogList({
   needle: string;
 }) {
   return (
-    <div className="bg-card overflow-hidden rounded-[13px] border">
+    // Marked so the new-entries notice can find the first entry, to move focus
+    // there once Show brings the new entries in.
+    <div data-log-list="" className="bg-card overflow-hidden rounded-[13px] border">
       <div
         aria-hidden
         className={cn(

@@ -60,3 +60,15 @@ export function logExportHref(
   if (readAt !== undefined) params.set("readAt", readAt);
   return `/api/logs/export?${params}`;
 }
+
+/** Writes the address the Logs page asks how many entries have been written since it read its counts.
+ *
+ * @param filters The filters the count follows. A page, if given, is ignored.
+ * @param readAt When the page's counts were read, as an ISO 8601 timestamp.
+ * @returns The address, such as `/api/logs/new?level=error&readAt=2026-11-20T08%3A15%3A42.123Z`.
+ */
+export function logNewCountHref(filters: LogNarrowing, readAt: string): string {
+  const params = filterParams(filters);
+  params.set("readAt", readAt);
+  return `/api/logs/new?${params}`;
+}
