@@ -90,7 +90,7 @@ It has no effect on `next build` or on the production image, and nothing checks 
 
 The `Dockerfile` sets these from the `VERSION` and `REVISION` build arguments CI passes, the same values as the image's labels.
 A plain `docker build` gives `dev` and `unknown`, and outside Docker they are unset, which the start-up entry also reports as `dev` and `unknown`.
-They are named apart from `VECTA_VERSION`, which Compose reads to choose the image tag to pull and the app never sees.
+They are named apart from `VECTA_VERSION`, `VECTA_DATA_VOLUME` and `VECTA_DB_VOLUME`, which Compose reads to choose the image tag to pull and the volumes to mount, and the app never sees.
 
 ## How boot-time validation works
 

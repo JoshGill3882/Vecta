@@ -44,6 +44,11 @@ Internal refactors that change nothing observable are not listed.
 
 ### Changed
 
+- **Check your data volume's name before you upgrade.** The compose files named the volume holding your database after the folder you ran them from, as `<folder>_app-data`, so moving or renaming that folder started the app on a new, empty database.
+  It is now always `vecta_app-data`, and `VECTA_DATA_VOLUME` in `.env` names another.
+  If `docker volume ls` shows yours under a different name, set `VECTA_DATA_VOLUME` to it and download the current compose file before you pull, or the app starts with no tasks while your data waits in the old volume; the README's upgrade notes go through it.
+  A second install on the same host now needs a `VECTA_DATA_VOLUME` of its own, or both open the same database.
+  The Postgres service in the compose files gets the same treatment, with `VECTA_DB_VOLUME`
 - **A new, flat Vecta logo**, drawn as clean shapes without the glow, in the top bar, on the login screen and on every icon.
   It always sits on the app's dark background, so the browser tab icon looks the same in a light or dark browser, and the tab icon draws it smaller on its dark rounded tile, so it sits lightly among other tabs rather than as a dark square.
   The desktop icon, which was small and looked off-centre, is now a rounded tile the logo fills, and the phone and iPhone home-screen icons show it larger
