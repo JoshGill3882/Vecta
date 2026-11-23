@@ -114,7 +114,18 @@ services:
 volumes:
   # Holds the SQLite database. This is the thing to back up on the default
   # path — stop the stack first so no write is in flight.
+  #
+  # Named explicitly because Compose would otherwise prefix the volume with the
+  # project name, which defaults to the folder this file is run from: moving or
+  # renaming that folder would start the app on a new, empty volume while the
+  # data stayed behind in the old one. The name keeps its project prefix so an
+  # install made from a folder called `vecta` already matches it.
+  # VECTA_DATA_VOLUME points at a volume made under any other name, and gives a
+  # second install on the same host a volume of its own.
   app-data:
+    name: ${VECTA_DATA_VOLUME:-vecta_app-data}
 
   # ── PostgreSQL opt-in (3 of 3) ──────────────────────────────────────────────
+  # Named for the same reason as `app-data`, overridden by VECTA_DB_VOLUME.
   # db-data:
+  #   name: ${VECTA_DB_VOLUME:-vecta_db-data}
