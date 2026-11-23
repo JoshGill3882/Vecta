@@ -124,6 +124,8 @@ Set them in `.env`, which both compose files load.
 | `LOG_LEVEL`         | no                | `info`                  | Least severe server entry logged: `debug`, `info`, `warn` or `error`. Any other value stops the app starting.              |
 | `TZ`                | no                | `UTC`                   | The server's time zone, such as `Europe/London`. Sets when old log entries are cleared and how the Logs page writes times. |
 | `VECTA_VERSION`     | no                | `latest`                | Image tag to run. Pre-built image path only.                                                                               |
+| `VECTA_DATA_VOLUME` | no                | `vecta_app-data`        | Docker volume holding the SQLite database. Set it for an existing volume of another name, or a second install on one host. |
+| `VECTA_DB_VOLUME`   | no                | `vecta_db-data`         | Docker volume holding the optional Postgres service's data, for the same reasons.                                          |
 | `POSTGRES_PASSWORD` | if using Postgres | —                       | Password for the optional Postgres service in the compose files.                                                           |
 
 ### Using PostgreSQL instead of SQLite
@@ -155,8 +157,8 @@ The session cookie is `httpOnly` and encrypted, and is marked `secure` when `NOD
 
 ## Backup and restore
 
-**SQLite (default).** Everything lives in the `app-data` volume.
-Compose prefixes volume names with the project name, which defaults to the directory you ran it from — `docker volume ls` shows the real name if yours differs from the one below.
+**SQLite (default).** Everything lives in the `vecta_app-data` volume, whichever folder you run Compose from.
+If you set `VECTA_DATA_VOLUME`, use that name in place of `vecta_app-data` below.
 
 On the pre-built image path the compose file is not named `docker-compose.yml`, so every `docker compose` command below needs `-f docker-compose.prod.yml`.
 Without it you get `no configuration file provided: not found`.
@@ -207,12 +209,48 @@ If you pinned `VECTA_VERSION` in `.env`, edit it to the version you are moving t
 Pulling without changing it re-fetches the version you are already on:
 the commands below then report `Pulled` and `Started` and leave you where you were, with nothing to indicate the upgrade did not happen.
 
+**From v1.2 or earlier, check your volume's name before you pull**, as [Coming from v1.2](#coming-from-v12) describes.
+Skipping it can start the app on a new, empty database, with your tasks left behind in the old volume.
+
 ```bash
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
 
 The container applies any new migrations on start, so no extra step is needed. **Back up first** — migrations are one-way, and downgrading to a previous image after one has run is not supported.
+
+### Coming from v1.2
+
+Up to v1.2, Compose named the data volume after the folder you ran it from, as `<folder>_app-data`.
+It is now always `vecta_app-data`, so moving or renaming the folder no longer loses your data, but an install that has been using another name has to say so once:
+
+1. **Get the current compose file.** The volume's name is set there, and `pull` updates only the image.
+   On the pre-built image path, download it again with the `curl -LO` command under [Option 1](#option-1--pre-built-image), and only that one: the second would overwrite your `.env`.
+   From a clone, `git pull`.
+2. **Find the volume your install uses:**
+
+   ```bash
+   docker volume ls --filter name=app-data
+   ```
+
+   If it is `vecta_app-data`, because your folder is called `vecta` or `Vecta`, there is nothing more to do.
+
+3. **Otherwise, add its name to `.env`**, such as `VECTA_DATA_VOLUME=myfolder_app-data`, before running the commands above.
+   If you use the compose files' Postgres service, do the same for `db-data` with `VECTA_DB_VOLUME`.
+
+If the app comes up with no tasks, run `docker compose logs app` and look for `SQLite database app.db created at file:/app/data/app.db`.
+That line means it started a new, empty database, and your data is still in the old volume.
+Run `docker compose down`, set `VECTA_DATA_VOLUME` as in step 3, and start it again; the empty `vecta_app-data` can then be removed with `docker volume rm vecta_app-data`.
+
+**Running two installs on one host?** Give each its own `VECTA_DATA_VOLUME`.
+Without one, a second install opens the same database as the first, and Compose says only this as it starts, naming the first install's folder and then the second's:
+
+```text
+volume "vecta_app-data" already exists but was created for project "vecta" (expected "other"). Use `external: true` to use an existing volume
+```
+
+After moving an install's folder the same warning is harmless, since it is the same install's volume.
+Anywhere else it means two installs are sharing one database.
 
 ### Coming from v0.1.0
 
@@ -222,9 +260,8 @@ That release was published under the project's previous name, so this one upgrad
    Skip this and `pull` re-fetches the old image and reports success.
 2. **Rename `TMS_VERSION` to `VECTA_VERSION` in `.env`.** The old name is not read by the new compose file, so a pinned version is silently ignored and you get `:latest`.
 
-**Keep your existing directory.** Compose derives the project name from the directory it runs in, and the volume name from the project — so re-cloning into `Vecta/` looks for `vecta_app-data` and creates it empty, while your data stays behind in `task-management-solution_app-data`.
-The app starts healthy with no tasks in it.
-If you would rather move, restore into the new volume using the backup steps above.
+**Point it at your existing volume.** Your data is in `task-management-solution_app-data`, so set `VECTA_DATA_VOLUME=task-management-solution_app-data` in `.env`, as [Coming from v1.2](#coming-from-v12) describes.
+Without it, the app looks for `vecta_app-data`, creates it empty and starts healthy with no tasks in it.
 
 Tags behave as follows:
 

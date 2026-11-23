@@ -344,6 +344,21 @@ The job marks everything reachable from a protected tag and sweeps only what is 
 
 → [`Dockerfile`](./Dockerfile) · [`.github/workflows/publish.yml`](./.github/workflows/publish.yml) · [`.github/workflows/prune-ghcr.yml`](./.github/workflows/prune-ghcr.yml) · [self-hosting](./README.md#self-hosting)
 
+### Names that stay fixed
+
+Some identifiers carry the product's name but are kept outside this repository, in browsers, in self-hosters' `.env` files and in Docker.
+Renaming one costs every existing install something, so they keep their names whatever the product is called, and a rename changes only what users see:
+
+| Identifier                           | Kept in                                                  | Renaming it would                                                     |
+| ------------------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `Vecta-Auth`                         | the session cookie, `src/shared/lib/session.ts`          | sign every browser out                                                |
+| `vecta_task_sort`, `vecta_collapsed` | cookies holding the task list's sort and folded sections | reset each browser's sort and folded sections                         |
+| `VECTA_*` variables                  | self-hosters' `.env` files                               | leave each setting ignored, with nothing to say so                    |
+| `vecta_app-data`, `vecta_db-data`    | Docker volume names, set in both compose files           | start every install on a new, empty volume, with its data left behind |
+
+The image path, `ghcr.io/joshgill3882/vecta`, is the exception: it has to move with a rename, because it is where the image is published.
+An install picks up a new path by replacing its compose file, which loses it nothing.
+
 ---
 
 ## Testing
