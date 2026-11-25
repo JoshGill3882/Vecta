@@ -9,6 +9,11 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-25
+
+Logging: a record of what goes wrong on the server and what changes in your data, and a Logs page to read, search, export and clear it.
+Check your data volume's name before upgrading; see **Changed**.
+
 ### Added
 
 - **Clearer server logs.** The container's output now has one JSON line per entry, with its time, kind, level, event and message.
@@ -197,7 +202,8 @@ Either keep the old directory name, or pass `-p task-management-solution` to `do
 - Login attempts are rate-limited, and the password comparison is timing-safe
 - The post-login redirect only accepts same-origin absolute paths
 
-[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v1.2.0...main
+[unreleased]: https://github.com/JoshGill3882/Vecta/compare/v1.3.0...main
+[1.3.0]: https://github.com/JoshGill3882/Vecta/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/JoshGill3882/Vecta/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/JoshGill3882/Vecta/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/JoshGill3882/Vecta/compare/v0.1.0...v1.0.0

@@ -13,14 +13,8 @@ There are no dates — [see below](#why-there-are-no-dates).
 ## Next
 
 Scheduled: each item here has a milestone and issues.
-They are tracked in the [v1.3](https://github.com/JoshGill3882/Vecta/milestone/11) and [v1.4](https://github.com/JoshGill3882/Vecta/milestone/12) milestones.
+They are tracked in the [v1.4](https://github.com/JoshGill3882/Vecta/milestone/12) milestone.
 
-- **Logging, and a record of what changed.** When something goes wrong on the server, the app says "Something went wrong" and nothing is kept that says why.
-  Server errors and start-up are logged to stdout, which keeps working when the database does not, and to a table the app can read.
-  Changes to tasks and categories are recorded alongside them, so there is a history of what happened to your data and when.
-  A Logs page in the app lists the entries and searches them, and can export or clear them, while old entries age out on their own.
-  Split across [#169](https://github.com/JoshGill3882/Vecta/issues/169), [#170](https://github.com/JoshGill3882/Vecta/issues/170) and [#171](https://github.com/JoshGill3882/Vecta/issues/171), then the Logs page in [#223](https://github.com/JoshGill3882/Vecta/issues/223), [#224](https://github.com/JoshGill3882/Vecta/issues/224), [#225](https://github.com/JoshGill3882/Vecta/issues/225), [#226](https://github.com/JoshGill3882/Vecta/issues/226), [#227](https://github.com/JoshGill3882/Vecta/issues/227), [#231](https://github.com/JoshGill3882/Vecta/issues/231), [#233](https://github.com/JoshGill3882/Vecta/issues/233) and [#235](https://github.com/JoshGill3882/Vecta/issues/235).
-  In v1.3.
 - **Getting around a long list.** On a long list, changing a filter, adding a task or exporting the log means scrolling back to the top first.
   The Task list, the Logs page and the Categories page keep their heading, main buttons and filters pinned below the top bar as the list scrolls, with the list's own section and day headings pinned beneath them, and a Back to top button appears once a page is scrolled more than a screen down.
   The Categories page, the only one without a search, gains one, with a Sort menu ordering it by name or by how many tasks each category has.
