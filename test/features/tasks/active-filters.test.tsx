@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { ActiveFilters } from "@/src/features/tasks/components/toolbar/active-filters";
-import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
+import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 import type { TaskNarrowingState } from "@/src/features/tasks/hooks/use-task-narrowing";
 import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import { isNarrowing } from "@/src/features/tasks/lib/task-search";
