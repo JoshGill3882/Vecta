@@ -1,13 +1,22 @@
 "use client";
 
+import { SearchField } from "@/src/shared/components/search-field";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { CategoryFilter } from "@/src/features/tasks/components/toolbar/category-filter";
 import { DueFilter } from "@/src/features/tasks/components/toolbar/due-filter";
 import { FilterSheet } from "@/src/features/tasks/components/toolbar/filter-sheet";
-import { SearchField } from "@/src/features/tasks/components/toolbar/search-field";
 import { SortMenu } from "@/src/features/tasks/components/toolbar/sort-menu";
 import type { DueBucket } from "@/src/features/tasks/lib/due-date";
 import type { TaskSort } from "@/src/features/tasks/lib/task-sort";
+
+/** DOM id of the task list's search box.
+ *
+ * The last link in the post-delete focus chain: deleting the last match in a
+ * status drops that section while the list is narrowed, so there is no header
+ * to return to - and no empty state either, while other statuses still show
+ * results.
+ */
+export const tasksSearchFieldId = "tasks-search-field";
 
 /** The row of controls above the task list.
  *
@@ -44,7 +53,14 @@ export function TasksToolbar({
 }) {
   return (
     <div className="mb-3.5 flex items-center gap-2 min-[720px]:flex-wrap">
-      <SearchField value={query} onChange={onQueryChange} />
+      <SearchField
+        id={tasksSearchFieldId}
+        label="Search tasks"
+        placeholder="Search tasks..."
+        value={query}
+        onChange={onQueryChange}
+        slashShortcut
+      />
 
       <FilterSheet
         categories={categories}
