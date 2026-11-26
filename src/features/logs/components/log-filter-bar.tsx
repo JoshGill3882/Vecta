@@ -6,6 +6,7 @@ import { ChevronDownIcon, Clock, Funnel, Server, type LucideIcon } from "lucide-
 
 import type { LogPage } from "@/src/server/services/logs";
 import { FilterTrigger } from "@/src/shared/components/filter-trigger";
+import { SearchField } from "@/src/shared/components/search-field";
 import { Button } from "@/src/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
   isFiltered,
   LOG_LEVELS,
   LOG_RANGES,
+  LOG_SEARCH_MAX,
   LOG_SOURCES,
   NO_FILTERS,
   type LogFilters,
@@ -32,7 +34,6 @@ import { entryCount, formatCount } from "@/src/features/logs/lib/log-format";
 import { logsHref } from "@/src/features/logs/lib/log-links";
 
 import { LogFilterSheet } from "./log-filter-sheet";
-import { LogSearchField } from "./log-search-field";
 import { ANY_TIME, LEVEL_LABELS, RANGE_LABELS, SOURCE_LABELS, type LogLabel } from "./log-meta";
 
 /** How long the search waits after the last keystroke before it is sent, in milliseconds.
@@ -266,7 +267,10 @@ export function LogFilterBar({ page, filters }: { page: LogPage; filters: LogFil
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2 min-[720px]:flex-wrap">
-        <LogSearchField
+        <SearchField
+          label="Search log entries"
+          placeholder="Search messages and details..."
+          maxLength={LOG_SEARCH_MAX}
           value={text}
           onChange={search}
           onClear={() => {

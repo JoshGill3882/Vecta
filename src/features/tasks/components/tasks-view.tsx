@@ -26,8 +26,10 @@ import {
   tasksEmptyStateHeadingId,
 } from "@/src/features/tasks/components/tasks-empty-state";
 import { ActiveFilters } from "@/src/features/tasks/components/toolbar/active-filters";
-import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
-import { TasksToolbar } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
+import {
+  TasksToolbar,
+  tasksSearchFieldId,
+} from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 import { useSectionCollapse } from "@/src/features/tasks/hooks/use-section-collapse";
 import { useTaskNarrowing } from "@/src/features/tasks/hooks/use-task-narrowing";
 import { narrowTasks } from "@/src/features/tasks/lib/task-search";

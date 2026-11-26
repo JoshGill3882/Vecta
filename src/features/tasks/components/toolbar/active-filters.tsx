@@ -7,7 +7,7 @@ import { Button } from "@/src/shared/components/ui/button";
 import type { CategoryDTO } from "@/src/shared/lib/dtos/categories";
 import { cn } from "@/src/shared/lib/utils";
 import { DUE_OPTIONS } from "@/src/features/tasks/components/toolbar/due-options";
-import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/search-field";
+import { tasksSearchFieldId } from "@/src/features/tasks/components/toolbar/tasks-toolbar";
 import type { TaskNarrowingState } from "@/src/features/tasks/hooks/use-task-narrowing";
 import { DUE_BUCKETS } from "@/src/features/tasks/lib/due-date";
 import { toggled } from "@/src/shared/lib/selection";

@@ -227,8 +227,12 @@ Several things here are easy to get wrong.
 - **Match highlighting uses `indexOf`, not a `RegExp`.**
   The query is user input, so a pattern built from it would need every metacharacter escaped before it could be trusted — a search for `.*` must highlight those two characters rather than the whole title, and an unclosed `[` must not throw.
   `findMatches` (`src/shared/lib/text-search.ts`) returns index pairs into the original string, which also keeps the title's own casing in the output, and `Highlight` (`src/shared/components/highlight.tsx`) marks them.
+- **Every page's search box is the shared `SearchField`** (`src/shared/components/search-field.tsx`), so the task list's, the Logs page's and the Categories page's cannot drift apart.
+  The page holds what is typed and passes what differs: the label and hint, a `maxLength`, a clear of its own (the Logs page's sends the cleared search at once), and `slashShortcut` for the `/` key.
+  Its clear button and Escape both empty the box and leave focus in it, since the clear button disappears once pressed and focus would otherwise fall to `<body>`.
+  Escape in an empty box steps out of it instead, and only an Escape that clears is kept from the rest of the page, so once the box is empty the key still closes whatever else it would close.
 - **A global key shortcut must not fire mid-typing.**
-  `/` focuses the search field, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
+  `/` focuses the search field on the pages that ask for it, so the handler ignores the key when the event's target is already a field (`input`, `textarea`, `select`, `[contenteditable]`), when a modifier is held, and when `isComposing` is set — an IME composing a character emits keystrokes that are input, not commands.
 - **Every narrowing control answers to one predicate.**
   `isNarrowing` in `src/features/tasks/lib/task-search.ts` is what the rules key off - sections forced open, empty sections dropped, the subtitle switching to "n of m".
   None of those rules is about search, so none of them should test a query directly.
@@ -269,6 +273,21 @@ Several things here are easy to get wrong.
 Do **not** debounce the input.
 Filtering an array already in memory is sub-millisecond; a debounce would only add latency the user can feel.
 
+## Searching the Categories page
+
+The Categories page is searched **in the browser**, like the task list and for the same reason: `app/(app)/categories/page.tsx` already hands `CategoriesView` every category, so a search costs no request and needs no debounce.
+Nothing of it reaches the URL or the server, and leaving the page forgets it.
+
+- **The matching lives in `src/features/categories/lib/category-search.ts`**, as the task list's lives in `task-search.ts`, so its cases are tested by calling `narrowCategories` rather than by rendering the page.
+- **The category being edited stays in the list until its editor closes**, whatever its name now says.
+  `narrowCategories` is handed the editing id and keeps that category, so a rename that no longer matches cannot pull the form out from under the reader.
+  The count under the heading includes it, so the number always agrees with the rows on screen.
+- **Creating a category empties the search**, so the new one is in view whatever its name.
+  The editor calls the view's `onDone` from an effect, so the handler that clears the search is a `useCallback`, as `closeEditors` is: a new function on each render would re-run that effect.
+- **The count is announced** as the task list's is: the line under the heading is always mounted with `role="status"`, and only its text changes.
+- **A search that matches nothing says so inside the list's card**, naming the search, with a Clear search button that sends focus back to the box, since the button disappears once pressed.
+- **The chip marks the match** through its `needle` prop, with the same `Highlight` the task cards and log rows use, so the name keeps the chip's colour and still reads as one string.
+
 ## The Logs page
 
 The Logs page (`src/features/logs/`) is narrowed **on the server, with its filters in the URL**: the opposite of the task list, for the opposite reason.
@@ -293,7 +312,7 @@ Between the filters and the list, a notice says when entries matching the filter
   `isFiltered` in `src/shared/lib/schemas/logs.ts` is what the count line, Clear filters, Export, Purge and the purge's schema all ask, so they agree, and a new filter is added there once.
 - **The search is sent once typing pauses**, 300ms after the last keystroke, unlike the task list's, because each change here is a request to the server rather than a filter over memory.
   It replaces the address rather than adding to the history, so the back button steps past a search instead of back through it a word at a time; the menus still push.
-  What is typed is held in `LogFilterBar`, not in the box (`log-search-field.tsx`), so a menu picked while a search is waiting sends both and cancels the wait.
+  What is typed is held in `LogFilterBar`, not in the shared `SearchField`, so a menu picked while a search is waiting sends both and cancels the wait.
   The box follows the address when something else changes the search, such as the back button or the empty state's Clear filters, by comparing the search it last saw in the component body, as the task list's collapse reset does.
   It holds off while a search of its own is waiting or loading, which would lose what was typed since, and ignores a difference of spaces at the ends, which the address trims.
   The clear button and Escape both clear the box and leave focus in it.

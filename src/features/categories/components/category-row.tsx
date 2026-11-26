@@ -24,11 +24,14 @@ import { deleteCategoryAction } from "@/src/features/categories/actions";
 export function CategoryRow({
   category,
   taskCount,
+  needle,
   onEdit,
   onDeleted,
 }: {
   category: CategoryDTO;
   taskCount: number;
+  /** The page's search, already normalised, to mark in the name. Empty marks nothing. */
+  needle: string;
   onEdit: () => void;
   /** Fired after a successful delete.
    *
@@ -59,7 +62,12 @@ export function CategoryRow({
 
   return (
     <div className="border-border/60 hover:bg-surface-2/60 flex items-center gap-3 border-b px-4 py-[13px] transition-colors last:border-b-0">
-      <CategoryChip name={category.name} color={category.color} className="min-w-0" />
+      <CategoryChip
+        name={category.name}
+        color={category.color}
+        needle={needle}
+        className="min-w-0"
+      />
       <span className="flex-1" />
       <span className="text-text-faint shrink-0 text-[12.5px] whitespace-nowrap">
         {taskCount} {taskCount === 1 ? "task" : "tasks"}

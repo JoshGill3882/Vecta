@@ -1,3 +1,4 @@
+import { Highlight } from "@/src/shared/components/highlight";
 import { cn } from "@/src/shared/lib/utils";
 
 /** A category as a GitHub-style label: dot and name in a pill tinted by its own colour.
@@ -12,10 +13,13 @@ import { cn } from "@/src/shared/lib/utils";
 export function CategoryChip({
   name,
   color,
+  needle = "",
   className,
 }: {
   name: string;
   color: string;
+  /** A search to mark in the name, already normalised by `normaliseQuery`. Empty marks nothing. */
+  needle?: string;
   className?: string;
 }) {
   return (
@@ -31,7 +35,9 @@ export function CategoryChip({
       {/* Truncates only when a parent lets the chip shrink (min-w-0); elsewhere
           the chip is as wide as its name. The padding/negative margin pair gives
           descenders room inside the clip without changing the chip's height. */}
-      <span className="-my-0.5 truncate py-0.5">{name}</span>
+      <span className="-my-0.5 truncate py-0.5">
+        <Highlight text={name} needle={needle} />
+      </span>
     </span>
   );
 }
