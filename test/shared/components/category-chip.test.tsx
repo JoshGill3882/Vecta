@@ -31,4 +31,26 @@ describe("CategoryChip", () => {
 
     expect(screen.getByTitle("Infrastructure").className).toContain("min-w-0");
   });
+
+  it("marks nothing without a search", () => {
+    const { container } = render(<CategoryChip name="Infrastructure" color="#3b9eff" />);
+
+    expect(container.querySelector("mark")).toBeNull();
+  });
+
+  it("marks each place the search falls in the name, keeping the name's case", () => {
+    const { container } = render(
+      <CategoryChip name="Backend and frontend" color="#3b9eff" needle="end" />
+    );
+
+    const marks = [...container.querySelectorAll("mark")].map((mark) => mark.textContent);
+    expect(marks).toEqual(["end", "end"]);
+  });
+
+  it("still reads as one name, with the full name on its hover title, while marked", () => {
+    render(<CategoryChip name="Infrastructure" color="#3b9eff" needle="struct" />);
+
+    const chip = screen.getByTitle("Infrastructure");
+    expect(chip.textContent).toBe("Infrastructure");
+  });
 });
