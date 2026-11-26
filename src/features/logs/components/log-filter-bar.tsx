@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { ChevronDownIcon, Clock, Funnel, Server, type LucideIcon } from "lucide-react";
 
 import type { LogPage } from "@/src/server/services/logs";
-import { SearchField } from "@/src/shared/components/search-field";
 import { FilterTrigger } from "@/src/shared/components/filter-trigger";
+import { SearchField } from "@/src/shared/components/search-field";
 import { Button } from "@/src/shared/components/ui/button";
 import {
   DropdownMenu,
