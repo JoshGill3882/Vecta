@@ -9,6 +9,21 @@ Internal refactors that change nothing observable are not listed.
 
 ## [Unreleased]
 
+### Added
+
+- **Search the Categories page by name.** Once there is a category, a search box below the heading narrows the list as you type, ignoring case, and marks what it matched in each name.
+  The line under the heading says how many categories match, such as "3 of 12 categories", and a search that matches nothing says so, with a **Clear search** button.
+  `/` jumps to the box from anywhere on the page, as on the task list, and creating a category empties the search, so the new one is in view
+
+### Changed
+
+- **Escape in an empty search box on the Logs page now steps out of the box**, as it already did on the task list
+
+### Fixed
+
+- **Clearing the task list's search with its clear button lost your place**: the button disappeared under the pointer and took focus with it, so a keyboard or screen-reader user was sent back to the top of the page.
+  Focus now stays in the box, as on the Logs page, and a long search no longer runs underneath the button
+
 ## [1.3.0] - 2026-11-25
 
 Logging: a record of what goes wrong on the server and what changes in your data, and a Logs page to read, search, export and clear it.
